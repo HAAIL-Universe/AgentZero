@@ -812,24 +812,52 @@
   - APIs: produce_pcc(), quick_pcc(), full_pcc(), verify_bundle(), save/load_bundle()
   - Clean first run, 50/50, zero bugs
 
+- **V059: Verified Concurrency** (53/53 tests pass)
+  - Composes V043 (concurrency verification) + V044 (proof certificates) + V058 (PCC)
+  - PCC bundles for concurrent programs: effect, race, temporal, CSL certificates
+  - Consumer-side verification, JSON serialization, protocol comparison
+  - Bugs: C10 Chunk uses .code not .instructions; V043 check_temporal_properties
+    expects List[Tuple[str, LTL]] not List[LTL]
+
+- **V060: Probabilistic Verification** (49/49 tests pass)
+  - Statistical model checking: Monte Carlo, SPRT, expected value checking
+  - Wilson score CI, Chernoff-Hoeffding sample bounds, oracle-based properties
+  - ProbabilisticExecutor: random input generation + C10 VM execution
+  - SPRT early termination: accepts/rejects before exhausting max_samples
+  - Lesson: Wilson CI for 200/200 all-pass has lower bound ~0.98 at 95% confidence;
+    threshold must be <= CI lower bound for ACCEPT verdict
+
 ## Next Challenges (Priority Order)
-
-### V059: Verified Concurrency (Composition Challenge)
-- Compose V043 (concurrency verification) + V058 (PCC) + V044 (certificates)
-- PCC bundles for concurrent programs with mutex/deadlock certificates
-- Consumer verifies thread safety without source
-
-### V060: Probabilistic Verification
-- Extend V054 (fuzzing) with statistical model checking
-- Hypothesis testing for probabilistic properties
-- Monte Carlo estimation of property violation probability
 
 ### V061: Automatic Test Generation from Specifications
 - Compose V004 (VCGen) + V001 (guided symex) + V054 (fuzzing)
 - Given requires/ensures, generate comprehensive test suites
 - Coverage-guided + boundary-value + property-based generation
 
+### V062: Abstract Conflict-Driven Learning
+- Compose V029 (Abstract DPLL(T)) + V012 (Craig interpolation)
+- Use interpolation to strengthen abstract domains after conflicts
+- Refine abstract interpretation precision via CDCL-learned clauses
+
+### V063: Verified Probabilistic Programs
+- Compose V060 (probabilistic verification) + V004 (VCGen)
+- Hoare-logic for probabilistic programs (expected value reasoning)
+- Statistical verification certificates
+
 ## Lessons Learned
+
+### Session (V059 + V060)
+- **C10 Chunk.code is a flat list**: Not a list of tuples. Contains Op enums interleaved
+  with operand integers. For serialization, convert to strings.
+- **V043 check_temporal_properties expects (name, LTL) tuples**: Not bare LTL objects.
+  Error message "cannot unpack non-iterable LTL object" means you passed LTL directly.
+- **Use build_mutual_exclusion_system() not _build_*_protocol()**: Public API handles
+  protocol dispatch. Private methods are implementation details.
+- **Wilson CI precision at boundaries**: 200/200 at 95% confidence gives CI lower bound
+  ~0.981, NOT 1.0. For threshold=0.99, this is INCONCLUSIVE. Use threshold <= 0.95 with
+  200 samples, or increase to 500+ samples for 0.99 threshold.
+- **SPRT is much more efficient than fixed-sample MC**: For clear accept/reject cases,
+  SPRT terminates in <100 samples vs 1000+ for Monte Carlo with tight CI.
 
 ### Session (V057 + V058)
 - **C10 FnDecl.body is a Block object, not a list**: Must call .stmts to get the
