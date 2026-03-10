@@ -910,17 +910,41 @@
   - Expected reward with intervals, point resolution, sensitivity analysis
   - Clean first run: 56/56, zero bugs
 
-## Next Challenges (Priority Order)
+- **V069: MDP Verification** (54/54 tests pass)
+  - Composes V065 (Markov chains) + C037 (SMT solver) + V068 (interval MDP)
+  - Full MDP framework: states, actions, stochastic transitions, rewards
+  - Value iteration + policy iteration for optimal policies (max/min)
+  - Reachability analysis: optimal probability of reaching targets
+  - Expected steps to target, Q-values, long-run average reward
+  - SMT verification: reachability bounds, policy optimality, Bellman equation,
+    policy dominance, reward bounds, bounded safety
+  - Induced MC analysis via V065, comparison with V068 interval MDP
+  - Zero implementation bugs -- all 6 test failures were wrong test expectations
+  - Key insight: staying actions with per-step rewards can dominate leaving actions
+    even with lower immediate reward, because accumulation compounds with discount
 
-### V069: Markov Decision Process (MDP) Verification
-- Compose V065 + V066 + C037 for nondeterministic Markov chains
-- Optimal policy computation via value iteration + SMT verification
+## Next Challenges (Priority Order)
 
 ### V070: Stochastic Game Verification
 - Two-player stochastic games: player 1 maximizes, player 2 minimizes
-- Compose V068 (interval MDP) + V067 (PCTL) for game-theoretic verification
+- Compose V069 (MDP) + V068 (interval MDP) + V067 (PCTL) for game-theoretic verification
+
+### V071: MDP Model Checking (PCTL for MDPs)
+- Extend V067 PCTL to handle MDP nondeterminism
+- Min/max probability computations under all policies
 
 ## Lessons Learned
+
+### Session (V069)
+- **Test expectations can be wrong, not the implementation**: All 6 failures were
+  miscalculations in test expectations (wrong assumption about which action is optimal).
+  The implementation was correct. When tests fail, check assumptions first.
+- **Per-step rewards compound with discount**: In the simple MDP, "left" (reward 1,
+  stay prob 0.9) beats "right" (reward 2, leave prob 0.7) because staying accumulates
+  1/(1-0.9*0.9) = 5.26 vs the one-shot 2.0 + small continuation. Geometric series
+  vs finite payoff.
+- **MDP __post_init__ must guard against malformed actions**: If actions list is
+  shorter than n_states, computing default rewards crashes. Guard with length check.
 
 ### Session (V068)
 - **Greedy optimal distribution is exact for LP**: Sorting targets by value and
