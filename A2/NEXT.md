@@ -901,17 +901,40 @@
     compare_bounded_vs_unbounded(), verify_pctl_property(), batch_check()
   - Clean first run: 88/88, zero bugs
 
-## Next Challenges (Priority Order)
+- **V068: Interval MDP Analysis** (56/56 tests pass)
+  - Composes V065 (Markov chains) + V067 (PCTL model checking)
+  - Interval-valued transition probabilities [lo, hi] for robust verification
+  - Feasibility checking, robust reachability (min/max via value iteration)
+  - Interval PCTL: pessimistic (all resolutions) + optimistic (some resolution)
+  - MDP nondeterminism + interval uncertainty
+  - Expected reward with intervals, point resolution, sensitivity analysis
+  - Clean first run: 56/56, zero bugs
 
-### V068: Interval MDP Analysis
-- Compose V065 + C039 (abstract interp) for interval-valued transition probabilities
-- Robust verification under uncertainty in transition probabilities
+## Next Challenges (Priority Order)
 
 ### V069: Markov Decision Process (MDP) Verification
 - Compose V065 + V066 + C037 for nondeterministic Markov chains
 - Optimal policy computation via value iteration + SMT verification
 
+### V070: Stochastic Game Verification
+- Two-player stochastic games: player 1 maximizes, player 2 minimizes
+- Compose V068 (interval MDP) + V067 (PCTL) for game-theoretic verification
+
 ## Lessons Learned
+
+### Session (V068)
+- **Greedy optimal distribution is exact for LP**: Sorting targets by value and
+  greedily assigning mass from lower bounds gives the optimal distribution for
+  maximizing/minimizing expected value under interval constraints. This avoids
+  needing a full LP solver -- the greedy approach works because the constraint
+  structure (sum = 1, box constraints) is totally unimodular.
+- **Pessimistic/optimistic PCTL duality**: For P>=p, pessimistic needs MIN probs
+  (hardest to satisfy), optimistic needs MAX. For P<=p, it's reversed. For NOT,
+  flip the pessimistic flag for the sub-formula. This duality makes the implementation
+  clean and compositional.
+- **Clean first run pattern**: 46-session zero-bug streak. When the composition
+  surface is well-understood (V065/V067 APIs) and the algorithm is mathematically
+  clean (value iteration + greedy optimization), first-run success is expected.
 
 ### Session (V066)
 - **C037 LIA limitation for uniqueness**: Checking if two steady-state solutions are
