@@ -139,7 +139,7 @@ class ThreadPayload:
     def to_dict(self) -> dict:
         return {
             "thread_id": self.thread_id,
-            "instructions": [list(i) for i in self.instructions],
+            "instructions": [str(i) for i in self.instructions],
             "constants": self.constants,
             "source_hash": self.source_hash,
         }
@@ -148,7 +148,7 @@ class ThreadPayload:
     def from_dict(d: dict) -> 'ThreadPayload':
         return ThreadPayload(
             thread_id=d["thread_id"],
-            instructions=[tuple(i) for i in d["instructions"]],
+            instructions=d["instructions"],
             constants=d["constants"],
             source_hash=d["source_hash"],
         )
@@ -226,9 +226,11 @@ def _compile_thread(thread: ThreadSpec) -> ThreadPayload:
     compiler = Compiler()
     chunk = compiler.compile(ast)
     source_hash = hashlib.sha256(thread.source.encode()).hexdigest()
+    # C10 Chunk uses .code (list of Op enums + operands) and .constants
+    instructions = [(str(op) if hasattr(op, 'name') else op) for op in chunk.code]
     return ThreadPayload(
         thread_id=thread.thread_id,
-        instructions=chunk.instructions,
+        instructions=instructions,
         constants=chunk.constants,
         source_hash=source_hash,
     )
@@ -381,26 +383,22 @@ def _generate_temporal_certificate(
 
     try:
         builder = ConcurrentSystemBuilder(n_threads=n_threads)
+        state_vars, init_fn, trans_fn = builder.build_mutual_exclusion_system(
+            n_threads=n_threads, protocol=protocol,
+        )
 
-        if protocol == "lock":
-            state_vars, init_fn, trans_fn = builder._build_lock_protocol(n_threads)
-        elif protocol == "flag":
-            state_vars, init_fn, trans_fn = builder._build_flag_protocol(n_threads)
-        else:
-            state_vars, init_fn, trans_fn = builder._build_no_protocol(n_threads)
-
-        ltl_props = []
+        ltl_props = []  # List of (name, LTL) tuples as check_temporal_properties expects
         prop_names = []
         for prop_str in properties:
             if prop_str == "mutual_exclusion":
-                ltl_props.append(mutual_exclusion_property(n_threads))
+                ltl_props.append(("mutual_exclusion", mutual_exclusion_property(n_threads)))
                 prop_names.append("mutual_exclusion")
             elif prop_str == "deadlock_freedom":
-                ltl_props.append(deadlock_freedom_property(n_threads))
+                ltl_props.append(("deadlock_freedom", deadlock_freedom_property(n_threads)))
                 prop_names.append("deadlock_freedom")
             elif prop_str.startswith("starvation_freedom_"):
                 tid = int(prop_str.split("_")[-1])
-                ltl_props.append(starvation_freedom_property(tid))
+                ltl_props.append((prop_str, starvation_freedom_property(tid)))
                 prop_names.append(prop_str)
 
         results = check_temporal_properties(
