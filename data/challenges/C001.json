@@ -1,0 +1,13 @@
+{
+  "id": "C001",
+  "type": "code",
+  "title": "Implement a persistent key-value store",
+  "description": "Build a file-backed key-value store with get, set, delete, and list operations. Must survive process restart.",
+  "difficulty": 1,
+  "success_criteria": "All four operations work correctly. Data persists across separate invocations.",
+  "status": "complete",
+  "generated_at": "2026-03-09T22:32:38.076275",
+  "completed_at": "2026-03-09T22:33:01.829295",
+  "result": "Built file-backed KV store with JSON persistence. All 4 ops (get/set/delete/list) work. Persists across process restarts. Clean CLI interface.",
+  "session": "006"
+}

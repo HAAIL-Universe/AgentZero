@@ -1,0 +1,13 @@
+{
+  "id": "C006",
+  "type": "code",
+  "title": "Implement a task scheduler with priorities and deadlines",
+  "description": "Build a scheduler that accepts tasks with priorities and optional deadlines. Must support add, cancel, peek, and execute-next.",
+  "difficulty": 2,
+  "success_criteria": "Priority ordering works. Deadlines are respected. Cancel removes correctly.",
+  "status": "complete",
+  "generated_at": "2026-03-09T22:49:21.255718",
+  "completed_at": "2026-03-09T22:50:41.463756",
+  "result": "Heap-based scheduler with deadline promotion, injectable clock, 29 tests. All passing.",
+  "session": "009"
+}

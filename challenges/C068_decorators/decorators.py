@@ -1,0 +1,7856 @@
+"""
+Traits
+Challenge C067 -- AgentZero Session 068
+
+Adds trait support to the VM language:
+- trait Name { fn required(); fn default_method() { return 42; } }
+- trait Child < Parent { ... } -- trait inheritance
+- class Foo implements Trait1, Trait2 { ... } -- class implements traits
+- instanceof checks traits too (walks class trait list)
+- Missing required methods = VMError at class creation time
+- Default methods from traits are injected into ClassObject if not overridden
+- Traits can be exported: export trait Foo { ... }
+
+Extends C066 (VM Dispatch Refactor) with trait system.
+"""
+
+from enum import IntEnum, auto
+from dataclasses import dataclass, field
+from typing import Any
+
+
+# ============================================================
+# Instruction Set
+# ============================================================
+
+class Op(IntEnum):
+    # Stack
+    CONST = auto()
+    POP = auto()
+    DUP = auto()
+
+    # Arithmetic
+    ADD = auto()
+    SUB = auto()
+    MUL = auto()
+    DIV = auto()
+    MOD = auto()
+    NEG = auto()
+
+    # Comparison
+    EQ = auto()
+    NE = auto()
+    LT = auto()
+    GT = auto()
+    LE = auto()
+    GE = auto()
+
+    # Logic
+    NOT = auto()
+    AND = auto()
+    OR = auto()
+
+    # Variables
+    LOAD = auto()
+    STORE = auto()
+
+    # Control flow
+    JUMP = auto()
+    JUMP_IF_FALSE = auto()
+    JUMP_IF_TRUE = auto()
+
+    # Functions
+    CALL = auto()
+    RETURN = auto()
+
+    # I/O
+    PRINT = auto()
+
+    # Halt
+    HALT = auto()
+
+    # Closures (from C041)
+    MAKE_CLOSURE = auto()
+
+    # Arrays (from C042)
+    MAKE_ARRAY = auto()
+    INDEX_GET = auto()
+    INDEX_SET = auto()
+
+    # Hash maps (from C043)
+    MAKE_HASH = auto()
+
+    # Iteration (from C044)
+    ITER_PREPARE = auto()
+    ITER_LENGTH = auto()
+
+    # Error handling (from C045)
+    SETUP_TRY = auto()
+    POP_TRY = auto()
+    THROW = auto()
+
+    # Generators (C047)
+    YIELD = auto()
+
+    # Spread (C050)
+    ARRAY_SPREAD = auto()
+    HASH_SPREAD = auto()
+    CALL_SPREAD = auto()
+
+    # Classes (C052)
+    MAKE_CLASS = auto()
+    LOOKUP_METHOD = auto()
+    SUPER_INVOKE = auto()
+
+    # Null coalescing (C054)
+    NULL_COALESCE = auto()
+
+    # Finally blocks (C055)
+    SETUP_FINALLY = auto()
+    POP_FINALLY = auto()
+    END_FINALLY = auto()
+
+    # Async/Await (C056)
+    AWAIT = auto()
+
+    # Async iteration (C065)
+    ASYNC_ITER_NEXT = auto()
+
+    # C067: Traits
+    MAKE_TRAIT = auto()
+    IMPL_TRAITS = auto()
+
+
+# ============================================================
+# Bytecode
+# ============================================================
+
+@dataclass
+class Chunk:
+    code: list = field(default_factory=list)
+    constants: list = field(default_factory=list)
+    names: list = field(default_factory=list)
+    lines: list = field(default_factory=list)
+
+    def emit(self, op, operand=None, line=0):
+        addr = len(self.code)
+        self.code.append(op)
+        self.lines.append(line)
+        if operand is not None:
+            self.code.append(operand)
+            self.lines.append(line)
+        return addr
+
+    def add_constant(self, value):
+        for i, c in enumerate(self.constants):
+            if c is value or (type(c) == type(value) and c == value):
+                return i
+        self.constants.append(value)
+        return len(self.constants) - 1
+
+    def add_name(self, name):
+        if name in self.names:
+            return self.names.index(name)
+        self.names.append(name)
+        return len(self.names) - 1
+
+    def patch(self, addr, value):
+        self.code[addr] = value
+
+
+# ============================================================
+# Tokens
+# ============================================================
+
+class TokenType(IntEnum):
+    INT = auto()
+    FLOAT = auto()
+    STRING = auto()
+    TRUE = auto()
+    FALSE = auto()
+    NULL = auto()
+    IDENT = auto()
+
+    PLUS = auto()
+    MINUS = auto()
+    STAR = auto()
+    SLASH = auto()
+    PERCENT = auto()
+    EQ = auto()
+    NE = auto()
+    LT = auto()
+    GT = auto()
+    LE = auto()
+    GE = auto()
+    ASSIGN = auto()
+    NOT = auto()
+    AND = auto()
+    OR = auto()
+
+    LPAREN = auto()
+    RPAREN = auto()
+    LBRACE = auto()
+    RBRACE = auto()
+    LBRACKET = auto()
+    RBRACKET = auto()
+    COMMA = auto()
+    SEMICOLON = auto()
+    COLON = auto()
+    DOT = auto()
+
+    LET = auto()
+    IF = auto()
+    ELSE = auto()
+    WHILE = auto()
+    FN = auto()
+    RETURN = auto()
+    PRINT = auto()
+    FOR = auto()
+    IN = auto()
+    BREAK = auto()
+    CONTINUE = auto()
+    TRY = auto()
+    CATCH = auto()
+    THROW = auto()
+    FINALLY = auto()
+
+    # C046 module system
+    IMPORT = auto()
+    EXPORT = auto()
+    FROM = auto()
+
+    # C047 generators
+    YIELD = auto()
+
+    # C048 destructuring
+    DOTDOTDOT = auto()
+
+    # C049 string interpolation
+    FSTRING = auto()
+
+    # C051 pipe operator
+    PIPE = auto()
+
+    # C052 classes
+    CLASS = auto()
+    SUPER = auto()
+
+    # C053 optional chaining
+    QUESTION_DOT = auto()
+
+    # C054 null coalescing
+    QUESTION_QUESTION = auto()
+    QUESTION_QUESTION_ASSIGN = auto()
+
+    # C056 async/await
+    ASYNC = auto()
+    AWAIT = auto()
+
+    # C060 enums
+    ENUM = auto()
+
+    # C067 traits
+    TRAIT = auto()
+    IMPLEMENTS = auto()
+
+    # C068 decorators
+    AT = auto()
+
+    EOF = auto()
+
+
+@dataclass
+class Token:
+    type: TokenType
+    value: Any
+    line: int
+
+
+KEYWORDS = {
+    'let': TokenType.LET,
+    'if': TokenType.IF,
+    'else': TokenType.ELSE,
+    'while': TokenType.WHILE,
+    'fn': TokenType.FN,
+    'return': TokenType.RETURN,
+    'print': TokenType.PRINT,
+    'true': TokenType.TRUE,
+    'false': TokenType.FALSE,
+    'null': TokenType.NULL,
+    'and': TokenType.AND,
+    'or': TokenType.OR,
+    'not': TokenType.NOT,
+    'for': TokenType.FOR,
+    'in': TokenType.IN,
+    'break': TokenType.BREAK,
+    'continue': TokenType.CONTINUE,
+    'try': TokenType.TRY,
+    'catch': TokenType.CATCH,
+    'throw': TokenType.THROW,
+    'finally': TokenType.FINALLY,
+    # C046
+    'import': TokenType.IMPORT,
+    'export': TokenType.EXPORT,
+    'from': TokenType.FROM,
+    # C047
+    'yield': TokenType.YIELD,
+    # C052
+    'class': TokenType.CLASS,
+    'super': TokenType.SUPER,
+    # C056
+    'async': TokenType.ASYNC,
+    'await': TokenType.AWAIT,
+    # C060
+    'enum': TokenType.ENUM,
+    # C067
+    'trait': TokenType.TRAIT,
+    'implements': TokenType.IMPLEMENTS,
+}
+
+
+class LexError(Exception):
+    pass
+
+
+def lex(source: str) -> list:
+    tokens = []
+    i = 0
+    line = 1
+    while i < len(source):
+        ch = source[i]
+
+        if ch == '\n':
+            line += 1
+            i += 1
+            continue
+        if ch in ' \t\r':
+            i += 1
+            continue
+
+        # Comments
+        if ch == '/' and i + 1 < len(source) and source[i + 1] == '/':
+            while i < len(source) and source[i] != '\n':
+                i += 1
+            continue
+
+        # Numbers
+        if ch.isdigit():
+            start = i
+            while i < len(source) and source[i].isdigit():
+                i += 1
+            if i < len(source) and source[i] == '.' and i + 1 < len(source) and source[i + 1].isdigit():
+                i += 1
+                while i < len(source) and source[i].isdigit():
+                    i += 1
+                tokens.append(Token(TokenType.FLOAT, float(source[start:i]), line))
+            else:
+                tokens.append(Token(TokenType.INT, int(source[start:i]), line))
+            continue
+
+        # Strings
+        if ch == '"':
+            i += 1
+            start = i
+            while i < len(source) and source[i] != '"':
+                if source[i] == '\\':
+                    i += 1
+                i += 1
+            if i >= len(source):
+                raise LexError(f"Unterminated string at line {line}")
+            raw = source[start:i]
+            val = raw.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+            tokens.append(Token(TokenType.STRING, val, line))
+            i += 1
+            continue
+
+        # Identifiers and keywords
+        if ch.isalpha() or ch == '_':
+            start = i
+            while i < len(source) and (source[i].isalnum() or source[i] == '_'):
+                i += 1
+            word = source[start:i]
+            # C049: f-string detection
+            if word == 'f' and i < len(source) and source[i] == '"':
+                i += 1  # skip opening "
+                parts = []  # list of ("text", str) or ("expr", str)
+                text_buf = []
+                while i < len(source) and source[i] != '"':
+                    # Escaped characters
+                    if source[i] == '\\':
+                        if i + 1 < len(source):
+                            nxt = source[i + 1]
+                            if nxt == '$':
+                                # \$ -> literal $ (also consume { if present to escape ${)
+                                text_buf.append('$')
+                                i += 2
+                                if i < len(source) and source[i] == '{':
+                                    i += 1  # skip { after \$
+                                continue
+                            elif nxt == 'n':
+                                text_buf.append('\n')
+                                i += 2
+                                continue
+                            elif nxt == 't':
+                                text_buf.append('\t')
+                                i += 2
+                                continue
+                            elif nxt == '"':
+                                text_buf.append('"')
+                                i += 2
+                                continue
+                            elif nxt == '\\':
+                                text_buf.append('\\')
+                                i += 2
+                                continue
+                        text_buf.append(source[i])
+                        i += 1
+                        continue
+                    # Interpolation: ${...}
+                    if source[i] == '$' and i + 1 < len(source) and source[i + 1] == '{':
+                        # Flush text buffer
+                        if text_buf:
+                            parts.append(("text", ''.join(text_buf)))
+                            text_buf = []
+                        i += 2  # skip ${
+                        # Scan expression, matching braces and nested strings
+                        depth = 1
+                        expr_start = i
+                        while i < len(source) and depth > 0:
+                            c = source[i]
+                            if c == '{':
+                                depth += 1
+                            elif c == '}':
+                                depth -= 1
+                                if depth == 0:
+                                    break
+                            elif c == '"':
+                                # Skip over nested string literal
+                                i += 1
+                                while i < len(source) and source[i] != '"':
+                                    if source[i] == '\\':
+                                        i += 1
+                                    i += 1
+                            elif c == '\n':
+                                line += 1
+                            i += 1
+                        expr_text = source[expr_start:i]
+                        if not expr_text.strip():
+                            raise LexError(f"Empty interpolation at line {line}")
+                        parts.append(("expr", expr_text))
+                        if i < len(source) and source[i] == '}':
+                            i += 1  # skip closing }
+                        else:
+                            raise LexError(f"Unterminated interpolation at line {line}")
+                        continue
+                    # Normal character
+                    if source[i] == '\n':
+                        line += 1
+                    text_buf.append(source[i])
+                    i += 1
+                if i >= len(source):
+                    raise LexError(f"Unterminated f-string at line {line}")
+                # Flush remaining text
+                if text_buf:
+                    parts.append(("text", ''.join(text_buf)))
+                tokens.append(Token(TokenType.FSTRING, parts, line))
+                i += 1  # skip closing "
+                continue
+            if word in KEYWORDS:
+                tokens.append(Token(KEYWORDS[word], word, line))
+            else:
+                tokens.append(Token(TokenType.IDENT, word, line))
+            continue
+
+        # Three-char operators (check before two-char to avoid partial matches)
+        three = source[i:i+3] if i + 2 < len(source) else ''
+        if three == '??=':
+            tokens.append(Token(TokenType.QUESTION_QUESTION_ASSIGN, '??=', line)); i += 3; continue
+        if three == '...':
+            tokens.append(Token(TokenType.DOTDOTDOT, '...', line)); i += 3; continue
+
+        # Two-char operators
+        two = source[i:i+2] if i + 1 < len(source) else ''
+        if two == '??':
+            tokens.append(Token(TokenType.QUESTION_QUESTION, '??', line)); i += 2; continue
+        if two == '?.':
+            tokens.append(Token(TokenType.QUESTION_DOT, '?.', line)); i += 2; continue
+        if two == '==':
+            tokens.append(Token(TokenType.EQ, '==', line)); i += 2; continue
+        if two == '!=':
+            tokens.append(Token(TokenType.NE, '!=', line)); i += 2; continue
+        if two == '<=':
+            tokens.append(Token(TokenType.LE, '<=', line)); i += 2; continue
+        if two == '>=':
+            tokens.append(Token(TokenType.GE, '>=', line)); i += 2; continue
+        if two == '&&':
+            tokens.append(Token(TokenType.AND, '&&', line)); i += 2; continue
+        if two == '|>':
+            tokens.append(Token(TokenType.PIPE, '|>', line)); i += 2; continue
+        if two == '||':
+            tokens.append(Token(TokenType.OR, '||', line)); i += 2; continue
+        if two == '//':
+            while i < len(source) and source[i] != '\n':
+                i += 1
+            continue
+
+        # Single-char operators/punctuation
+        singles = {
+            '+': TokenType.PLUS, '-': TokenType.MINUS, '*': TokenType.STAR,
+            '/': TokenType.SLASH, '%': TokenType.PERCENT, '<': TokenType.LT,
+            '>': TokenType.GT, '=': TokenType.ASSIGN, '!': TokenType.NOT,
+            '(': TokenType.LPAREN, ')': TokenType.RPAREN,
+            '{': TokenType.LBRACE, '}': TokenType.RBRACE,
+            '[': TokenType.LBRACKET, ']': TokenType.RBRACKET,
+            ',': TokenType.COMMA, ';': TokenType.SEMICOLON,
+            ':': TokenType.COLON, '.': TokenType.DOT,
+            '@': TokenType.AT,
+        }
+        if ch in singles:
+            tokens.append(Token(singles[ch], ch, line))
+            i += 1
+            continue
+
+        raise LexError(f"Unexpected character '{ch}' at line {line}")
+
+    tokens.append(Token(TokenType.EOF, None, line))
+    return tokens
+
+
+# ============================================================
+# AST Nodes
+# ============================================================
+
+@dataclass
+class IntLit:
+    value: int
+    line: int = 0
+
+@dataclass
+class FloatLit:
+    value: float
+    line: int = 0
+
+@dataclass
+class StringLit:
+    value: str
+    line: int = 0
+
+@dataclass
+class InterpolatedString:
+    parts: list  # list of AST nodes (StringLit for text, expressions for ${...})
+    line: int = 0
+
+@dataclass
+class IfExpr:
+    cond: Any
+    then_expr: Any
+    else_expr: Any
+    line: int = 0
+
+@dataclass
+class BoolLit:
+    value: bool
+    line: int = 0
+
+@dataclass
+class NullLit:
+    line: int = 0
+
+@dataclass
+class Var:
+    name: str
+    line: int = 0
+
+@dataclass
+class UnaryOp:
+    op: str
+    operand: Any
+    line: int = 0
+
+@dataclass
+class BinOp:
+    op: str
+    left: Any
+    right: Any
+    line: int = 0
+
+@dataclass
+class Assign:
+    name: str
+    value: Any
+    line: int = 0
+
+@dataclass
+class LetDecl:
+    name: str
+    value: Any
+    line: int = 0
+
+@dataclass
+class Block:
+    stmts: list
+    line: int = 0
+
+@dataclass
+class IfStmt:
+    cond: Any
+    then_body: Any
+    else_body: Any
+    line: int = 0
+
+@dataclass
+class WhileStmt:
+    cond: Any
+    body: Any
+    line: int = 0
+
+@dataclass
+class RestParam:
+    """C062: Rest parameter marker (...name)"""
+    name: str
+
+@dataclass
+class FnDecl:
+    name: str
+    params: list
+    body: Any
+    line: int = 0
+
+@dataclass
+class CallExpr:
+    callee: Any
+    args: list
+    line: int = 0
+    optional: bool = False
+
+@dataclass
+class ReturnStmt:
+    value: Any
+    line: int = 0
+
+@dataclass
+class PrintStmt:
+    value: Any
+    line: int = 0
+
+@dataclass
+class Program:
+    stmts: list
+
+@dataclass
+class LambdaExpr:
+    params: list
+    body: Any
+    line: int = 0
+
+# C042 arrays
+@dataclass
+class ArrayLit:
+    elements: list
+    line: int = 0
+
+@dataclass
+class IndexExpr:
+    obj: Any
+    index: Any
+    line: int = 0
+    optional: bool = False
+
+@dataclass
+class IndexAssign:
+    obj: Any
+    index: Any
+    value: Any
+    line: int = 0
+
+# C043 hash maps
+@dataclass
+class HashLit:
+    pairs: list  # [(key_expr, value_expr), ...]
+    line: int = 0
+
+@dataclass
+class DotExpr:
+    obj: Any
+    key: str
+    line: int = 0
+    optional: bool = False
+
+@dataclass
+class DotAssign:
+    obj: Any
+    key: str
+    value: Any
+    line: int = 0
+
+# C044 for-in loops
+@dataclass
+class ForInStmt:
+    var_name: str
+    var_name2: str
+    iterable: Any
+    body: Any
+    line: int = 0
+
+@dataclass
+class BreakStmt:
+    line: int = 0
+
+@dataclass
+class ContinueStmt:
+    line: int = 0
+
+# C045 error handling + C055 finally
+@dataclass
+class TryCatchStmt:
+    try_body: Any
+    catch_var: Any = None    # str or None (no catch)
+    catch_body: Any = None   # Block or None (no catch)
+    finally_body: Any = None # Block or None (no finally)
+    line: int = 0
+
+@dataclass
+class ThrowStmt:
+    value: Any
+    line: int = 0
+
+# C046 module system
+@dataclass
+class ImportStmt:
+    module_name: str
+    names: list
+    line: int = 0
+
+@dataclass
+class ExportFnDecl:
+    fn_decl: FnDecl
+    line: int = 0
+
+@dataclass
+class ExportLetDecl:
+    let_decl: LetDecl
+    line: int = 0
+
+@dataclass
+class ExportClassDecl:
+    class_decl: 'ClassDecl'
+    line: int = 0
+
+# C047 generators
+@dataclass
+class YieldExpr:
+    value: Any  # expression to yield (None for bare yield)
+    line: int = 0
+
+# C050 spread operator
+@dataclass
+class SpreadExpr:
+    """...expr in array literals, hash literals, or function calls."""
+    expr: Any
+    line: int = 0
+
+# C048 destructuring
+@dataclass
+class PatternElement:
+    """Single element in a destructuring pattern."""
+    name: str           # variable name to bind (or None for nested)
+    default: Any        # default value expression (or None)
+    rest: bool = False  # is this a ...rest element?
+    nested: Any = None  # nested ArrayPattern or HashPattern
+    line: int = 0
+
+@dataclass
+class ArrayPattern:
+    """[a, b, ...rest] destructuring pattern."""
+    elements: list  # list of PatternElement
+    line: int = 0
+
+@dataclass
+class HashPatternEntry:
+    """Single entry in hash destructuring: key or key: alias."""
+    key: str
+    alias: str          # variable name (defaults to key)
+    default: Any        # default value expression (or None)
+    nested: Any = None  # nested pattern
+    line: int = 0
+
+@dataclass
+class HashPattern:
+    """{x, y: alias} destructuring pattern."""
+    entries: list  # list of HashPatternEntry
+    line: int = 0
+
+@dataclass
+class LetDestructure:
+    """let [a, b] = expr; or let {x, y} = expr;"""
+    pattern: Any  # ArrayPattern or HashPattern
+    value: Any
+    line: int = 0
+
+@dataclass
+class AssignDestructure:
+    """[a, b] = expr; destructuring assignment."""
+    pattern: Any  # ArrayPattern or HashPattern
+    value: Any
+    line: int = 0
+
+@dataclass
+class ForInDestructure:
+    """for ([a, b] in iterable) { ... }"""
+    pattern: Any  # ArrayPattern or HashPattern
+    iterable: Any
+    body: Any
+    line: int = 0
+
+# C065 for-await loops
+@dataclass
+class ForAwaitStmt:
+    """for await (x in asyncIterable) { ... }"""
+    var_name: str
+    var_name2: str
+    iterable: Any
+    body: Any
+    line: int = 0
+
+@dataclass
+class ForAwaitDestructure:
+    """for await ([a, b] in asyncIterable) { ... }"""
+    pattern: Any  # ArrayPattern or HashPattern
+    iterable: Any
+    body: Any
+    line: int = 0
+
+
+# C052: Classes
+@dataclass
+class ClassDecl:
+    name: str
+    parent: str  # parent class name or None
+    methods: list  # list of (name, params, body) tuples
+    traits: list  # C067: list of trait name strings
+    line: int
+
+
+@dataclass
+class SuperCall:
+    method: str
+    args: list
+    line: int
+
+
+# C060: Enums
+@dataclass
+class EnumDecl:
+    name: str
+    variants: list  # list of (variant_name, value_expr_or_None)
+    methods: list  # list of (name, params, body, kind) tuples
+    line: int
+
+
+@dataclass
+class ExportEnumDecl:
+    enum_decl: Any
+    line: int
+
+
+# C067: Traits
+@dataclass
+class TraitDecl:
+    name: str
+    parent: str  # parent trait name or None (trait inheritance)
+    methods: list  # list of (name, params, body_or_None, kind) -- body=None means required/abstract
+    line: int
+
+@dataclass
+class ExportTraitDecl:
+    trait_decl: 'TraitDecl'
+    line: int = 0
+
+
+# C068: Decorators
+@dataclass
+class Decorated:
+    """Wraps a fn/class/async fn declaration with decorator expressions."""
+    decorators: list  # list of expressions (applied innermost-first, i.e. bottom-up)
+    declaration: Any  # FnDecl, AsyncFnDecl, ClassDecl, ExportFnDecl, etc.
+    line: int = 0
+
+
+# C056: Async/Await AST nodes
+@dataclass
+class AsyncFnDecl:
+    name: str
+    params: list
+    body: Any
+    line: int
+    is_generator: bool = False  # C064: True when declared with async fn*
+
+
+@dataclass
+class AwaitExpr:
+    value: Any
+    line: int
+
+
+@dataclass
+class ExportAsyncFnDecl:
+    fn_decl: Any  # AsyncFnDecl
+    line: int
+
+
+# ============================================================
+# Parser
+# ============================================================
+
+class ParseError(Exception):
+    pass
+
+
+class Parser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.pos = 0
+
+    def peek(self):
+        return self.tokens[self.pos]
+
+    def advance(self):
+        tok = self.tokens[self.pos]
+        self.pos += 1
+        return tok
+
+    def expect(self, tt):
+        tok = self.tokens[self.pos]
+        if tok.type != tt:
+            raise ParseError(f"Expected {tt.name}, got {tok.type.name} ({tok.value!r}) at line {tok.line}")
+        self.pos += 1
+        return tok
+
+    def match(self, *types):
+        if self.peek().type in types:
+            return self.advance()
+        return None
+
+    def parse(self):
+        stmts = []
+        while self.peek().type != TokenType.EOF:
+            stmts.append(self.declaration())
+        return Program(stmts)
+
+    def declaration(self):
+        # C068: collect decorators before declarations
+        if self.peek().type == TokenType.AT:
+            return self._decorated_decl()
+        if self.peek().type == TokenType.LET:
+            return self.let_decl()
+        if self._is_fn_decl():
+            return self.fn_decl()
+        if self._is_async_fn_decl():
+            return self.async_fn_decl()
+        if self.peek().type == TokenType.CLASS:
+            return self.class_decl()
+        if self.peek().type == TokenType.ENUM:
+            return self.enum_decl()
+        if self.peek().type == TokenType.TRAIT:
+            return self.trait_decl()
+        if self.peek().type == TokenType.IMPORT:
+            return self.import_stmt()
+        if self.peek().type == TokenType.EXPORT:
+            return self.export_decl()
+        return self.statement()
+
+    def _is_fn_decl(self):
+        if self.peek().type != TokenType.FN:
+            return False
+        # fn name(...) or fn* name(...)
+        next_pos = self.pos + 1
+        if next_pos < len(self.tokens) and self.tokens[next_pos].type == TokenType.STAR:
+            next_pos += 1
+        return (next_pos < len(self.tokens) and
+                self.tokens[next_pos].type == TokenType.IDENT)
+
+    def _is_async_fn_decl(self):
+        """Check for 'async fn name(' or 'async fn* name(' pattern."""
+        if self.peek().type != TokenType.ASYNC:
+            return False
+        next_pos = self.pos + 1
+        if next_pos >= len(self.tokens) or self.tokens[next_pos].type != TokenType.FN:
+            return False
+        next_pos += 1
+        # C064: skip optional '*' for async generators
+        if next_pos < len(self.tokens) and self.tokens[next_pos].type == TokenType.STAR:
+            next_pos += 1
+        return (next_pos < len(self.tokens) and
+                self.tokens[next_pos].type == TokenType.IDENT)
+
+    def async_fn_decl(self):
+        """Parse 'async fn name(...) { ... }' or 'async fn* name(...) { ... }'."""
+        tok = self.advance()  # consume 'async'
+        self.expect(TokenType.FN)
+        is_gen = self.match(TokenType.STAR)  # C064: consume optional '*' for async generators
+        name_tok = self.expect(TokenType.IDENT)
+        self.expect(TokenType.LPAREN)
+        params = self._parse_params()
+        self.expect(TokenType.RPAREN)
+        body = self.block()
+        return AsyncFnDecl(name_tok.value, params, body, tok.line, is_generator=bool(is_gen))
+
+    def import_stmt(self):
+        tok = self.advance()
+        if self.peek().type == TokenType.LBRACE:
+            self.advance()
+            names = []
+            names.append(self.expect(TokenType.IDENT).value)
+            while self.match(TokenType.COMMA):
+                if self.peek().type == TokenType.RBRACE:
+                    break
+                names.append(self.expect(TokenType.IDENT).value)
+            self.expect(TokenType.RBRACE)
+            self.expect(TokenType.FROM)
+            module_name = self.expect(TokenType.STRING).value
+            self.expect(TokenType.SEMICOLON)
+            return ImportStmt(module_name=module_name, names=names, line=tok.line)
+        else:
+            module_name = self.expect(TokenType.STRING).value
+            self.expect(TokenType.SEMICOLON)
+            return ImportStmt(module_name=module_name, names=[], line=tok.line)
+
+    def _decorated_decl(self):
+        """Parse one or more @decorator annotations followed by a declaration."""
+        decorators = []
+        line = self.peek().line
+        while self.peek().type == TokenType.AT:
+            self.advance()  # consume @
+            # Parse decorator expression: identifier, optionally with dot access and/or call
+            expr = self._parse_decorator_expr()
+            decorators.append(expr)
+        # Now parse the actual declaration (fn, class, async fn, export)
+        if self._is_fn_decl():
+            decl = self.fn_decl()
+        elif self._is_async_fn_decl():
+            decl = self.async_fn_decl()
+        elif self.peek().type == TokenType.CLASS:
+            decl = self.class_decl()
+        elif self.peek().type == TokenType.EXPORT:
+            decl = self.export_decl()
+        else:
+            raise ParseError(f"Decorators can only be applied to fn, class, async fn, or export declarations at line {line}")
+        return Decorated(decorators=decorators, declaration=decl, line=line)
+
+    def _parse_decorator_expr(self):
+        """Parse decorator expression: name, name.prop, name(args), name.prop(args)."""
+        name_tok = self.expect(TokenType.IDENT)
+        expr = Var(name_tok.value, name_tok.line)
+        # Allow dot access chain
+        while self.peek().type == TokenType.DOT:
+            self.advance()
+            prop = self.expect(TokenType.IDENT)
+            expr = DotExpr(expr, prop.value, prop.line)
+        # Allow call with arguments
+        if self.peek().type == TokenType.LPAREN:
+            self.advance()
+            args = []
+            if self.peek().type != TokenType.RPAREN:
+                args.append(self.expression())
+                while self.match(TokenType.COMMA):
+                    args.append(self.expression())
+            self.expect(TokenType.RPAREN)
+            expr = CallExpr(expr, args, name_tok.line)
+        return expr
+
+    def export_decl(self):
+        tok = self.advance()
+        # C068: support decorators after export
+        if self.peek().type == TokenType.AT:
+            decorators = []
+            while self.peek().type == TokenType.AT:
+                self.advance()
+                expr = self._parse_decorator_expr()
+                decorators.append(expr)
+            # Parse the export target
+            inner_export = self._parse_export_target(tok)
+            return Decorated(decorators=decorators, declaration=inner_export, line=tok.line)
+        return self._parse_export_target(tok)
+
+    def _parse_export_target(self, tok):
+        """Parse the declaration after 'export' (and optional decorators)."""
+        if self._is_fn_decl():
+            fn = self.fn_decl()
+            return ExportFnDecl(fn_decl=fn, line=tok.line)
+        elif self._is_async_fn_decl():
+            fn = self.async_fn_decl()
+            return ExportAsyncFnDecl(fn_decl=fn, line=tok.line)
+        elif self.peek().type == TokenType.LET:
+            let = self.let_decl()
+            return ExportLetDecl(let_decl=let, line=tok.line)
+        elif self.peek().type == TokenType.CLASS:
+            cls = self.class_decl()
+            return ExportClassDecl(class_decl=cls, line=tok.line)
+        elif self.peek().type == TokenType.ENUM:
+            en = self.enum_decl()
+            return ExportEnumDecl(enum_decl=en, line=tok.line)
+        elif self.peek().type == TokenType.TRAIT:
+            tr = self.trait_decl()
+            return ExportTraitDecl(trait_decl=tr, line=tok.line)
+        else:
+            raise ParseError(f"Expected 'fn', 'let', 'class', 'enum', 'trait', or 'async fn' after 'export' at line {tok.line}")
+
+    def fn_decl(self):
+        tok = self.advance()
+        # fn* name() for generator syntax
+        self.match(TokenType.STAR)
+        name_tok = self.expect(TokenType.IDENT)
+        self.expect(TokenType.LPAREN)
+        params = self._parse_params()
+        self.expect(TokenType.RPAREN)
+        body = self.block()
+        return FnDecl(name_tok.value, params, body, tok.line)
+
+    def class_decl(self):
+        tok = self.advance()  # consume 'class'
+        name = self.expect(TokenType.IDENT).value
+        parent = None
+        if self.match(TokenType.LT):
+            parent = self.expect(TokenType.IDENT).value
+        # C067: parse implements clause
+        traits = []
+        if self.peek().type == TokenType.IMPLEMENTS:
+            self.advance()  # consume 'implements'
+            traits.append(self.expect(TokenType.IDENT).value)
+            while self.match(TokenType.COMMA):
+                traits.append(self.expect(TokenType.IDENT).value)
+        self.expect(TokenType.LBRACE)
+        methods = []
+        while self.peek().type != TokenType.RBRACE:
+            # C058: check for static/get/set modifiers (context-sensitive)
+            kind = 'method'
+            ident_val = self.peek().value if self.peek().type == TokenType.IDENT else None
+            if ident_val in ('static', 'get', 'set'):
+                # Lookahead: if next token after this ident is also an ident, it's a modifier
+                next_tok = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
+                if next_tok and next_tok.type == TokenType.IDENT:
+                    kind = ident_val
+                    self.advance()  # consume the modifier
+            method_name = self.expect(TokenType.IDENT).value
+            if kind == 'getter':
+                pass  # no parens needed -- actually let's require them for consistency
+            self.expect(TokenType.LPAREN)
+            params = self._parse_params()
+            self.expect(TokenType.RPAREN)
+            # Validate getter/setter param counts
+            if kind == 'get' and len(params) != 0:
+                raise ParseError(f"Getter '{method_name}' must have 0 parameters at line {tok.line}")
+            if kind == 'set' and len(params) != 1:
+                raise ParseError(f"Setter '{method_name}' must have exactly 1 parameter at line {tok.line}")
+            body = self.block()
+            methods.append((method_name, params, body, kind))
+        self.expect(TokenType.RBRACE)
+        return ClassDecl(name=name, parent=parent, methods=methods, traits=traits, line=tok.line)
+
+    def trait_decl(self):
+        """Parse trait declaration: trait Name { fn required(); fn default() { ... } }"""
+        tok = self.advance()  # consume 'trait'
+        name = self.expect(TokenType.IDENT).value
+        parent = None
+        if self.match(TokenType.LT):
+            parent = self.expect(TokenType.IDENT).value
+        self.expect(TokenType.LBRACE)
+        methods = []
+        while self.peek().type != TokenType.RBRACE:
+            # Consume optional 'fn' keyword before method name
+            if self.peek().type == TokenType.FN:
+                self.advance()
+            method_name = self.expect(TokenType.IDENT).value
+            self.expect(TokenType.LPAREN)
+            params = self._parse_params()
+            self.expect(TokenType.RPAREN)
+            if self.peek().type == TokenType.LBRACE:
+                body = self.block()
+                methods.append((method_name, params, body, 'method'))
+            else:
+                # Abstract/required method -- no body, just semicolon
+                self.expect(TokenType.SEMICOLON)
+                methods.append((method_name, params, None, 'method'))
+        self.expect(TokenType.RBRACE)
+        return TraitDecl(name=name, parent=parent, methods=methods, line=tok.line)
+
+    def enum_decl(self):
+        """Parse 'enum Name { Variant1, Variant2 = val, ... fn method() {} }'."""
+        tok = self.advance()  # consume 'enum'
+        name = self.expect(TokenType.IDENT).value
+        self.expect(TokenType.LBRACE)
+        variants = []
+        methods = []
+        # Parse variants first, then methods
+        while self.peek().type != TokenType.RBRACE:
+            # Check if this is a method (fn keyword)
+            if self.peek().type == TokenType.FN:
+                break
+            # Check for static/get/set method modifiers
+            ident_val = self.peek().value if self.peek().type == TokenType.IDENT else None
+            if ident_val in ('static', 'get', 'set'):
+                next_tok = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
+                if next_tok and next_tok.type == TokenType.IDENT:
+                    break  # It's a method modifier, stop parsing variants
+            # Parse variant
+            variant_name = self.expect(TokenType.IDENT).value
+            value_expr = None
+            if self.match(TokenType.ASSIGN):
+                value_expr = self.expression()
+            variants.append((variant_name, value_expr))
+            # Optional comma between variants
+            self.match(TokenType.COMMA)
+        # Parse methods (same as class methods)
+        while self.peek().type != TokenType.RBRACE:
+            kind = 'method'
+            ident_val = self.peek().value if self.peek().type == TokenType.IDENT else None
+            if ident_val in ('static', 'get', 'set'):
+                next_tok = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
+                if next_tok and next_tok.type == TokenType.IDENT:
+                    kind = ident_val
+                    self.advance()
+            if self.peek().type == TokenType.FN:
+                self.advance()  # consume 'fn'
+            method_name = self.expect(TokenType.IDENT).value
+            self.expect(TokenType.LPAREN)
+            params = self._parse_params()
+            self.expect(TokenType.RPAREN)
+            body = self.block()
+            methods.append((method_name, params, body, kind))
+        self.expect(TokenType.RBRACE)
+        return EnumDecl(name=name, variants=variants, methods=methods, line=tok.line)
+
+    def _parse_params(self):
+        """Parse function parameters, supporting destructuring patterns."""
+        params = []
+        if self.peek().type == TokenType.RPAREN:
+            return params
+        params.append(self._parse_param())
+        while self.match(TokenType.COMMA):
+            params.append(self._parse_param())
+        return params
+
+    def _parse_param(self):
+        """Parse a single parameter: identifier, [pattern], {pattern}, or ...rest."""
+        if self.peek().type == TokenType.LBRACKET:
+            return self.parse_array_pattern()
+        if self.peek().type == TokenType.LBRACE:
+            return self.parse_hash_pattern()
+        # C062: Rest parameter ...name
+        if self.peek().type == TokenType.DOTDOTDOT:
+            self.advance()
+            name = self.expect(TokenType.IDENT).value
+            return RestParam(name=name)
+        return self.expect(TokenType.IDENT).value
+
+    def let_decl(self):
+        tok = self.advance()
+        # C048: destructuring patterns
+        if self.peek().type == TokenType.LBRACKET:
+            pattern = self.parse_array_pattern()
+            self.expect(TokenType.ASSIGN)
+            value = self.expression()
+            self.expect(TokenType.SEMICOLON)
+            return LetDestructure(pattern=pattern, value=value, line=tok.line)
+        if self.peek().type == TokenType.LBRACE:
+            pattern = self.parse_hash_pattern()
+            self.expect(TokenType.ASSIGN)
+            value = self.expression()
+            self.expect(TokenType.SEMICOLON)
+            return LetDestructure(pattern=pattern, value=value, line=tok.line)
+        name = self.expect(TokenType.IDENT).value
+        self.expect(TokenType.ASSIGN)
+        value = self.expression()
+        self.expect(TokenType.SEMICOLON)
+        return LetDecl(name, value, tok.line)
+
+    def parse_array_pattern(self):
+        """Parse [a, b, ...rest] pattern."""
+        tok = self.expect(TokenType.LBRACKET)
+        elements = []
+        while self.peek().type != TokenType.RBRACKET:
+            if elements:
+                self.expect(TokenType.COMMA)
+                if self.peek().type == TokenType.RBRACKET:
+                    break  # trailing comma
+            if self.peek().type == TokenType.DOTDOTDOT:
+                self.advance()
+                name = self.expect(TokenType.IDENT).value
+                elements.append(PatternElement(name=name, default=None, rest=True, line=tok.line))
+                break  # rest must be last
+            elif self.peek().type == TokenType.LBRACKET:
+                nested = self.parse_array_pattern()
+                elem = PatternElement(name=None, default=None, nested=nested, line=tok.line)
+                if self.peek().type == TokenType.ASSIGN:
+                    self.advance()
+                    elem.default = self.expression()
+                elements.append(elem)
+            elif self.peek().type == TokenType.LBRACE:
+                nested = self.parse_hash_pattern()
+                elem = PatternElement(name=None, default=None, nested=nested, line=tok.line)
+                if self.peek().type == TokenType.ASSIGN:
+                    self.advance()
+                    elem.default = self.expression()
+                elements.append(elem)
+            else:
+                name = self.expect(TokenType.IDENT).value
+                default = None
+                if self.peek().type == TokenType.ASSIGN:
+                    self.advance()
+                    default = self.expression()
+                elements.append(PatternElement(name=name, default=default, line=tok.line))
+        self.expect(TokenType.RBRACKET)
+        return ArrayPattern(elements=elements, line=tok.line)
+
+    def parse_hash_pattern(self):
+        """Parse {x, y: alias, z = default} pattern."""
+        tok = self.expect(TokenType.LBRACE)
+        entries = []
+        while self.peek().type != TokenType.RBRACE:
+            if entries:
+                self.expect(TokenType.COMMA)
+                if self.peek().type == TokenType.RBRACE:
+                    break  # trailing comma
+            if self.peek().type == TokenType.LBRACKET:
+                # nested array pattern: { arr: [a, b] }
+                # not valid at top level of hash pattern without key
+                raise ParseError(f"Expected identifier in hash pattern at line {self.peek().line}")
+            key = self.expect(TokenType.IDENT).value
+            alias = key
+            default = None
+            nested = None
+            if self.peek().type == TokenType.COLON:
+                self.advance()
+                if self.peek().type == TokenType.LBRACKET:
+                    nested = self.parse_array_pattern()
+                elif self.peek().type == TokenType.LBRACE:
+                    nested = self.parse_hash_pattern()
+                else:
+                    alias = self.expect(TokenType.IDENT).value
+            if self.peek().type == TokenType.ASSIGN:
+                self.advance()
+                default = self.expression()
+            entries.append(HashPatternEntry(key=key, alias=alias, default=default, nested=nested, line=tok.line))
+        self.expect(TokenType.RBRACE)
+        return HashPattern(entries=entries, line=tok.line)
+
+    def statement(self):
+        if self.peek().type == TokenType.IF:
+            return self.if_stmt()
+        if self.peek().type == TokenType.WHILE:
+            return self.while_stmt()
+        if self.peek().type == TokenType.FOR:
+            return self.for_in_stmt()
+        if self.peek().type == TokenType.RETURN:
+            return self.return_stmt()
+        if self.peek().type == TokenType.PRINT:
+            return self.print_stmt()
+        if self.peek().type == TokenType.BREAK:
+            return self.break_stmt()
+        if self.peek().type == TokenType.CONTINUE:
+            return self.continue_stmt()
+        if self.peek().type == TokenType.TRY:
+            return self.try_catch_stmt()
+        if self.peek().type == TokenType.THROW:
+            return self.throw_stmt()
+        if self.peek().type == TokenType.LBRACE:
+            if self._is_hash_literal():
+                return self.expr_stmt()
+            return self.block()
+        return self.expr_stmt()
+
+    def _is_hash_literal(self):
+        if self.pos + 1 < len(self.tokens):
+            next_tok = self.tokens[self.pos + 1]
+            if next_tok.type == TokenType.RBRACE:
+                return True
+            # C050: {...expr} is a hash literal with spread
+            if next_tok.type == TokenType.DOTDOTDOT:
+                return True
+            # C059: {[expr]: value} is a hash literal with computed key
+            if next_tok.type == TokenType.LBRACKET:
+                return True
+            if next_tok.type in (TokenType.IDENT, TokenType.STRING):
+                if self.pos + 2 < len(self.tokens):
+                    after = self.tokens[self.pos + 2]
+                    if after.type == TokenType.COLON:
+                        return True
+            if next_tok.type == TokenType.INT:
+                if self.pos + 2 < len(self.tokens):
+                    after = self.tokens[self.pos + 2]
+                    if after.type == TokenType.COLON:
+                        return True
+        return False
+
+    def try_catch_stmt(self):
+        tok = self.advance()
+        try_body = self.block()
+        catch_var = None
+        catch_body = None
+        finally_body = None
+        if self.peek().type == TokenType.CATCH:
+            self.advance()
+            self.expect(TokenType.LPAREN)
+            catch_var = self.expect(TokenType.IDENT).value
+            self.expect(TokenType.RPAREN)
+            catch_body = self.block()
+        if self.peek().type == TokenType.FINALLY:
+            self.advance()
+            finally_body = self.block()
+        if catch_body is None and finally_body is None:
+            raise ParseError("try requires catch or finally", tok.line)
+        return TryCatchStmt(
+            try_body=try_body,
+            catch_var=catch_var,
+            catch_body=catch_body,
+            finally_body=finally_body,
+            line=tok.line,
+        )
+
+    def throw_stmt(self):
+        tok = self.advance()
+        value = self.expression()
+        self.expect(TokenType.SEMICOLON)
+        return ThrowStmt(value=value, line=tok.line)
+
+    def for_in_stmt(self):
+        tok = self.advance()
+        # C065: for await (x in asyncIterable) { ... }
+        is_await = False
+        if self.peek().type == TokenType.AWAIT:
+            is_await = True
+            self.advance()
+        self.expect(TokenType.LPAREN)
+        # C048: destructuring in for-in
+        if self.peek().type == TokenType.LBRACKET:
+            pattern = self.parse_array_pattern()
+            self.expect(TokenType.IN)
+            iterable = self.expression()
+            self.expect(TokenType.RPAREN)
+            body = self.block()
+            if is_await:
+                return ForAwaitDestructure(pattern=pattern, iterable=iterable, body=body, line=tok.line)
+            return ForInDestructure(pattern=pattern, iterable=iterable, body=body, line=tok.line)
+        if self.peek().type == TokenType.LBRACE:
+            pattern = self.parse_hash_pattern()
+            self.expect(TokenType.IN)
+            iterable = self.expression()
+            self.expect(TokenType.RPAREN)
+            body = self.block()
+            if is_await:
+                return ForAwaitDestructure(pattern=pattern, iterable=iterable, body=body, line=tok.line)
+            return ForInDestructure(pattern=pattern, iterable=iterable, body=body, line=tok.line)
+        var1 = self.expect(TokenType.IDENT).value
+        var2 = None
+        if self.match(TokenType.COMMA):
+            var2_tok = self.expect(TokenType.IDENT)
+            var2 = var2_tok.value
+        self.expect(TokenType.IN)
+        iterable = self.expression()
+        self.expect(TokenType.RPAREN)
+        body = self.block()
+        if is_await:
+            return ForAwaitStmt(var_name=var1, var_name2=var2, iterable=iterable, body=body, line=tok.line)
+        return ForInStmt(var_name=var1, var_name2=var2, iterable=iterable, body=body, line=tok.line)
+
+    def break_stmt(self):
+        tok = self.advance()
+        self.expect(TokenType.SEMICOLON)
+        return BreakStmt(line=tok.line)
+
+    def continue_stmt(self):
+        tok = self.advance()
+        self.expect(TokenType.SEMICOLON)
+        return ContinueStmt(line=tok.line)
+
+    def if_stmt(self):
+        tok = self.advance()
+        self.expect(TokenType.LPAREN)
+        cond = self.expression()
+        self.expect(TokenType.RPAREN)
+        then_body = self.block()
+        else_body = None
+        if self.match(TokenType.ELSE):
+            if self.peek().type == TokenType.IF:
+                else_body = self.if_stmt()
+            else:
+                else_body = self.block()
+        return IfStmt(cond, then_body, else_body, tok.line)
+
+    def while_stmt(self):
+        tok = self.advance()
+        self.expect(TokenType.LPAREN)
+        cond = self.expression()
+        self.expect(TokenType.RPAREN)
+        body = self.block()
+        return WhileStmt(cond, body, tok.line)
+
+    def return_stmt(self):
+        tok = self.advance()
+        value = None
+        if self.peek().type != TokenType.SEMICOLON:
+            value = self.expression()
+        self.expect(TokenType.SEMICOLON)
+        return ReturnStmt(value, tok.line)
+
+    def print_stmt(self):
+        tok = self.advance()
+        if self.peek().type == TokenType.LPAREN:
+            self.advance()
+            value = self.expression()
+            self.expect(TokenType.RPAREN)
+        else:
+            value = self.expression()
+        self.expect(TokenType.SEMICOLON)
+        return PrintStmt(value, tok.line)
+
+    def block(self):
+        tok = self.expect(TokenType.LBRACE)
+        stmts = []
+        while self.peek().type != TokenType.RBRACE:
+            stmts.append(self.declaration())
+        self.expect(TokenType.RBRACE)
+        return Block(stmts, tok.line)
+
+    def expr_stmt(self):
+        expr = self.expression()
+        self.expect(TokenType.SEMICOLON)
+        return expr
+
+    def expression(self):
+        return self.assignment()
+
+    def assignment(self):
+        # Check for yield expression at top level
+        if self.peek().type == TokenType.YIELD:
+            return self.yield_expr()
+        expr = self.pipe_expr()
+        if self.match(TokenType.ASSIGN):
+            if isinstance(expr, Var):
+                value = self.assignment()
+                return Assign(expr.name, value, expr.line)
+            elif isinstance(expr, IndexExpr):
+                if expr.optional:
+                    raise ParseError(f"Cannot assign to optional chain at line {expr.line}")
+                value = self.assignment()
+                return IndexAssign(expr.obj, expr.index, value, expr.line)
+            elif isinstance(expr, DotExpr):
+                if expr.optional:
+                    raise ParseError(f"Cannot assign to optional chain at line {expr.line}")
+                value = self.assignment()
+                return DotAssign(expr.obj, expr.key, value, expr.line)
+            # C048: destructuring assignment [a, b] = expr
+            elif isinstance(expr, ArrayLit):
+                pattern = self._array_lit_to_pattern(expr)
+                value = self.assignment()
+                return AssignDestructure(pattern=pattern, value=value, line=expr.line)
+            elif isinstance(expr, HashLit):
+                pattern = self._hash_lit_to_pattern(expr)
+                value = self.assignment()
+                return AssignDestructure(pattern=pattern, value=value, line=expr.line)
+            raise ParseError(f"Invalid assignment target at line {expr.line}")
+        # C054: x ??= y  ->  x = x ?? y
+        if self.match(TokenType.QUESTION_QUESTION_ASSIGN):
+            value = self.assignment()
+            coalesced = BinOp('??', expr, value, expr.line)
+            if isinstance(expr, Var):
+                return Assign(expr.name, coalesced, expr.line)
+            elif isinstance(expr, IndexExpr):
+                if expr.optional:
+                    raise ParseError(f"Cannot assign to optional chain at line {expr.line}")
+                return IndexAssign(expr.obj, expr.index, coalesced, expr.line)
+            elif isinstance(expr, DotExpr):
+                if expr.optional:
+                    raise ParseError(f"Cannot assign to optional chain at line {expr.line}")
+                return DotAssign(expr.obj, expr.key, coalesced, expr.line)
+            raise ParseError(f"Invalid ??= target at line {expr.line}")
+        return expr
+
+    def _array_lit_to_pattern(self, node):
+        """Convert parsed ArrayLit to ArrayPattern for destructuring assignment."""
+        elements = []
+        for elem in node.elements:
+            if isinstance(elem, SpreadExpr):
+                # ...name in destructuring context -> rest pattern
+                if isinstance(elem.expr, Var):
+                    elements.append(PatternElement(name=elem.expr.name, default=None, rest=True, line=elem.line))
+                else:
+                    raise ParseError(f"Rest element must be a simple identifier at line {elem.line}")
+            elif isinstance(elem, Var):
+                elements.append(PatternElement(name=elem.name, default=None, line=elem.line))
+            elif isinstance(elem, ArrayLit):
+                nested = self._array_lit_to_pattern(elem)
+                elements.append(PatternElement(name=None, default=None, nested=nested, line=elem.line))
+            elif isinstance(elem, HashLit):
+                nested = self._hash_lit_to_pattern(elem)
+                elements.append(PatternElement(name=None, default=None, nested=nested, line=elem.line))
+            else:
+                raise ParseError(f"Invalid destructuring target at line {node.line}")
+        return ArrayPattern(elements=elements, line=node.line)
+
+    def _hash_lit_to_pattern(self, node):
+        """Convert parsed HashLit to HashPattern for destructuring assignment."""
+        entries = []
+        for key_expr, val_expr in node.pairs:
+            if isinstance(key_expr, Var):
+                key = key_expr.name
+            elif isinstance(key_expr, StringLit):
+                key = key_expr.value
+            else:
+                raise ParseError(f"Invalid hash destructuring key at line {node.line}")
+            if isinstance(val_expr, Var):
+                entries.append(HashPatternEntry(key=key, alias=val_expr.name, default=None, line=node.line))
+            else:
+                entries.append(HashPatternEntry(key=key, alias=key, default=None, line=node.line))
+        return HashPattern(entries=entries, line=node.line)
+
+    def yield_expr(self):
+        """Parse: yield expr or bare yield"""
+        tok = self.advance()  # yield
+        # yield can have a value or be bare (yields None)
+        # bare yield: followed by ; or )
+        if self.peek().type in (TokenType.SEMICOLON, TokenType.RPAREN):
+            return YieldExpr(value=None, line=tok.line)
+        value = self.expression()
+        return YieldExpr(value=value, line=tok.line)
+
+    def pipe_expr(self):
+        """Parse: expr |> expr |> expr ... (left-associative)
+        Desugars: a |> b -> CallExpr(b, [a])
+                  a |> b(x) -> CallExpr(b, [a, x])  (prepend a as first arg)
+        """
+        left = self.or_expr()
+        while self.match(TokenType.PIPE):
+            right = self.or_expr()
+            if isinstance(right, CallExpr):
+                # a |> fn(x, y) -> fn(a, x, y)
+                left = CallExpr(right.callee, [left] + right.args, left.line)
+            else:
+                # a |> fn -> fn(a)
+                left = CallExpr(right, [left], left.line)
+        return left
+
+    def or_expr(self):
+        left = self.null_coalesce_expr()
+        while self.match(TokenType.OR):
+            right = self.null_coalesce_expr()
+            left = BinOp('or', left, right, left.line)
+        return left
+
+    def null_coalesce_expr(self):
+        """Parse: a ?? b ?? c (left-associative). Returns a if not null, else b."""
+        left = self.and_expr()
+        while self.match(TokenType.QUESTION_QUESTION):
+            right = self.and_expr()
+            left = BinOp('??', left, right, left.line)
+        return left
+
+    def and_expr(self):
+        left = self.equality()
+        while self.match(TokenType.AND):
+            right = self.equality()
+            left = BinOp('and', left, right, left.line)
+        return left
+
+    def equality(self):
+        left = self.comparison()
+        while True:
+            if self.match(TokenType.EQ):
+                left = BinOp('==', left, self.comparison(), left.line)
+            elif self.match(TokenType.NE):
+                left = BinOp('!=', left, self.comparison(), left.line)
+            else:
+                break
+        return left
+
+    def comparison(self):
+        left = self.addition()
+        while True:
+            if self.match(TokenType.LT):
+                left = BinOp('<', left, self.addition(), left.line)
+            elif self.match(TokenType.GT):
+                left = BinOp('>', left, self.addition(), left.line)
+            elif self.match(TokenType.LE):
+                left = BinOp('<=', left, self.addition(), left.line)
+            elif self.match(TokenType.GE):
+                left = BinOp('>=', left, self.addition(), left.line)
+            else:
+                break
+        return left
+
+    def addition(self):
+        left = self.multiplication()
+        while True:
+            if self.match(TokenType.PLUS):
+                left = BinOp('+', left, self.multiplication(), left.line)
+            elif self.match(TokenType.MINUS):
+                left = BinOp('-', left, self.multiplication(), left.line)
+            else:
+                break
+        return left
+
+    def multiplication(self):
+        left = self.unary()
+        while True:
+            if self.match(TokenType.STAR):
+                left = BinOp('*', left, self.unary(), left.line)
+            elif self.match(TokenType.SLASH):
+                left = BinOp('/', left, self.unary(), left.line)
+            elif self.match(TokenType.PERCENT):
+                left = BinOp('%', left, self.unary(), left.line)
+            else:
+                break
+        return left
+
+    def unary(self):
+        if self.match(TokenType.MINUS):
+            return UnaryOp('-', self.unary(), self.tokens[self.pos - 1].line)
+        if self.match(TokenType.NOT):
+            return UnaryOp('not', self.unary(), self.tokens[self.pos - 1].line)
+        if self.match(TokenType.AWAIT):
+            tok = self.tokens[self.pos - 1]
+            return AwaitExpr(value=self.unary(), line=tok.line)
+        return self.postfix()
+
+    def postfix(self):
+        expr = self.primary()
+        while True:
+            if self.match(TokenType.LPAREN):
+                args = []
+                if self.peek().type != TokenType.RPAREN:
+                    args.append(self._parse_call_arg())
+                    while self.match(TokenType.COMMA):
+                        args.append(self._parse_call_arg())
+                self.expect(TokenType.RPAREN)
+                expr = CallExpr(expr, args, expr.line)
+            elif self.match(TokenType.LBRACKET):
+                index = self.expression()
+                self.expect(TokenType.RBRACKET)
+                expr = IndexExpr(expr, index, expr.line)
+            elif self.match(TokenType.DOT):
+                name_tok = self.expect(TokenType.IDENT)
+                expr = DotExpr(expr, name_tok.value, expr.line)
+            elif self.match(TokenType.QUESTION_DOT):
+                # Optional chaining: ?.prop, ?.[expr], ?.(args)
+                if self.match(TokenType.LPAREN):
+                    # Optional call: obj?.(args)
+                    args = []
+                    if self.peek().type != TokenType.RPAREN:
+                        args.append(self._parse_call_arg())
+                        while self.match(TokenType.COMMA):
+                            args.append(self._parse_call_arg())
+                    self.expect(TokenType.RPAREN)
+                    expr = CallExpr(expr, args, expr.line, optional=True)
+                elif self.match(TokenType.LBRACKET):
+                    # Optional index: obj?.[expr]
+                    index = self.expression()
+                    self.expect(TokenType.RBRACKET)
+                    expr = IndexExpr(expr, index, expr.line, optional=True)
+                else:
+                    # Optional dot: obj?.prop
+                    name_tok = self.expect(TokenType.IDENT)
+                    expr = DotExpr(expr, name_tok.value, expr.line, optional=True)
+            else:
+                break
+        return expr
+
+    def primary(self):
+        tok = self.peek()
+        if tok.type == TokenType.INT:
+            self.advance()
+            return IntLit(tok.value, tok.line)
+        if tok.type == TokenType.FLOAT:
+            self.advance()
+            return FloatLit(tok.value, tok.line)
+        if tok.type == TokenType.STRING:
+            self.advance()
+            return StringLit(tok.value, tok.line)
+        if tok.type == TokenType.FSTRING:
+            self.advance()
+            return self._parse_fstring(tok)
+        if tok.type == TokenType.TRUE:
+            self.advance()
+            return BoolLit(True, tok.line)
+        if tok.type == TokenType.FALSE:
+            self.advance()
+            return BoolLit(False, tok.line)
+        if tok.type == TokenType.NULL:
+            self.advance()
+            return NullLit(tok.line)
+        if tok.type == TokenType.IDENT:
+            self.advance()
+            return Var(tok.value, tok.line)
+        if tok.type == TokenType.LPAREN:
+            self.advance()
+            expr = self.expression()
+            self.expect(TokenType.RPAREN)
+            return expr
+        if tok.type == TokenType.LBRACKET:
+            return self._parse_array_literal()
+        if tok.type == TokenType.LBRACE:
+            return self._parse_hash_literal()
+        if tok.type == TokenType.FN:
+            return self._parse_lambda()
+        if tok.type == TokenType.IF:
+            return self._parse_if_expr()
+        if tok.type == TokenType.SUPER:
+            return self._parse_super_call()
+        raise ParseError(f"Unexpected token {tok.type.name} ({tok.value!r}) at line {tok.line}")
+
+    def _parse_array_literal(self):
+        tok = self.advance()
+        elements = []
+        if self.peek().type != TokenType.RBRACKET:
+            elements.append(self._parse_array_element())
+            while self.match(TokenType.COMMA):
+                if self.peek().type == TokenType.RBRACKET:
+                    break
+                elements.append(self._parse_array_element())
+        self.expect(TokenType.RBRACKET)
+        return ArrayLit(elements, tok.line)
+
+    def _parse_array_element(self):
+        """Parse a single array element, which may be ...expr (spread)."""
+        if self.peek().type == TokenType.DOTDOTDOT:
+            tok = self.advance()
+            expr = self.expression()
+            return SpreadExpr(expr=expr, line=tok.line)
+        return self.expression()
+
+    def _parse_hash_key(self):
+        tok = self.peek()
+        # C059: Computed property key: {[expr]: value}
+        if tok.type == TokenType.LBRACKET:
+            self.advance()  # consume '['
+            key_expr = self.expression()
+            self.expect(TokenType.RBRACKET)
+            return key_expr
+        if tok.type == TokenType.IDENT and self.pos + 1 < len(self.tokens) and self.tokens[self.pos + 1].type == TokenType.COLON:
+            self.advance()
+            return StringLit(tok.value, tok.line)
+        return self.expression()
+
+    def _parse_hash_literal(self):
+        tok = self.advance()
+        pairs = []  # list of (key, value) tuples or SpreadExpr
+        if self.peek().type != TokenType.RBRACE:
+            pairs.append(self._parse_hash_entry())
+            while self.match(TokenType.COMMA):
+                if self.peek().type == TokenType.RBRACE:
+                    break
+                pairs.append(self._parse_hash_entry())
+        self.expect(TokenType.RBRACE)
+        return HashLit(pairs, tok.line)
+
+    def _parse_hash_entry(self):
+        """Parse a single hash entry: key: value or ...expr (spread)."""
+        if self.peek().type == TokenType.DOTDOTDOT:
+            tok = self.advance()
+            expr = self.expression()
+            return SpreadExpr(expr=expr, line=tok.line)
+        key = self._parse_hash_key()
+        self.expect(TokenType.COLON)
+        value = self.expression()
+        return (key, value)
+
+    def _parse_lambda(self):
+        tok = self.advance()  # consume 'fn'
+        self.match(TokenType.STAR)  # consume optional '*' for generators
+        self.expect(TokenType.LPAREN)
+        params = self._parse_params()
+        self.expect(TokenType.RPAREN)
+        body = self.block()
+        return LambdaExpr(params, body, tok.line)
+
+    def _parse_if_expr(self):
+        """Parse if (cond) expr else expr as an expression."""
+        tok = self.advance()  # consume 'if'
+        self.expect(TokenType.LPAREN)
+        cond = self.expression()
+        self.expect(TokenType.RPAREN)
+        then_expr = self.expression()
+        self.expect(TokenType.ELSE)
+        else_expr = self.expression()
+        return IfExpr(cond=cond, then_expr=then_expr, else_expr=else_expr, line=tok.line)
+
+    def _parse_super_call(self):
+        """Parse super.method(args)."""
+        tok = self.advance()  # consume 'super'
+        self.expect(TokenType.DOT)
+        method = self.expect(TokenType.IDENT).value
+        self.expect(TokenType.LPAREN)
+        args = []
+        if self.peek().type != TokenType.RPAREN:
+            args.append(self._parse_call_arg())
+            while self.match(TokenType.COMMA):
+                if self.peek().type == TokenType.RPAREN:
+                    break
+                args.append(self._parse_call_arg())
+        self.expect(TokenType.RPAREN)
+        return SuperCall(method=method, args=args, line=tok.line)
+
+    def _parse_call_arg(self):
+        """Parse a single call argument, which may be ...expr (spread)."""
+        if self.peek().type == TokenType.DOTDOTDOT:
+            tok = self.advance()
+            expr = self.expression()
+            return SpreadExpr(expr=expr, line=tok.line)
+        return self.expression()
+
+    def _parse_fstring(self, tok):
+        """Parse an f-string token into an InterpolatedString AST node."""
+        parts_raw = tok.value  # list of ("text", str) or ("expr", str)
+        if not parts_raw:
+            return StringLit("", tok.line)
+        # Optimization: if only one text part, return plain StringLit
+        if len(parts_raw) == 1 and parts_raw[0][0] == "text":
+            return StringLit(parts_raw[0][1], tok.line)
+        parts = []
+        for kind, text in parts_raw:
+            if kind == "text":
+                parts.append(StringLit(text, tok.line))
+            else:
+                # Parse the expression text
+                expr_tokens = lex(text)
+                sub_parser = Parser(expr_tokens)
+                expr = sub_parser.expression()
+                parts.append(expr)
+        return InterpolatedString(parts, tok.line)
+
+
+# ============================================================
+# Compiler
+# ============================================================
+
+class CompileError(Exception):
+    pass
+
+
+@dataclass
+class FnObject:
+    name: str
+    arity: int
+    chunk: Chunk
+    is_generator: bool = False
+    is_async: bool = False
+    has_rest: bool = False  # C062: rest parameter support
+
+
+@dataclass
+class ClosureObject:
+    fn: FnObject
+    env: dict
+
+
+# C047: Generator runtime object
+@dataclass
+class GeneratorObject:
+    fn: FnObject
+    env: dict
+    ip: int = 0
+    stack: list = field(default_factory=list)
+    call_stack: list = field(default_factory=list)
+    handler_stack: list = field(default_factory=list)
+    done: bool = False
+    finally_pending: Any = None  # C055: saved _finally_pending state
+
+
+# C056: Promise runtime object
+class PromiseObject:
+    PENDING = 'pending'
+    RESOLVED = 'resolved'
+    REJECTED = 'rejected'
+
+    def __init__(self):
+        self.state = self.PENDING
+        self.value = None
+        self.callbacks = []  # list of (on_resolve, on_reject) tuples
+        self.chained = []  # list of (next_promise, on_resolve, on_reject)
+
+    def resolve(self, value):
+        if self.state != self.PENDING:
+            return
+        self.state = self.RESOLVED
+        self.value = value
+        self._flush_callbacks()
+        self._flush_chained()
+
+    def reject(self, reason):
+        if self.state != self.PENDING:
+            return
+        self.state = self.REJECTED
+        self.value = reason
+        self._flush_callbacks()
+        self._flush_chained()
+
+    def _flush_callbacks(self):
+        for on_resolve, on_reject in self.callbacks:
+            if self.state == self.RESOLVED and on_resolve:
+                on_resolve(self.value)
+            elif self.state == self.REJECTED and on_reject:
+                on_reject(self.value)
+        self.callbacks.clear()
+
+    def _flush_chained(self):
+        for next_promise, on_resolve, on_reject in self.chained:
+            if self.state == self.RESOLVED and on_resolve:
+                try:
+                    result = on_resolve(self.value)
+                    if isinstance(result, PromiseObject):
+                        result.chained.append((next_promise, lambda v: next_promise.resolve(v), lambda e: next_promise.reject(e)))
+                        if result.state == PromiseObject.RESOLVED:
+                            next_promise.resolve(result.value)
+                        elif result.state == PromiseObject.REJECTED:
+                            next_promise.reject(result.value)
+                    else:
+                        next_promise.resolve(result)
+                except Exception as e:
+                    next_promise.reject(str(e))
+            elif self.state == self.REJECTED and on_reject:
+                try:
+                    result = on_reject(self.value)
+                    next_promise.resolve(result)
+                except Exception as e:
+                    next_promise.reject(str(e))
+            elif self.state == self.REJECTED:
+                next_promise.reject(self.value)
+            elif self.state == self.RESOLVED:
+                next_promise.resolve(self.value)
+        self.chained.clear()
+
+
+# C056: Async coroutine (suspended async function)
+@dataclass
+class AsyncCoroutine:
+    fn: FnObject
+    env: dict
+    ip: int = 0
+    stack: list = field(default_factory=list)
+    call_stack: list = field(default_factory=list)
+    handler_stack: list = field(default_factory=list)
+    done: bool = False
+    finally_pending: Any = None
+    promise: Any = None  # The PromiseObject this coroutine will resolve
+
+
+# C064: Async generator (combines generator + async)
+@dataclass
+class AsyncGeneratorObject:
+    fn: FnObject
+    env: dict
+    ip: int = 0
+    stack: list = field(default_factory=list)
+    call_stack: list = field(default_factory=list)
+    handler_stack: list = field(default_factory=list)
+    done: bool = False
+    finally_pending: Any = None
+    next_promise: Any = None  # Promise for the current next() call
+
+
+# C067: Trait runtime object
+@dataclass
+class TraitObject:
+    name: str
+    methods: dict  # name -> FnObject (default implementations)
+    required_methods: set  # method names that must be implemented
+    parent: Any = None  # TraitObject or None
+
+
+# C052: Class runtime objects
+@dataclass
+class ClassObject:
+    name: str
+    methods: dict  # name -> FnObject
+    parent: Any = None  # ClassObject or None
+    static_methods: dict = field(default_factory=dict)  # C058: name -> FnObject
+    getters: dict = field(default_factory=dict)  # C058: name -> FnObject
+    setters: dict = field(default_factory=dict)  # C058: name -> FnObject
+    traits: list = field(default_factory=list)  # C067: list of TraitObject
+
+
+@dataclass
+class BoundMethod:
+    instance: dict  # the instance
+    method: Any  # FnObject or ClosureObject
+    klass: Any  # ClassObject where method was found
+
+
+# C060: Enum runtime objects
+@dataclass
+class EnumVariant:
+    enum_name: str
+    variant_name: str
+    ordinal: int
+    enum_ref: Any = field(default=None, repr=False, compare=False)
+
+    def __eq__(self, other):
+        if isinstance(other, EnumVariant):
+            return self.enum_name == other.enum_name and self.variant_name == other.variant_name
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self.enum_name, self.variant_name))
+
+
+@dataclass
+class EnumObject:
+    name: str
+    variants: dict  # variant_name -> EnumVariant
+    methods: dict = field(default_factory=dict)  # name -> FnObject
+
+
+# C061: Native function -- Python-backed callable usable from MiniLang
+@dataclass
+class NativeFunction:
+    name: str
+    arity: int  # -1 means variadic
+    fn: Any  # Python callable: fn(*args) -> value
+
+
+# C061: Native module -- namespace object for dot access (Console.write, etc.)
+@dataclass
+class NativeModule:
+    name: str
+    exports: dict  # name -> NativeFunction or value
+
+
+# Builtin function names
+BUILTINS = {
+    'len', 'push', 'pop', 'map', 'filter', 'reduce', 'range',
+    'slice', 'concat', 'sort', 'reverse', 'find', 'each',
+    # C043 hash map builtins
+    'keys', 'values', 'has', 'delete', 'merge', 'entries', 'size',
+    # C045 error handling builtins
+    'type', 'string',
+    # C047 generator builtins
+    'next',
+    # C048 destructuring builtins
+    '__slice_from',
+    # C052 class builtins
+    'instanceof',
+}
+
+
+def _ast_contains_yield(node):
+    """Check if an AST node contains any yield expression."""
+    if isinstance(node, YieldExpr):
+        return True
+    if isinstance(node, Block):
+        return any(_ast_contains_yield(s) for s in node.stmts)
+    if isinstance(node, IfStmt):
+        if _ast_contains_yield(node.cond):
+            return True
+        if _ast_contains_yield(node.then_body):
+            return True
+        if node.else_body and _ast_contains_yield(node.else_body):
+            return True
+        return False
+    if isinstance(node, WhileStmt):
+        return _ast_contains_yield(node.cond) or _ast_contains_yield(node.body)
+    if isinstance(node, ForInStmt):
+        return _ast_contains_yield(node.body)
+    if isinstance(node, (ForAwaitStmt, ForAwaitDestructure)):
+        return _ast_contains_yield(node.body)
+    if isinstance(node, TryCatchStmt):
+        result = _ast_contains_yield(node.try_body)
+        if node.catch_body and _ast_contains_yield(node.catch_body):
+            result = True
+        if node.finally_body and _ast_contains_yield(node.finally_body):
+            result = True
+        return result
+    if isinstance(node, LetDecl):
+        return _ast_contains_yield(node.value)
+    if isinstance(node, ReturnStmt):
+        return node.value is not None and _ast_contains_yield(node.value)
+    if isinstance(node, PrintStmt):
+        return _ast_contains_yield(node.value)
+    if isinstance(node, ThrowStmt):
+        return _ast_contains_yield(node.value)
+    if isinstance(node, Assign):
+        return _ast_contains_yield(node.value)
+    if isinstance(node, BinOp):
+        return _ast_contains_yield(node.left) or _ast_contains_yield(node.right)
+    if isinstance(node, UnaryOp):
+        return _ast_contains_yield(node.operand)
+    if isinstance(node, CallExpr):
+        if _ast_contains_yield(node.callee):
+            return True
+        return any(_ast_contains_yield(a) for a in node.args)
+    if isinstance(node, IndexExpr):
+        return _ast_contains_yield(node.obj) or _ast_contains_yield(node.index)
+    if isinstance(node, IndexAssign):
+        return _ast_contains_yield(node.obj) or _ast_contains_yield(node.index) or _ast_contains_yield(node.value)
+    if isinstance(node, SpreadExpr):
+        return _ast_contains_yield(node.expr)
+    if isinstance(node, ArrayLit):
+        return any(_ast_contains_yield(e) for e in node.elements)
+    if isinstance(node, HashLit):
+        for p in node.pairs:
+            if isinstance(p, SpreadExpr):
+                if _ast_contains_yield(p.expr):
+                    return True
+            else:
+                if _ast_contains_yield(p[0]) or _ast_contains_yield(p[1]):
+                    return True
+        return False
+    if isinstance(node, DotExpr):
+        return _ast_contains_yield(node.obj)
+    if isinstance(node, DotAssign):
+        return _ast_contains_yield(node.obj) or _ast_contains_yield(node.value)
+    # FnDecl/LambdaExpr: yield inside a nested function does NOT make the outer one a generator
+    # ExportFnDecl/ExportLetDecl: check inner
+    if isinstance(node, ExportFnDecl):
+        return False  # nested function
+    if isinstance(node, ExportLetDecl):
+        return _ast_contains_yield(node.let_decl)
+    # C048 destructuring
+    if isinstance(node, LetDestructure):
+        return _ast_contains_yield(node.value)
+    if isinstance(node, AssignDestructure):
+        return _ast_contains_yield(node.value)
+    if isinstance(node, ForInDestructure):
+        return _ast_contains_yield(node.body)
+    if isinstance(node, ClassDecl):
+        return False  # class body is its own scope
+    if isinstance(node, TraitDecl):
+        return False  # trait body is its own scope
+    if isinstance(node, SuperCall):
+        return any(_ast_contains_yield(a) for a in node.args)
+    if isinstance(node, AsyncFnDecl):
+        return False  # async function body is its own scope
+    if isinstance(node, ExportAsyncFnDecl):
+        return False
+    if isinstance(node, AwaitExpr):
+        return _ast_contains_yield(node.value)
+    return False
+
+
+class Compiler:
+    # C063: Node types that are pure statements (leave nothing on the stack).
+    # Everything else is an expression-statement that leaves a value and needs POP.
+    _STATEMENT_TYPES = (
+        LetDecl, LetDestructure, Block, IfStmt, WhileStmt, FnDecl, ReturnStmt,
+        PrintStmt, ForInStmt, ForInDestructure, ForAwaitStmt, ForAwaitDestructure,
+        BreakStmt, ContinueStmt,
+        TryCatchStmt, ThrowStmt, ImportStmt, ExportFnDecl, ExportLetDecl,
+        ExportClassDecl, ExportEnumDecl, ClassDecl, EnumDecl, AsyncFnDecl,
+        ExportAsyncFnDecl, TraitDecl, ExportTraitDecl,
+        Decorated,
+    )
+
+    def __init__(self):
+        self.chunk = Chunk()
+        self.functions = {}
+        self.loop_stack = []
+        self.exports = []
+
+    def _compile_stmt(self, node):
+        """Compile a node in statement context. Emits POP if it's an expression."""
+        self.compile_node(node)
+        if not isinstance(node, self._STATEMENT_TYPES):
+            self.chunk.emit(Op.POP)
+
+    def compile(self, program: Program) -> Chunk:
+        # C063: POP expression-statements except the last one (which becomes
+        # the program result via stack[-1]).
+        last = len(program.stmts) - 1
+        for i, stmt in enumerate(program.stmts):
+            if i < last:
+                self._compile_stmt(stmt)
+            else:
+                self.compile_node(stmt)
+        self.chunk.emit(Op.HALT)
+        return self.chunk
+
+    def compile_node(self, node):
+        method_name = f'compile_{type(node).__name__}'
+        method = getattr(self, method_name, None)
+        if method is None:
+            raise CompileError(f"Cannot compile {type(node).__name__}")
+        method(node)
+
+    def compile_IntLit(self, node):
+        idx = self.chunk.add_constant(node.value)
+        self.chunk.emit(Op.CONST, idx, node.line)
+
+    def compile_FloatLit(self, node):
+        idx = self.chunk.add_constant(node.value)
+        self.chunk.emit(Op.CONST, idx, node.line)
+
+    def compile_StringLit(self, node):
+        idx = self.chunk.add_constant(node.value)
+        self.chunk.emit(Op.CONST, idx, node.line)
+
+    def compile_InterpolatedString(self, node):
+        if not node.parts:
+            idx = self.chunk.add_constant("")
+            self.chunk.emit(Op.CONST, idx, node.line)
+            return
+        # Compile first part
+        self._compile_interp_part(node.parts[0], node.line)
+        # Compile remaining parts and concatenate
+        for part in node.parts[1:]:
+            self._compile_interp_part(part, node.line)
+            self.chunk.emit(Op.ADD, line=node.line)
+
+    def _compile_interp_part(self, part, line):
+        """Compile one part of an interpolated string, coercing to string if needed."""
+        if isinstance(part, StringLit):
+            self.compile_node(part)
+        else:
+            # Emit: LOAD string, <expr>, CALL 1
+            # This puts string_fn on stack, then value, then calls string(value)
+            str_idx = self.chunk.add_name("string")
+            self.chunk.emit(Op.LOAD, str_idx, line)
+            self.compile_node(part)
+            self.chunk.emit(Op.CALL, 1, line)
+
+    def compile_BoolLit(self, node):
+        idx = self.chunk.add_constant(node.value)
+        self.chunk.emit(Op.CONST, idx, node.line)
+
+    def compile_NullLit(self, node):
+        idx = self.chunk.add_constant(None)
+        self.chunk.emit(Op.CONST, idx, node.line)
+
+    def compile_Var(self, node):
+        idx = self.chunk.add_name(node.name)
+        self.chunk.emit(Op.LOAD, idx, node.line)
+
+    def compile_UnaryOp(self, node):
+        self.compile_node(node.operand)
+        if node.op == '-':
+            self.chunk.emit(Op.NEG, line=node.line)
+        elif node.op == 'not':
+            self.chunk.emit(Op.NOT, line=node.line)
+
+    def compile_BinOp(self, node):
+        self.compile_node(node.left)
+        self.compile_node(node.right)
+        ops = {
+            '+': Op.ADD, '-': Op.SUB, '*': Op.MUL, '/': Op.DIV, '%': Op.MOD,
+            '==': Op.EQ, '!=': Op.NE, '<': Op.LT, '>': Op.GT,
+            '<=': Op.LE, '>=': Op.GE,
+            'and': Op.AND, 'or': Op.OR,
+            '??': Op.NULL_COALESCE,
+        }
+        if node.op in ops:
+            self.chunk.emit(ops[node.op], line=node.line)
+        else:
+            raise CompileError(f"Unknown binary operator: {node.op}")
+
+    def compile_Assign(self, node):
+        self.compile_node(node.value)
+        idx = self.chunk.add_name(node.name)
+        self.chunk.emit(Op.DUP, line=node.line)
+        self.chunk.emit(Op.STORE, idx, node.line)
+
+    def compile_LetDecl(self, node):
+        self.compile_node(node.value)
+        idx = self.chunk.add_name(node.name)
+        self.chunk.emit(Op.STORE, idx, node.line)
+
+    def compile_Block(self, node):
+        for stmt in node.stmts:
+            self._compile_stmt(stmt)
+
+    def compile_IfStmt(self, node):
+        self.compile_node(node.cond)
+        jump_false = self.chunk.emit(Op.JUMP_IF_FALSE, 0, node.line)
+        self.chunk.emit(Op.POP, line=node.line)
+        self.compile_node(node.then_body)
+        if node.else_body:
+            jump_end = self.chunk.emit(Op.JUMP, 0, node.line)
+            self.chunk.patch(jump_false + 1, len(self.chunk.code))
+            self.chunk.emit(Op.POP, line=node.line)
+            self.compile_node(node.else_body)
+            self.chunk.patch(jump_end + 1, len(self.chunk.code))
+        else:
+            self.chunk.patch(jump_false + 1, len(self.chunk.code))
+            self.chunk.emit(Op.POP, line=node.line)
+
+    def compile_IfExpr(self, node):
+        self.compile_node(node.cond)
+        jump_false = self.chunk.emit(Op.JUMP_IF_FALSE, 0, node.line)
+        self.chunk.emit(Op.POP, line=node.line)
+        self.compile_node(node.then_expr)
+        jump_end = self.chunk.emit(Op.JUMP, 0, node.line)
+        self.chunk.patch(jump_false + 1, len(self.chunk.code))
+        self.chunk.emit(Op.POP, line=node.line)
+        self.compile_node(node.else_expr)
+        self.chunk.patch(jump_end + 1, len(self.chunk.code))
+
+    def compile_WhileStmt(self, node):
+        loop_start = len(self.chunk.code)
+        break_patches = []
+        continue_patches = []
+        self.loop_stack.append((break_patches, continue_patches, loop_start))
+
+        self.compile_node(node.cond)
+        jump_false = self.chunk.emit(Op.JUMP_IF_FALSE, 0, node.line)
+        self.chunk.emit(Op.POP, line=node.line)
+        self.compile_node(node.body)
+        self.chunk.emit(Op.JUMP, loop_start, node.line)
+        loop_end = len(self.chunk.code)
+        self.chunk.patch(jump_false + 1, loop_end)
+        self.chunk.emit(Op.POP, line=node.line)
+
+        for bp in break_patches:
+            self.chunk.patch(bp + 1, loop_end)
+        for cp in continue_patches:
+            self.chunk.patch(cp + 1, loop_start)
+        self.loop_stack.pop()
+
+    def compile_ForInStmt(self, node):
+        line = node.line
+        iter_name = f'__iter_{id(node)}'
+        keys_name = f'__keys_{id(node)}'
+        idx_name = f'__idx_{id(node)}'
+        len_name = f'__len_{id(node)}'
+
+        iter_idx = self.chunk.add_name(iter_name)
+        keys_idx = self.chunk.add_name(keys_name)
+        idx_idx = self.chunk.add_name(idx_name)
+        len_idx = self.chunk.add_name(len_name)
+
+        var_idx = self.chunk.add_name(node.var_name)
+        var2_idx = self.chunk.add_name(node.var_name2) if node.var_name2 else None
+
+        self.compile_node(node.iterable)
+        self.chunk.emit(Op.DUP, line=line)
+        self.chunk.emit(Op.STORE, iter_idx, line)
+        self.chunk.emit(Op.ITER_PREPARE, line=line)
+        self.chunk.emit(Op.STORE, keys_idx, line)
+
+        zero_idx = self.chunk.add_constant(0)
+        self.chunk.emit(Op.CONST, zero_idx, line)
+        self.chunk.emit(Op.STORE, idx_idx, line)
+
+        self.chunk.emit(Op.LOAD, keys_idx, line)
+        self.chunk.emit(Op.ITER_LENGTH, line=line)
+        self.chunk.emit(Op.STORE, len_idx, line)
+
+        loop_start = len(self.chunk.code)
+
+        break_patches = []
+        continue_patches = []
+        self.loop_stack.append((break_patches, continue_patches, None))
+
+        self.chunk.emit(Op.LOAD, idx_idx, line)
+        self.chunk.emit(Op.LOAD, len_idx, line)
+        self.chunk.emit(Op.LT, line=line)
+        jump_false = self.chunk.emit(Op.JUMP_IF_FALSE, 0, line)
+        self.chunk.emit(Op.POP, line=line)
+
+        if node.var_name2:
+            self.chunk.emit(Op.LOAD, keys_idx, line)
+            self.chunk.emit(Op.LOAD, idx_idx, line)
+            self.chunk.emit(Op.INDEX_GET, line=line)
+            self.chunk.emit(Op.DUP, line=line)
+            self.chunk.emit(Op.STORE, var_idx, line)
+
+            self.chunk.emit(Op.LOAD, iter_idx, line)
+            self.chunk.emit(Op.LOAD, var_idx, line)
+            self.chunk.emit(Op.INDEX_GET, line=line)
+            self.chunk.emit(Op.STORE, var2_idx, line)
+
+            self.chunk.emit(Op.POP, line=line)
+        else:
+            self.chunk.emit(Op.LOAD, keys_idx, line)
+            self.chunk.emit(Op.LOAD, idx_idx, line)
+            self.chunk.emit(Op.INDEX_GET, line=line)
+            self.chunk.emit(Op.STORE, var_idx, line)
+
+        self.compile_node(node.body)
+
+        # Increment index
+        inc_start = len(self.chunk.code)
+        one_idx = self.chunk.add_constant(1)
+        self.chunk.emit(Op.LOAD, idx_idx, line)
+        self.chunk.emit(Op.CONST, one_idx, line)
+        self.chunk.emit(Op.ADD, line=line)
+        self.chunk.emit(Op.STORE, idx_idx, line)
+
+        self.chunk.emit(Op.JUMP, loop_start, line)
+        loop_end = len(self.chunk.code)
+        self.chunk.patch(jump_false + 1, loop_end)
+        self.chunk.emit(Op.POP, line=line)
+
+        for bp in break_patches:
+            self.chunk.patch(bp + 1, loop_end)
+        for cp in continue_patches:
+            self.chunk.patch(cp + 1, inc_start)
+        self.loop_stack.pop()
+
+    def compile_ForInDestructure(self, node):
+        """Compile for ([a, b] in iterable) { ... } -- destructuring for-in."""
+        line = node.line
+        iter_name = f'__iter_{id(node)}'
+        keys_name = f'__keys_{id(node)}'
+        idx_name = f'__idx_{id(node)}'
+        len_name = f'__len_{id(node)}'
+
+        iter_idx = self.chunk.add_name(iter_name)
+        keys_idx = self.chunk.add_name(keys_name)
+        idx_idx = self.chunk.add_name(idx_name)
+        len_idx = self.chunk.add_name(len_name)
+
+        self.compile_node(node.iterable)
+        self.chunk.emit(Op.DUP, line=line)
+        self.chunk.emit(Op.STORE, iter_idx, line)
+        self.chunk.emit(Op.ITER_PREPARE, line=line)
+        self.chunk.emit(Op.STORE, keys_idx, line)
+
+        zero_idx = self.chunk.add_constant(0)
+        self.chunk.emit(Op.CONST, zero_idx, line)
+        self.chunk.emit(Op.STORE, idx_idx, line)
+
+        self.chunk.emit(Op.LOAD, keys_idx, line)
+        self.chunk.emit(Op.ITER_LENGTH, line=line)
+        self.chunk.emit(Op.STORE, len_idx, line)
+
+        loop_start = len(self.chunk.code)
+
+        break_patches = []
+        continue_patches = []
+        self.loop_stack.append((break_patches, continue_patches, None))
+
+        self.chunk.emit(Op.LOAD, idx_idx, line)
+        self.chunk.emit(Op.LOAD, len_idx, line)
+        self.chunk.emit(Op.LT, line=line)
+        jump_false = self.chunk.emit(Op.JUMP_IF_FALSE, 0, line)
+        self.chunk.emit(Op.POP, line=line)
+
+        # Get the current element
+        self.chunk.emit(Op.LOAD, keys_idx, line)
+        self.chunk.emit(Op.LOAD, idx_idx, line)
+        self.chunk.emit(Op.INDEX_GET, line=line)
+
+        # Destructure the element into pattern bindings
+        self._compile_pattern_destructure(node.pattern, line)
+
+        self.compile_node(node.body)
+
+        # Increment index
+        inc_start = len(self.chunk.code)
+        one_idx = self.chunk.add_constant(1)
+        self.chunk.emit(Op.LOAD, idx_idx, line)
+        self.chunk.emit(Op.CONST, one_idx, line)
+        self.chunk.emit(Op.ADD, line=line)
+        self.chunk.emit(Op.STORE, idx_idx, line)
+
+        self.chunk.emit(Op.JUMP, loop_start, line)
+        loop_end = len(self.chunk.code)
+        self.chunk.patch(jump_false + 1, loop_end)
+        self.chunk.emit(Op.POP, line=line)
+
+        for bp in break_patches:
+            self.chunk.patch(bp + 1, loop_end)
+        for cp in continue_patches:
+            self.chunk.patch(cp + 1, inc_start)
+        self.loop_stack.pop()
+
+    def compile_ForAwaitStmt(self, node):
+        """Compile for await (x in asyncIterable) { ... }"""
+        line = node.line
+        agen_name = f'__agen_{id(node)}'
+        agen_idx = self.chunk.add_name(agen_name)
+        var_idx = self.chunk.add_name(node.var_name)
+        var2_idx = self.chunk.add_name(node.var_name2) if node.var_name2 else None
+
+        # Evaluate iterable and store async generator
+        self.compile_node(node.iterable)
+        self.chunk.emit(Op.STORE, agen_idx, line)
+
+        loop_start = len(self.chunk.code)
+
+        break_patches = []
+        continue_patches = []
+        self.loop_stack.append((break_patches, continue_patches, None))
+
+        # ASYNC_ITER_NEXT: load agen, call next, await, if done jump to end
+        # Pushes value on success, jumps to end_addr on done
+        self.chunk.emit(Op.LOAD, agen_idx, line)
+        jump_done = self.chunk.emit(Op.ASYNC_ITER_NEXT, 0, line)
+
+        # Value is on the stack -- store to variable(s)
+        if node.var_name2:
+            # key, value iteration (index, element for arrays)
+            # ASYNC_ITER_NEXT pushes (index, value) pair -- not applicable for async gens
+            # For async generators, var_name2 is the value, var_name is the index
+            # We'll use a counter for the index
+            self.chunk.emit(Op.STORE, var2_idx, line)
+        else:
+            self.chunk.emit(Op.STORE, var_idx, line)
+
+        self.compile_node(node.body)
+
+        # Continue target
+        inc_start = len(self.chunk.code)
+
+        self.chunk.emit(Op.JUMP, loop_start, line)
+        loop_end = len(self.chunk.code)
+        self.chunk.patch(jump_done + 1, loop_end)
+
+        for bp in break_patches:
+            self.chunk.patch(bp + 1, loop_end)
+        for cp in continue_patches:
+            self.chunk.patch(cp + 1, inc_start)
+        self.loop_stack.pop()
+
+    def compile_ForAwaitDestructure(self, node):
+        """Compile for await ([a, b] in asyncIterable) { ... }"""
+        line = node.line
+        agen_name = f'__agen_{id(node)}'
+        agen_idx = self.chunk.add_name(agen_name)
+
+        # Evaluate iterable and store async generator
+        self.compile_node(node.iterable)
+        self.chunk.emit(Op.STORE, agen_idx, line)
+
+        loop_start = len(self.chunk.code)
+
+        break_patches = []
+        continue_patches = []
+        self.loop_stack.append((break_patches, continue_patches, None))
+
+        # ASYNC_ITER_NEXT: load agen, call next, await, if done jump to end
+        self.chunk.emit(Op.LOAD, agen_idx, line)
+        jump_done = self.chunk.emit(Op.ASYNC_ITER_NEXT, 0, line)
+
+        # Value is on the stack -- destructure it
+        self._compile_pattern_destructure(node.pattern, line)
+
+        self.compile_node(node.body)
+
+        # Continue target
+        inc_start = len(self.chunk.code)
+
+        self.chunk.emit(Op.JUMP, loop_start, line)
+        loop_end = len(self.chunk.code)
+        self.chunk.patch(jump_done + 1, loop_end)
+
+        for bp in break_patches:
+            self.chunk.patch(bp + 1, loop_end)
+        for cp in continue_patches:
+            self.chunk.patch(cp + 1, inc_start)
+        self.loop_stack.pop()
+
+    def compile_BreakStmt(self, node):
+        if not self.loop_stack:
+            raise CompileError("'break' outside of loop")
+        break_patches, _, _ = self.loop_stack[-1]
+        addr = self.chunk.emit(Op.JUMP, 0, node.line)
+        break_patches.append(addr)
+
+    def compile_ContinueStmt(self, node):
+        if not self.loop_stack:
+            raise CompileError("'continue' outside of loop")
+        _, continue_patches, _ = self.loop_stack[-1]
+        addr = self.chunk.emit(Op.JUMP, 0, node.line)
+        continue_patches.append(addr)
+
+    def compile_TryCatchStmt(self, node):
+        line = node.line
+        has_catch = node.catch_body is not None
+        has_finally = node.finally_body is not None
+
+        if has_finally:
+            setup_finally_addr = self.chunk.emit(Op.SETUP_FINALLY, 0, line)
+
+        if has_catch:
+            setup_try_addr = self.chunk.emit(Op.SETUP_TRY, 0, line)
+
+        # -- try body --
+        self.compile_node(node.try_body)
+
+        if has_catch:
+            self.chunk.emit(Op.POP_TRY, line=line)
+
+        if has_catch:
+            jump_after_catch = self.chunk.emit(Op.JUMP, 0, line)
+            # -- catch body --
+            catch_addr = len(self.chunk.code)
+            self.chunk.patch(setup_try_addr + 1, catch_addr)
+            catch_var_idx = self.chunk.add_name(node.catch_var)
+            self.chunk.emit(Op.STORE, catch_var_idx, line)
+            self.compile_node(node.catch_body)
+            # after_catch:
+            self.chunk.patch(jump_after_catch + 1, len(self.chunk.code))
+
+        if has_finally:
+            # Normal path: pop finally handler, run finally inline, jump to end
+            self.chunk.emit(Op.POP_FINALLY, line=line)
+            self.compile_node(node.finally_body)
+            jump_end = self.chunk.emit(Op.JUMP, 0, line)
+
+            # Abnormal path: FinallyHandler caught exception or intercepted return
+            # _finally_pending holds the pending action, stack is clean
+            finally_addr = len(self.chunk.code)
+            self.chunk.patch(setup_finally_addr + 1, finally_addr)
+            self.compile_node(node.finally_body)
+            self.chunk.emit(Op.END_FINALLY, line=line)
+
+            # end:
+            self.chunk.patch(jump_end + 1, len(self.chunk.code))
+        else:
+            # No finally -- original simple try/catch behavior
+            pass
+
+    def compile_ThrowStmt(self, node):
+        self.compile_node(node.value)
+        self.chunk.emit(Op.THROW, line=node.line)
+
+    # C046 module system
+    def compile_ImportStmt(self, node):
+        pass
+
+    def compile_ExportFnDecl(self, node):
+        self.compile_node(node.fn_decl)
+        self.exports.append(node.fn_decl.name)
+
+    def compile_ExportLetDecl(self, node):
+        self.compile_node(node.let_decl)
+        if isinstance(node.let_decl, LetDestructure):
+            # Export all names bound by the destructuring pattern
+            for name in self._pattern_names(node.let_decl.pattern):
+                self.exports.append(name)
+        else:
+            self.exports.append(node.let_decl.name)
+
+    def _pattern_names(self, pattern):
+        """Extract all variable names from a destructuring pattern."""
+        names = []
+        if isinstance(pattern, ArrayPattern):
+            for elem in pattern.elements:
+                if elem.nested:
+                    names.extend(self._pattern_names(elem.nested))
+                elif elem.name:
+                    names.append(elem.name)
+        elif isinstance(pattern, HashPattern):
+            for entry in pattern.entries:
+                if entry.nested:
+                    names.extend(self._pattern_names(entry.nested))
+                else:
+                    names.append(entry.alias)
+        return names
+
+    # C047 generators
+    def compile_YieldExpr(self, node):
+        """Compile yield expr -- emits YIELD opcode.
+        The value to yield is pushed on stack, YIELD suspends execution.
+        When resumed, the value passed to next() is left on the stack."""
+        if node.value is not None:
+            self.compile_node(node.value)
+        else:
+            idx = self.chunk.add_constant(None)
+            self.chunk.emit(Op.CONST, idx, node.line)
+        self.chunk.emit(Op.YIELD, line=node.line)
+
+    # C048 destructuring compilation
+    def compile_LetDestructure(self, node):
+        """Compile: let [a, b] = expr; or let {x, y} = expr;"""
+        self.compile_node(node.value)
+        self._compile_pattern_destructure(node.pattern)
+
+    def compile_AssignDestructure(self, node):
+        """Compile: [a, b] = [b, a]; destructuring assignment."""
+        self.compile_node(node.value)
+        self._compile_pattern_destructure(node.pattern)
+
+    def _compile_pattern_destructure(self, pattern, line=0):
+        """Emit bytecode to destructure the value on top of stack into pattern bindings.
+        After this, the original value is consumed from the stack."""
+        if isinstance(pattern, ArrayPattern):
+            self._compile_array_destructure(pattern)
+        elif isinstance(pattern, HashPattern):
+            self._compile_hash_destructure(pattern)
+
+    def _compile_array_destructure(self, pattern):
+        """Destructure array: stack top is array value.
+        Store in temp, then LOAD temp for each element access."""
+        line = pattern.line
+        temp_name = f'__destr_{id(pattern)}'
+        temp_idx = self.chunk.add_name(temp_name)
+        self.chunk.emit(Op.STORE, temp_idx, line)
+
+        for i, elem in enumerate(pattern.elements):
+            if elem.rest:
+                # ...rest: call __slice_from(arr, start_index)
+                slice_fn_idx = self.chunk.add_name('__slice_from')
+                self.chunk.emit(Op.LOAD, slice_fn_idx, line)
+                self.chunk.emit(Op.LOAD, temp_idx, line)
+                start_const = self.chunk.add_constant(i)
+                self.chunk.emit(Op.CONST, start_const, line)
+                self.chunk.emit(Op.CALL, 2, line)
+                name_idx = self.chunk.add_name(elem.name)
+                self.chunk.emit(Op.STORE, name_idx, line)
+            elif elem.nested:
+                self.chunk.emit(Op.LOAD, temp_idx, line)
+                idx_const = self.chunk.add_constant(i)
+                self.chunk.emit(Op.CONST, idx_const, line)
+                self.chunk.emit(Op.INDEX_GET, line=line)
+                if elem.default is not None:
+                    self._emit_default_check(elem.default, line)
+                self._compile_pattern_destructure(elem.nested, line)
+            else:
+                if elem.default is not None:
+                    # Safe access: check bounds first, use None if out of bounds
+                    self._emit_safe_array_access(temp_idx, i, elem.default, line)
+                    name_idx = self.chunk.add_name(elem.name)
+                    self.chunk.emit(Op.STORE, name_idx, line)
+                else:
+                    self.chunk.emit(Op.LOAD, temp_idx, line)
+                    idx_const = self.chunk.add_constant(i)
+                    self.chunk.emit(Op.CONST, idx_const, line)
+                    self.chunk.emit(Op.INDEX_GET, line=line)
+                    name_idx = self.chunk.add_name(elem.name)
+                    self.chunk.emit(Op.STORE, name_idx, line)
+
+    def _emit_safe_array_access(self, arr_temp_idx, index, default_expr, line):
+        """Emit: if index < len(arr), arr[index]; else default_value.
+        Handles out-of-bounds gracefully for destructuring defaults."""
+        # Load len(arr)
+        len_fn_idx = self.chunk.add_name('len')
+        self.chunk.emit(Op.LOAD, len_fn_idx, line)
+        self.chunk.emit(Op.LOAD, arr_temp_idx, line)
+        self.chunk.emit(Op.CALL, 1, line)
+        # Stack: [arr_len]
+        idx_const = self.chunk.add_constant(index)
+        self.chunk.emit(Op.CONST, idx_const, line)
+        # Stack: [arr_len, index]
+        self.chunk.emit(Op.GT, line=line)
+        # Stack: [arr_len > index] -- true if element exists
+        jump_to_default = self.chunk.emit(Op.JUMP_IF_FALSE, 0, line)
+        self.chunk.emit(Op.POP, line=line)  # pop condition
+        # Element exists: load it
+        self.chunk.emit(Op.LOAD, arr_temp_idx, line)
+        idx_const2 = self.chunk.add_constant(index)
+        self.chunk.emit(Op.CONST, idx_const2, line)
+        self.chunk.emit(Op.INDEX_GET, line=line)
+        # Check if the value is None (for explicit None values)
+        self._emit_default_check(default_expr, line)
+        jump_end = self.chunk.emit(Op.JUMP, 0, line)
+        # Default branch
+        self.chunk.patch(jump_to_default + 1, len(self.chunk.code))
+        self.chunk.emit(Op.POP, line=line)  # pop condition
+        self.compile_node(default_expr)
+        self.chunk.patch(jump_end + 1, len(self.chunk.code))
+
+    def _compile_hash_destructure(self, pattern):
+        """Destructure hash: stack top is hash value.
+        Store in temp, then LOAD temp for each key access."""
+        line = pattern.line
+        temp_name = f'__destr_{id(pattern)}'
+        temp_idx = self.chunk.add_name(temp_name)
+        self.chunk.emit(Op.STORE, temp_idx, line)
+
+        for entry in pattern.entries:
+            if entry.default is not None:
+                # Safe access: check if key exists first
+                self._emit_safe_hash_access(temp_idx, entry.key, entry.default, line)
+            else:
+                self.chunk.emit(Op.LOAD, temp_idx, line)
+                key_const = self.chunk.add_constant(entry.key)
+                self.chunk.emit(Op.CONST, key_const, line)
+                self.chunk.emit(Op.INDEX_GET, line=line)
+            if entry.nested:
+                self._compile_pattern_destructure(entry.nested, line)
+            else:
+                name_idx = self.chunk.add_name(entry.alias)
+                self.chunk.emit(Op.STORE, name_idx, line)
+
+    def _emit_safe_hash_access(self, hash_temp_idx, key, default_expr, line):
+        """Emit: if key exists in hash, hash[key]; else default_value."""
+        has_fn_idx = self.chunk.add_name('has')
+        self.chunk.emit(Op.LOAD, has_fn_idx, line)
+        self.chunk.emit(Op.LOAD, hash_temp_idx, line)
+        key_const = self.chunk.add_constant(key)
+        self.chunk.emit(Op.CONST, key_const, line)
+        self.chunk.emit(Op.CALL, 2, line)
+        # Stack: [true/false]
+        jump_to_default = self.chunk.emit(Op.JUMP_IF_FALSE, 0, line)
+        self.chunk.emit(Op.POP, line=line)  # pop condition
+        # Key exists: load it
+        self.chunk.emit(Op.LOAD, hash_temp_idx, line)
+        key_const2 = self.chunk.add_constant(key)
+        self.chunk.emit(Op.CONST, key_const2, line)
+        self.chunk.emit(Op.INDEX_GET, line=line)
+        # Also check for None value
+        self._emit_default_check(default_expr, line)
+        jump_end = self.chunk.emit(Op.JUMP, 0, line)
+        # Default branch
+        self.chunk.patch(jump_to_default + 1, len(self.chunk.code))
+        self.chunk.emit(Op.POP, line=line)  # pop condition
+        self.compile_node(default_expr)
+        self.chunk.patch(jump_end + 1, len(self.chunk.code))
+
+    def _emit_default_check(self, default_expr, line):
+        """Emit: if top of stack is None, replace with default value."""
+        # Stack: [value]
+        # DUP, CONST None, NE -> if true (not None), jump over default
+        self.chunk.emit(Op.DUP, line=line)
+        none_idx = self.chunk.add_constant(None)
+        self.chunk.emit(Op.CONST, none_idx, line)
+        self.chunk.emit(Op.NE, line=line)
+        jump_skip = self.chunk.emit(Op.JUMP_IF_TRUE, 0, line)
+        self.chunk.emit(Op.POP, line=line)  # pop NE result (false)
+        self.chunk.emit(Op.POP, line=line)  # pop None value
+        self.compile_node(default_expr)
+        jump_end = self.chunk.emit(Op.JUMP, 0, line)
+        self.chunk.patch(jump_skip + 1, len(self.chunk.code))
+        self.chunk.emit(Op.POP, line=line)  # pop NE result (true)
+        self.chunk.patch(jump_end + 1, len(self.chunk.code))
+
+    def _compile_function_body(self, params, body):
+        fn_compiler = self.__class__()
+        fn_compiler.chunk = Chunk()
+
+        # C062: Check for rest parameter (must be last)
+        has_rest = False
+        rest_name = None
+        actual_params = []
+        for p in params:
+            if isinstance(p, RestParam):
+                has_rest = True
+                rest_name = p.name
+            else:
+                actual_params.append(p)
+        fn_compiler._has_rest = has_rest
+        fn_compiler._rest_name = rest_name
+
+        # Register param names; pattern params get synthetic temp names
+        param_patterns = []  # (index, pattern) pairs for destructuring
+        for i, p in enumerate(actual_params):
+            if isinstance(p, str):
+                fn_compiler.chunk.add_name(p)
+            else:
+                # Pattern parameter -- use synthetic name
+                temp_name = f'__destruct_param_{i}'
+                fn_compiler.chunk.add_name(temp_name)
+                param_patterns.append((i, temp_name, p))
+
+        # C062: Rest param gets registered as a name too
+        if has_rest:
+            fn_compiler.chunk.add_name(rest_name)
+
+        # Emit destructuring for pattern params at the start
+        for _, temp_name, pattern in param_patterns:
+            temp_idx = fn_compiler.chunk.add_name(temp_name)
+            fn_compiler.chunk.emit(Op.LOAD, temp_idx)
+            fn_compiler._compile_pattern_destructure(pattern)
+
+        if isinstance(body, Block):
+            for stmt in body.stmts:
+                fn_compiler._compile_stmt(stmt)
+        else:
+            fn_compiler.compile_node(body)
+
+        # Implicit return None
+        idx = fn_compiler.chunk.add_constant(None)
+        fn_compiler.chunk.emit(Op.CONST, idx)
+        fn_compiler.chunk.emit(Op.RETURN)
+        return fn_compiler
+
+    def compile_FnDecl(self, node):
+        fn_compiler = self._compile_function_body(node.params, node.body)
+
+        # Check if this function contains yield
+        is_gen = _ast_contains_yield(node.body)
+
+        # C062: rest params -- arity is count of non-rest params
+        has_rest = fn_compiler._has_rest
+        arity = len(node.params) - (1 if has_rest else 0)
+        fn_obj = FnObject(node.name, arity, fn_compiler.chunk, is_generator=is_gen, has_rest=has_rest)
+        for k, v in fn_compiler.functions.items():
+            self.functions[k] = v
+        self.functions[node.name] = fn_obj
+
+        fn_idx = self.chunk.add_constant(fn_obj)
+        name_idx = self.chunk.add_name(node.name)
+        self.chunk.emit(Op.CONST, fn_idx, node.line)
+        self.chunk.emit(Op.MAKE_CLOSURE, line=node.line)
+        self.chunk.emit(Op.STORE, name_idx, node.line)
+
+    def compile_Decorated(self, node):
+        """Compile @decorator declarations. Compiles inner decl, then applies decorators."""
+        # Compile the inner declaration normally (this stores it in a variable)
+        self.compile_node(node.declaration)
+        # Extract the name of the declared thing
+        name = self._get_decl_name(node.declaration)
+        if name is None:
+            raise CompileError(f"Cannot apply decorators: unknown declaration type")
+        name_idx = self.chunk.add_name(name)
+        # Apply decorators in reverse order (last decorator = innermost = applied first)
+        # Stack for CALL: [callee, arg1, ...] -- callee pushed first, then args
+        for dec_expr in reversed(node.decorators):
+            # Compile the decorator expression (push callee)
+            self.compile_node(dec_expr)
+            # Load the current value (push arg)
+            self.chunk.emit(Op.LOAD, name_idx, node.line)
+            # Call decorator with 1 argument
+            self.chunk.emit(Op.CALL, 1, node.line)
+            # Store result back
+            self.chunk.emit(Op.STORE, name_idx, node.line)
+
+    def _get_decl_name(self, decl):
+        """Extract the variable name from a declaration node."""
+        if isinstance(decl, (FnDecl, AsyncFnDecl)):
+            return decl.name
+        elif isinstance(decl, ClassDecl):
+            return decl.name
+        elif isinstance(decl, (ExportFnDecl, ExportAsyncFnDecl)):
+            return decl.fn_decl.name
+        elif isinstance(decl, ExportClassDecl):
+            return decl.class_decl.name
+        elif isinstance(decl, Decorated):
+            return self._get_decl_name(decl.declaration)
+        return None
+
+    def compile_LambdaExpr(self, node):
+        fn_compiler = self._compile_function_body(node.params, node.body)
+
+        is_gen = _ast_contains_yield(node.body)
+
+        # C062: rest params
+        has_rest = fn_compiler._has_rest
+        arity = len(node.params) - (1 if has_rest else 0)
+        fn_obj = FnObject("<lambda>", arity, fn_compiler.chunk, is_generator=is_gen, has_rest=has_rest)
+        for k, v in fn_compiler.functions.items():
+            self.functions[k] = v
+
+        fn_idx = self.chunk.add_constant(fn_obj)
+        self.chunk.emit(Op.CONST, fn_idx, node.line)
+        self.chunk.emit(Op.MAKE_CLOSURE, line=node.line)
+
+    def compile_AsyncFnDecl(self, node):
+        fn_compiler = self._compile_function_body(node.params, node.body)
+        # C064: async generator if declared with fn* OR body contains yield
+        is_gen = getattr(node, 'is_generator', False) or _ast_contains_yield(node.body)
+        # C062: rest params
+        has_rest = fn_compiler._has_rest
+        arity = len(node.params) - (1 if has_rest else 0)
+        fn_obj = FnObject(node.name, arity, fn_compiler.chunk, is_generator=is_gen, is_async=True, has_rest=has_rest)
+        for k, v in fn_compiler.functions.items():
+            self.functions[k] = v
+        self.functions[node.name] = fn_obj
+
+        fn_idx = self.chunk.add_constant(fn_obj)
+        name_idx = self.chunk.add_name(node.name)
+        self.chunk.emit(Op.CONST, fn_idx, node.line)
+        self.chunk.emit(Op.MAKE_CLOSURE, line=node.line)
+        self.chunk.emit(Op.STORE, name_idx, node.line)
+
+    def compile_ExportAsyncFnDecl(self, node):
+        self.compile_AsyncFnDecl(node.fn_decl)
+        self.exports.append(node.fn_decl.name)
+
+    def compile_AwaitExpr(self, node):
+        self.compile_node(node.value)
+        self.chunk.emit(Op.AWAIT, line=node.line)
+
+    def compile_CallExpr(self, node):
+        has_spread = any(isinstance(a, SpreadExpr) for a in node.args)
+        if node.optional:
+            # Optional call: obj?.(args) -- if obj is null, result is null
+            self.compile_node(node.callee)
+            null_label = self._emit_optional_null_check(node.line)
+            if not has_spread:
+                for arg in node.args:
+                    self.compile_node(arg)
+                self.chunk.emit(Op.CALL, len(node.args), node.line)
+            else:
+                self._compile_spread_call_args(node)
+            self._patch_optional_end(null_label, node.line)
+        elif not has_spread:
+            self.compile_node(node.callee)
+            for arg in node.args:
+                self.compile_node(arg)
+            self.chunk.emit(Op.CALL, len(node.args), node.line)
+        else:
+            # Build args array using ARRAY_SPREAD, then CALL_SPREAD
+            self.compile_node(node.callee)
+            self._compile_spread_call_args(node)
+
+    def _compile_spread_call_args(self, node):
+        """Helper for spread call arguments."""
+        self.chunk.emit(Op.MAKE_ARRAY, 0, node.line)
+        group = []
+        for arg in node.args:
+            if isinstance(arg, SpreadExpr):
+                if group:
+                    for g in group:
+                        self.compile_node(g)
+                    self.chunk.emit(Op.MAKE_ARRAY, len(group), node.line)
+                    self.chunk.emit(Op.ARRAY_SPREAD, line=node.line)
+                    group = []
+                self.compile_node(arg.expr)
+                self.chunk.emit(Op.ARRAY_SPREAD, line=node.line)
+            else:
+                group.append(arg)
+        if group:
+            for g in group:
+                self.compile_node(g)
+            self.chunk.emit(Op.MAKE_ARRAY, len(group), node.line)
+            self.chunk.emit(Op.ARRAY_SPREAD, line=node.line)
+        self.chunk.emit(Op.CALL_SPREAD, line=node.line)
+
+    def compile_ReturnStmt(self, node):
+        if node.value:
+            self.compile_node(node.value)
+        else:
+            idx = self.chunk.add_constant(None)
+            self.chunk.emit(Op.CONST, idx, node.line)
+        self.chunk.emit(Op.RETURN, line=node.line)
+
+    def compile_PrintStmt(self, node):
+        self.compile_node(node.value)
+        self.chunk.emit(Op.PRINT, line=node.line)
+
+    def compile_ArrayLit(self, node):
+        has_spread = any(isinstance(e, SpreadExpr) for e in node.elements)
+        if not has_spread:
+            for elem in node.elements:
+                self.compile_node(elem)
+            self.chunk.emit(Op.MAKE_ARRAY, len(node.elements), node.line)
+        else:
+            # Start with empty array, then extend with groups/spreads
+            self.chunk.emit(Op.MAKE_ARRAY, 0, node.line)
+            group = []
+            for elem in node.elements:
+                if isinstance(elem, SpreadExpr):
+                    if group:
+                        for g in group:
+                            self.compile_node(g)
+                        self.chunk.emit(Op.MAKE_ARRAY, len(group), node.line)
+                        self.chunk.emit(Op.ARRAY_SPREAD, line=node.line)
+                        group = []
+                    self.compile_node(elem.expr)
+                    self.chunk.emit(Op.ARRAY_SPREAD, line=node.line)
+                else:
+                    group.append(elem)
+            if group:
+                for g in group:
+                    self.compile_node(g)
+                self.chunk.emit(Op.MAKE_ARRAY, len(group), node.line)
+                self.chunk.emit(Op.ARRAY_SPREAD, line=node.line)
+
+    def _emit_optional_null_check(self, line):
+        """Emit null check for optional chaining. Returns (null_label, end_label).
+        Stack before: [obj]. After: [obj] with jump to null_label if obj is None.
+        Caller must POP the comparison result on both branches."""
+        self.chunk.emit(Op.DUP, line=line)
+        none_idx = self.chunk.add_constant(None)
+        self.chunk.emit(Op.CONST, none_idx, line)
+        self.chunk.emit(Op.EQ, line=line)
+        null_label = self.chunk.emit(Op.JUMP_IF_TRUE, 0, line)
+        # Fall-through: obj is not None. Pop the comparison result (False).
+        self.chunk.emit(Op.POP, line=line)
+        return null_label
+
+    def _patch_optional_end(self, null_label, line):
+        """Emit the end of an optional chain expression.
+        After the non-null path, jump over the null path."""
+        end_label = self.chunk.emit(Op.JUMP, 0, line)
+        # null_label target: obj is None, pop comparison result (True), leave None on stack
+        self.chunk.patch(null_label + 1, len(self.chunk.code))
+        self.chunk.emit(Op.POP, line=line)
+        # None (the obj) is already on the stack
+        self.chunk.patch(end_label + 1, len(self.chunk.code))
+
+    def compile_IndexExpr(self, node):
+        self.compile_node(node.obj)
+        if node.optional:
+            null_label = self._emit_optional_null_check(node.line)
+            self.compile_node(node.index)
+            self.chunk.emit(Op.INDEX_GET, line=node.line)
+            self._patch_optional_end(null_label, node.line)
+        else:
+            self.compile_node(node.index)
+            self.chunk.emit(Op.INDEX_GET, line=node.line)
+
+    def compile_IndexAssign(self, node):
+        self.compile_node(node.obj)
+        self.compile_node(node.index)
+        self.compile_node(node.value)
+        self.chunk.emit(Op.INDEX_SET, line=node.line)
+
+    def compile_HashLit(self, node):
+        has_spread = any(isinstance(p, SpreadExpr) for p in node.pairs)
+        if not has_spread:
+            for key_expr, value_expr in node.pairs:
+                self.compile_node(key_expr)
+                self.compile_node(value_expr)
+            self.chunk.emit(Op.MAKE_HASH, len(node.pairs), node.line)
+        else:
+            # Start with empty hash, then merge with groups/spreads
+            self.chunk.emit(Op.MAKE_HASH, 0, node.line)
+            group = []
+            for pair in node.pairs:
+                if isinstance(pair, SpreadExpr):
+                    if group:
+                        for k, v in group:
+                            self.compile_node(k)
+                            self.compile_node(v)
+                        self.chunk.emit(Op.MAKE_HASH, len(group), node.line)
+                        self.chunk.emit(Op.HASH_SPREAD, line=node.line)
+                        group = []
+                    self.compile_node(pair.expr)
+                    self.chunk.emit(Op.HASH_SPREAD, line=node.line)
+                else:
+                    group.append(pair)
+            if group:
+                for k, v in group:
+                    self.compile_node(k)
+                    self.compile_node(v)
+                self.chunk.emit(Op.MAKE_HASH, len(group), node.line)
+                self.chunk.emit(Op.HASH_SPREAD, line=node.line)
+
+    def compile_DotExpr(self, node):
+        self.compile_node(node.obj)
+        if node.optional:
+            null_label = self._emit_optional_null_check(node.line)
+            idx = self.chunk.add_constant(node.key)
+            self.chunk.emit(Op.CONST, idx, node.line)
+            self.chunk.emit(Op.INDEX_GET, line=node.line)
+            self._patch_optional_end(null_label, node.line)
+        else:
+            idx = self.chunk.add_constant(node.key)
+            self.chunk.emit(Op.CONST, idx, node.line)
+            self.chunk.emit(Op.INDEX_GET, line=node.line)
+
+    def compile_DotAssign(self, node):
+        self.compile_node(node.obj)
+        idx = self.chunk.add_constant(node.key)
+        self.chunk.emit(Op.CONST, idx, node.line)
+        self.compile_node(node.value)
+        self.chunk.emit(Op.INDEX_SET, line=node.line)
+
+    # C052: Classes
+    def compile_ClassDecl(self, node):
+        line = node.line
+
+        # Push class name
+        name_const = self.chunk.add_constant(node.name)
+        self.chunk.emit(Op.CONST, name_const, line)
+
+        # Push parent (None or class reference)
+        if node.parent:
+            parent_idx = self.chunk.add_name(node.parent)
+            self.chunk.emit(Op.LOAD, parent_idx, line)
+        else:
+            none_idx = self.chunk.add_constant(None)
+            self.chunk.emit(Op.CONST, none_idx, line)
+
+        # Compile each method
+        for entry in node.methods:
+            # C058: methods are now 4-tuples (name, params, body, kind)
+            if len(entry) == 4:
+                method_name, params, body, kind = entry
+            else:
+                method_name, params, body = entry
+                kind = 'method'
+
+            # Static methods don't get implicit 'this'
+            if kind == 'static':
+                all_params = list(params)
+            else:
+                # Methods, getters, setters get implicit 'this'
+                all_params = ['this'] + list(params)
+            fn_compiler = self._compile_function_body(all_params, body)
+
+            is_gen = _ast_contains_yield(body)
+            fn_obj = FnObject(method_name, len(all_params), fn_compiler.chunk,
+                              is_generator=is_gen)
+            for k, v in fn_compiler.functions.items():
+                self.functions[k] = v
+
+            # C058: Tag method name with kind prefix
+            tagged_name = method_name
+            if kind == 'static':
+                tagged_name = 'static:' + method_name
+            elif kind == 'get':
+                tagged_name = 'get:' + method_name
+            elif kind == 'set':
+                tagged_name = 'set:' + method_name
+
+            # Push tagged method name string
+            mn_idx = self.chunk.add_constant(tagged_name)
+            self.chunk.emit(Op.CONST, mn_idx, line)
+            # Push fn object
+            fn_idx = self.chunk.add_constant(fn_obj)
+            self.chunk.emit(Op.CONST, fn_idx, line)
+
+        # MAKE_CLASS operand: method_count
+        self.chunk.emit(Op.MAKE_CLASS, len(node.methods), line)
+
+        # C067: Implement traits
+        if node.traits:
+            for trait_name in node.traits:
+                trait_name_idx = self.chunk.add_name(trait_name)
+                self.chunk.emit(Op.LOAD, trait_name_idx, line)
+            self.chunk.emit(Op.IMPL_TRAITS, len(node.traits), line)
+
+        # Store class in variable
+        cls_idx = self.chunk.add_name(node.name)
+        self.chunk.emit(Op.STORE, cls_idx, line)
+
+    def compile_SuperCall(self, node):
+        line = node.line
+        # Load parent class
+        super_idx = self.chunk.add_name('__super__')
+        self.chunk.emit(Op.LOAD, super_idx, line)
+        # Push this
+        this_idx = self.chunk.add_name('this')
+        self.chunk.emit(Op.LOAD, this_idx, line)
+        # Push args
+        for arg in node.args:
+            self.compile_node(arg)
+        # SUPER_INVOKE: method_name_idx, arg_count (not including this)
+        method_name_idx = self.chunk.add_name(node.method)
+        self.chunk.emit(Op.SUPER_INVOKE, method_name_idx, line)
+        # Second operand: arg count
+        self.chunk.code.append(len(node.args))
+        self.chunk.lines.append(line)
+
+    def compile_ExportClassDecl(self, node):
+        self.compile_ClassDecl(node.class_decl)
+        self.exports.append(node.class_decl.name)
+
+    def compile_EnumDecl(self, node):
+        """Compile enum declaration -- creates EnumObject at compile time."""
+        line = node.line
+        # Evaluate variant ordinals
+        variants = {}
+        next_ordinal = 0
+        for variant_name, value_expr in node.variants:
+            if value_expr is not None:
+                # Constant expression -- must be a literal integer
+                if isinstance(value_expr, IntLit):
+                    ordinal = value_expr.value
+                elif isinstance(value_expr, (UnaryOp,)) and isinstance(value_expr.operand, IntLit):
+                    ordinal = -value_expr.operand.value if value_expr.op == '-' else value_expr.operand.value
+                else:
+                    raise CompileError(f"Enum variant value must be an integer literal at line {line}")
+                next_ordinal = ordinal + 1
+            else:
+                ordinal = next_ordinal
+                next_ordinal += 1
+            variant = EnumVariant(enum_name=node.name, variant_name=variant_name, ordinal=ordinal)
+            variants[variant_name] = variant
+
+        # Compile methods
+        methods = {}
+        for entry in node.methods:
+            if len(entry) == 4:
+                method_name, params, body, kind = entry
+            else:
+                method_name, params, body = entry
+                kind = 'method'
+            # Enum methods get implicit 'this' (the variant)
+            all_params = ['this'] + list(params)
+            fn_compiler = self._compile_function_body(all_params, body)
+            is_gen = _ast_contains_yield(body)
+            fn_obj = FnObject(method_name, len(all_params), fn_compiler.chunk,
+                              is_generator=is_gen)
+            for k, v in fn_compiler.functions.items():
+                self.functions[k] = v
+            methods[method_name] = fn_obj
+
+        enum_obj = EnumObject(name=node.name, variants=variants, methods=methods)
+        # Set back-reference from variants to enum
+        for v in variants.values():
+            v.enum_ref = enum_obj
+        enum_idx = self.chunk.add_constant(enum_obj)
+        self.chunk.emit(Op.CONST, enum_idx, line)
+
+        name_idx = self.chunk.add_name(node.name)
+        self.chunk.emit(Op.STORE, name_idx, line)
+
+    def compile_ExportEnumDecl(self, node):
+        self.compile_EnumDecl(node.enum_decl)
+        self.exports.append(node.enum_decl.name)
+
+    # C067: Traits
+    def compile_TraitDecl(self, node):
+        line = node.line
+        methods = {}
+        required_methods = set()
+
+        for method_name, params, body, kind in node.methods:
+            if body is None:
+                # Required/abstract method
+                required_methods.add(method_name)
+            else:
+                # Default implementation -- compile it
+                all_params = ['this'] + list(params)
+                fn_compiler = self._compile_function_body(all_params, body)
+                fn_obj = FnObject(method_name, len(all_params), fn_compiler.chunk)
+                for k, v in fn_compiler.functions.items():
+                    self.functions[k] = v
+                methods[method_name] = fn_obj
+
+        # Push trait name
+        name_const = self.chunk.add_constant(node.name)
+        self.chunk.emit(Op.CONST, name_const, line)
+
+        # Push parent (None or load from variable)
+        if node.parent:
+            parent_idx = self.chunk.add_name(node.parent)
+            self.chunk.emit(Op.LOAD, parent_idx, line)
+        else:
+            none_idx = self.chunk.add_constant(None)
+            self.chunk.emit(Op.CONST, none_idx, line)
+
+        # Push methods dict and required set as constants
+        methods_const = self.chunk.add_constant(methods)
+        self.chunk.emit(Op.CONST, methods_const, line)
+
+        required_const = self.chunk.add_constant(required_methods)
+        self.chunk.emit(Op.CONST, required_const, line)
+
+        self.chunk.emit(Op.MAKE_TRAIT, 0, line)
+
+        # Store trait in variable
+        trait_idx = self.chunk.add_name(node.name)
+        self.chunk.emit(Op.STORE, trait_idx, line)
+
+    def compile_ExportTraitDecl(self, node):
+        self.compile_TraitDecl(node.trait_decl)
+        self.exports.append(node.trait_decl.name)
+
+
+# ============================================================
+# Virtual Machine
+# ============================================================
+
+class VMError(Exception):
+    pass
+
+
+@dataclass
+class CallFrame:
+    chunk: Chunk
+    ip: int
+    base_env: dict
+
+
+@dataclass
+class TryHandler:
+    catch_addr: int
+    catch_chunk: Any
+    call_depth: int
+    stack_depth: int
+    env: dict
+
+
+@dataclass
+class FinallyHandler:
+    finally_addr: int
+    finally_chunk: Any
+    call_depth: int
+    stack_depth: int
+    env: dict
+
+
+# Sentinel for generator exhaustion
+_GENERATOR_DONE = object()
+
+
+def _trait_matches(trait, target):
+    """Check if trait matches target (considering trait inheritance)."""
+    while trait is not None:
+        if trait is target:
+            return True
+        trait = trait.parent
+    return False
+
+
+def _format_value(value):
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, list):
+        parts = [_format_value(v) for v in value]
+        return "[" + ", ".join(parts) + "]"
+    if isinstance(value, EnumVariant):
+        return f"{value.enum_name}.{value.variant_name}"
+    if isinstance(value, EnumObject):
+        return f"<enum:{value.name}>"
+    if isinstance(value, TraitObject):
+        return f"<trait:{value.name}>"
+    if isinstance(value, ClassObject):
+        return f"<class:{value.name}>"
+    if isinstance(value, BoundMethod):
+        fn = value.method
+        name = fn.name if isinstance(fn, FnObject) else fn.fn.name
+        return f"<method:{name}>"
+    if isinstance(value, dict):
+        if '__class__' in value:
+            cls = value['__class__']
+            props = {k: v for k, v in value.items() if k != '__class__'}
+            parts = [f"{k}: {_format_value(v)}" for k, v in props.items()]
+            return f"<{cls.name} {{{', '.join(parts)}}}>"
+        parts = [f"{_format_value(k)}: {_format_value(v)}" for k, v in value.items()]
+        return "{" + ", ".join(parts) + "}"
+    if isinstance(value, ClosureObject):
+        return f"<closure:{value.fn.name}>"
+    if isinstance(value, FnObject):
+        return f"<fn:{value.fn.name}>" if hasattr(value, 'fn') else f"<fn:{value.name}>"
+    if isinstance(value, GeneratorObject):
+        status = "done" if value.done else "suspended"
+        return f"<generator:{value.fn.name}:{status}>"
+    if isinstance(value, PromiseObject):
+        return f"<promise:{value.state}>"
+    if isinstance(value, AsyncCoroutine):
+        status = "done" if value.done else "suspended"
+        return f"<async:{value.fn.name}:{status}>"
+    if isinstance(value, AsyncGeneratorObject):
+        status = "done" if value.done else "suspended"
+        return f"<async-generator:{value.fn.name}:{status}>"
+    if isinstance(value, NativeFunction):
+        return f"<native:{value.name}>"
+    if isinstance(value, NativeModule):
+        return f"<module:{value.name}>"
+    return str(value)
+
+
+class VM:
+    def __init__(self, chunk: Chunk, trace=False):
+        self.chunk = chunk
+        self.stack = []
+        self.env = {}
+        self.call_stack = []
+        self.handler_stack = []
+        self.output = []
+        self.trace = trace
+        self.ip = 0
+        self.current_chunk = chunk
+        self.step_count = 0
+        self.max_steps = 100000
+        self._finally_pending = None  # None | ('throw', value) | ('return', value)
+        # C056: Async support
+        self._async_queue = []  # list of (AsyncCoroutine, value, error) pending resume
+        self._current_async = None  # AsyncCoroutine being executed, or None
+        # Promise namespace -- accessible as 'Promise' variable
+        self.env['Promise'] = self._make_promise_namespace()
+
+        self._dispatch = {
+            Op.HALT: self._op_halt,
+            Op.CONST: self._op_const,
+            Op.POP: self._op_pop,
+            Op.DUP: self._op_dup,
+            Op.ADD: self._op_add,
+            Op.SUB: self._op_sub,
+            Op.MUL: self._op_mul,
+            Op.DIV: self._op_div,
+            Op.MOD: self._op_mod,
+            Op.NEG: self._op_neg,
+            Op.EQ: self._op_eq,
+            Op.NE: self._op_ne,
+            Op.LT: self._op_lt,
+            Op.GT: self._op_gt,
+            Op.LE: self._op_le,
+            Op.GE: self._op_ge,
+            Op.NOT: self._op_not,
+            Op.AND: self._op_and,
+            Op.OR: self._op_or,
+            Op.NULL_COALESCE: self._op_null_coalesce,
+            Op.LOAD: self._op_load,
+            Op.STORE: self._op_store,
+            Op.JUMP: self._op_jump,
+            Op.JUMP_IF_FALSE: self._op_jump_if_false,
+            Op.JUMP_IF_TRUE: self._op_jump_if_true,
+            Op.CALL: self._op_call,
+            Op.RETURN: self._op_return,
+            Op.PRINT: self._op_print,
+            Op.MAKE_CLOSURE: self._op_make_closure,
+            Op.MAKE_ARRAY: self._op_make_array,
+            Op.INDEX_GET: self._op_index_get,
+            Op.INDEX_SET: self._op_index_set,
+            Op.MAKE_HASH: self._op_make_hash,
+            Op.ITER_PREPARE: self._op_iter_prepare,
+            Op.ITER_LENGTH: self._op_iter_length,
+            Op.ASYNC_ITER_NEXT: self._op_async_iter_next,
+            Op.SETUP_TRY: self._op_setup_try,
+            Op.POP_TRY: self._op_pop_try,
+            Op.THROW: self._op_throw,
+            Op.SETUP_FINALLY: self._op_setup_finally,
+            Op.POP_FINALLY: self._op_pop_finally,
+            Op.END_FINALLY: self._op_end_finally,
+            Op.YIELD: self._op_yield,
+            Op.AWAIT: self._op_await,
+            Op.ARRAY_SPREAD: self._op_array_spread,
+            Op.HASH_SPREAD: self._op_hash_spread,
+            Op.CALL_SPREAD: self._op_call_spread,
+            Op.MAKE_CLASS: self._op_make_class,
+            Op.LOOKUP_METHOD: self._op_lookup_method,
+            Op.SUPER_INVOKE: self._op_super_invoke,
+            Op.MAKE_TRAIT: self._op_make_trait,
+            Op.IMPL_TRAITS: self._op_impl_traits,
+        }
+
+    def push(self, value):
+        self.stack.append(value)
+
+    def pop(self):
+        if not self.stack:
+            raise VMError("Stack underflow")
+        return self.stack.pop()
+
+    def peek(self):
+        if not self.stack:
+            raise VMError("Stack underflow on peek")
+        return self.stack[-1]
+
+    def _lookup_method(self, klass, name):
+        """Look up a method in the class chain. Returns (fn, class_where_found) or None."""
+        while klass is not None:
+            if name in klass.methods:
+                return (klass.methods[name], klass)
+            klass = klass.parent
+        return None
+
+    def _lookup_static(self, klass, name):
+        """Look up a static method in the class chain. Returns fn or None."""
+        while klass is not None:
+            if name in klass.static_methods:
+                return klass.static_methods[name]
+            klass = klass.parent
+        return None
+
+    def _lookup_getter(self, klass, name):
+        """Look up a getter in the class chain. Returns (fn, class_where_found) or None."""
+        while klass is not None:
+            if name in klass.getters:
+                return (klass.getters[name], klass)
+            klass = klass.parent
+        return None
+
+    def _lookup_setter(self, klass, name):
+        """Look up a setter in the class chain. Returns (fn, class_where_found) or None."""
+        while klass is not None:
+            if name in klass.setters:
+                return (klass.setters[name], klass)
+            klass = klass.parent
+        return None
+
+    def _throw(self, value):
+        if not self.handler_stack:
+            raise VMError(f"Uncaught exception: {_format_value(value)}")
+
+        handler = self.handler_stack.pop()
+
+        while len(self.call_stack) > handler.call_depth:
+            self.call_stack.pop()
+
+        if isinstance(handler, FinallyHandler):
+            # Route through finally block, then re-throw
+            self._finally_pending = ('throw', value)
+            self.current_chunk = handler.finally_chunk
+            self.ip = handler.finally_addr
+            # Don't restore env -- finally should see current variable state
+            # (call_stack unwinding already handles scope changes)
+            del self.stack[handler.stack_depth:]
+        else:
+            # Normal TryHandler -- jump to catch
+            self.current_chunk = handler.catch_chunk
+            self.ip = handler.catch_addr
+            self.env = handler.env
+            del self.stack[handler.stack_depth:]
+            self.push(value)
+
+    def _route_return_through_finally(self, return_val, call_depth):
+        """Check for FinallyHandler at current call depth. If found, route through it."""
+        # Scan from top of handler_stack for FinallyHandler at this depth
+        handlers_to_remove = []
+        found_finally = None
+        for i in range(len(self.handler_stack) - 1, -1, -1):
+            h = self.handler_stack[i]
+            if h.call_depth < call_depth:
+                break  # handler belongs to caller, stop
+            if h.call_depth == call_depth and isinstance(h, FinallyHandler):
+                found_finally = (i, h)
+                break
+            handlers_to_remove.append(i)
+
+        if found_finally is None:
+            return False
+
+        idx, handler = found_finally
+        # Pop all handlers from top down to and including the FinallyHandler
+        while len(self.handler_stack) > idx:
+            self.handler_stack.pop()
+
+        self._finally_pending = ('return', return_val)
+        self.current_chunk = handler.finally_chunk
+        self.ip = handler.finally_addr
+        # Don't restore env -- finally should see current variable state
+        del self.stack[handler.stack_depth:]
+        return True
+
+    def _vm_error_to_throw(self, msg):
+        if self.handler_stack:
+            self._throw(msg)
+            return True
+        return False
+
+    def _call_builtin(self, name, args):
+        if name == 'len':
+            if len(args) != 1:
+                raise VMError(f"len() takes 1 argument, got {len(args)}")
+            arg = args[0]
+            if isinstance(arg, (list, str, dict)):
+                return len(arg)
+            raise VMError(f"len() requires array, string, or hash map, got {type(arg).__name__}")
+
+        elif name == 'push':
+            if len(args) != 2:
+                raise VMError(f"push() takes 2 arguments, got {len(args)}")
+            arr, val = args
+            if not isinstance(arr, list):
+                raise VMError(f"push() requires array as first argument")
+            arr.append(val)
+            return arr
+
+        elif name == 'pop':
+            if len(args) != 1:
+                raise VMError(f"pop() takes 1 argument, got {len(args)}")
+            arr = args[0]
+            if not isinstance(arr, list):
+                raise VMError(f"pop() requires array")
+            if len(arr) == 0:
+                raise VMError("pop() on empty array")
+            return arr.pop()
+
+        elif name == 'range':
+            if len(args) == 1:
+                return list(range(args[0]))
+            elif len(args) == 2:
+                return list(range(args[0], args[1]))
+            elif len(args) == 3:
+                return list(range(args[0], args[1], args[2]))
+            else:
+                raise VMError(f"range() takes 1-3 arguments, got {len(args)}")
+
+        elif name == 'map':
+            if len(args) != 2:
+                raise VMError(f"map() takes 2 arguments, got {len(args)}")
+            arr, fn = args
+            if not isinstance(arr, list):
+                raise VMError(f"map() requires array as first argument")
+            return [self._call_function(fn, [elem]) for elem in arr]
+
+        elif name == 'filter':
+            if len(args) != 2:
+                raise VMError(f"filter() takes 2 arguments, got {len(args)}")
+            arr, fn = args
+            if not isinstance(arr, list):
+                raise VMError(f"filter() requires array as first argument")
+            result = []
+            for elem in arr:
+                if self._call_function(fn, [elem]):
+                    result.append(elem)
+            return result
+
+        elif name == 'reduce':
+            if len(args) != 3:
+                raise VMError(f"reduce() takes 3 arguments, got {len(args)}")
+            arr, fn, init = args
+            if not isinstance(arr, list):
+                raise VMError(f"reduce() requires array as first argument")
+            acc = init
+            for elem in arr:
+                acc = self._call_function(fn, [acc, elem])
+            return acc
+
+        elif name == 'slice':
+            if len(args) < 2 or len(args) > 3:
+                raise VMError(f"slice() takes 2-3 arguments, got {len(args)}")
+            arr = args[0]
+            if not isinstance(arr, list):
+                raise VMError(f"slice() requires array as first argument")
+            start = args[1]
+            end = args[2] if len(args) == 3 else len(arr)
+            return arr[start:end]
+
+        elif name == 'concat':
+            if len(args) != 2:
+                raise VMError(f"concat() takes 2 arguments, got {len(args)}")
+            a, b = args
+            if not isinstance(a, list) or not isinstance(b, list):
+                raise VMError(f"concat() requires two arrays")
+            return a + b
+
+        elif name == 'sort':
+            if len(args) != 1:
+                raise VMError(f"sort() takes 1 argument, got {len(args)}")
+            arr = args[0]
+            if not isinstance(arr, list):
+                raise VMError(f"sort() requires array")
+            return sorted(arr)
+
+        elif name == 'reverse':
+            if len(args) != 1:
+                raise VMError(f"reverse() takes 1 argument, got {len(args)}")
+            arr = args[0]
+            if not isinstance(arr, list):
+                raise VMError(f"reverse() requires array")
+            return list(reversed(arr))
+
+        elif name == 'find':
+            if len(args) != 2:
+                raise VMError(f"find() takes 2 arguments, got {len(args)}")
+            arr, fn = args
+            if not isinstance(arr, list):
+                raise VMError(f"find() requires array as first argument")
+            for elem in arr:
+                if self._call_function(fn, [elem]):
+                    return elem
+            return None
+
+        elif name == 'each':
+            if len(args) != 2:
+                raise VMError(f"each() takes 2 arguments, got {len(args)}")
+            arr, fn = args
+            if not isinstance(arr, list):
+                raise VMError(f"each() requires array as first argument")
+            for elem in arr:
+                self._call_function(fn, [elem])
+            return None
+
+        # C043 hash map builtins
+        elif name == 'keys':
+            if len(args) != 1:
+                raise VMError(f"keys() takes 1 argument, got {len(args)}")
+            obj = args[0]
+            if not isinstance(obj, dict):
+                raise VMError(f"keys() requires hash map, got {type(obj).__name__}")
+            return list(obj.keys())
+
+        elif name == 'values':
+            if len(args) != 1:
+                raise VMError(f"values() takes 1 argument, got {len(args)}")
+            obj = args[0]
+            if not isinstance(obj, dict):
+                raise VMError(f"values() requires hash map, got {type(obj).__name__}")
+            return list(obj.values())
+
+        elif name == 'has':
+            if len(args) != 2:
+                raise VMError(f"has() takes 2 arguments, got {len(args)}")
+            obj, key = args
+            if not isinstance(obj, dict):
+                raise VMError(f"has() requires hash map as first argument, got {type(obj).__name__}")
+            return key in obj
+
+        elif name == 'delete':
+            if len(args) != 2:
+                raise VMError(f"delete() takes 2 arguments, got {len(args)}")
+            obj, key = args
+            if not isinstance(obj, dict):
+                raise VMError(f"delete() requires hash map as first argument, got {type(obj).__name__}")
+            if key in obj:
+                del obj[key]
+            return obj
+
+        elif name == 'merge':
+            if len(args) != 2:
+                raise VMError(f"merge() takes 2 arguments, got {len(args)}")
+            a, b = args
+            if not isinstance(a, dict) or not isinstance(b, dict):
+                raise VMError(f"merge() requires two hash maps")
+            result = dict(a)
+            result.update(b)
+            return result
+
+        elif name == 'entries':
+            if len(args) != 1:
+                raise VMError(f"entries() takes 1 argument, got {len(args)}")
+            obj = args[0]
+            if not isinstance(obj, dict):
+                raise VMError(f"entries() requires hash map, got {type(obj).__name__}")
+            return [[k, v] for k, v in obj.items()]
+
+        elif name == 'size':
+            if len(args) != 1:
+                raise VMError(f"size() takes 1 argument, got {len(args)}")
+            obj = args[0]
+            if isinstance(obj, (dict, list, str)):
+                return len(obj)
+            raise VMError(f"size() requires hash map, array, or string, got {type(obj).__name__}")
+
+        # C045 utility builtins
+        elif name == 'type':
+            if len(args) != 1:
+                raise VMError(f"type() takes 1 argument, got {len(args)}")
+            val = args[0]
+            if val is None:
+                return "null"
+            if isinstance(val, bool):
+                return "bool"
+            if isinstance(val, int):
+                return "int"
+            if isinstance(val, float):
+                return "float"
+            if isinstance(val, str):
+                return "string"
+            if isinstance(val, list):
+                return "array"
+            if isinstance(val, EnumVariant):
+                return val.enum_name
+            if isinstance(val, EnumObject):
+                return "enum"
+            if isinstance(val, TraitObject):
+                return "trait"
+            if isinstance(val, ClassObject):
+                return "class"
+            if isinstance(val, BoundMethod):
+                return "function"
+            if isinstance(val, dict):
+                if '__class__' in val:
+                    return val['__class__'].name
+                return "hash"
+            if isinstance(val, (ClosureObject, FnObject)):
+                return "function"
+            if isinstance(val, AsyncGeneratorObject):
+                return "async_generator"
+            if isinstance(val, GeneratorObject):
+                return "generator"
+            if isinstance(val, PromiseObject):
+                return "promise"
+            if isinstance(val, AsyncCoroutine):
+                return "async"
+            if isinstance(val, NativeFunction):
+                return "function"
+            if isinstance(val, NativeModule):
+                return "module"
+            return "unknown"
+
+        # C052 class builtins
+        elif name == 'instanceof':
+            if len(args) != 2:
+                raise VMError(f"instanceof() takes 2 arguments, got {len(args)}")
+            obj, cls = args
+            # C060: enum instanceof check
+            if isinstance(cls, EnumObject):
+                return isinstance(obj, EnumVariant) and obj.enum_name == cls.name
+            # C067: trait instanceof check
+            if isinstance(cls, TraitObject):
+                if not isinstance(obj, dict) or '__class__' not in obj:
+                    return False
+                klass = obj['__class__']
+                while klass is not None:
+                    for trait in klass.traits:
+                        if _trait_matches(trait, cls):
+                            return True
+                    klass = klass.parent
+                return False
+            if not isinstance(cls, ClassObject):
+                raise VMError(f"instanceof() second argument must be a class, enum, or trait")
+            if not isinstance(obj, dict) or '__class__' not in obj:
+                return False
+            klass = obj['__class__']
+            while klass is not None:
+                if klass is cls:
+                    return True
+                klass = klass.parent
+            return False
+
+        elif name == 'string':
+            if len(args) != 1:
+                raise VMError(f"string() takes 1 argument, got {len(args)}")
+            return _format_value(args[0])
+
+        # C047 generator builtin / C064 async generator builtin
+        elif name == 'next':
+            if len(args) < 1 or len(args) > 2:
+                raise VMError(f"next() takes 1-2 arguments, got {len(args)}")
+            gen = args[0]
+            # C064: async generators return a Promise from next()
+            if isinstance(gen, AsyncGeneratorObject):
+                return self._next_async_generator(gen)
+            if not isinstance(gen, GeneratorObject):
+                raise VMError(f"next() requires generator, got {type(gen).__name__}")
+            default = args[1] if len(args) == 2 else _GENERATOR_DONE
+            return self._resume_generator(gen, default)
+
+        # C048 destructuring builtins
+        elif name == '__slice_from':
+            if len(args) != 2:
+                raise VMError(f"__slice_from() takes 2 arguments, got {len(args)}")
+            arr, start = args
+            if not isinstance(arr, list):
+                raise VMError(f"__slice_from() requires array as first argument")
+            return arr[int(start):]
+
+        else:
+            raise VMError(f"Unknown builtin: {name}")
+
+    def _create_generator(self, fn_obj, captured_env, args):
+        """Create a GeneratorObject from a generator function call."""
+        # Set up initial env with parameters
+        env = dict(captured_env) if captured_env is not None else dict(self.env)
+        # C062: rest params mean arity+1 names to assign
+        num_params = fn_obj.arity + (1 if fn_obj.has_rest else 0)
+        for i, param_name in enumerate(fn_obj.chunk.names[:num_params]):
+            env[param_name] = args[i]
+
+        gen = GeneratorObject(
+            fn=fn_obj,
+            env=env,
+            ip=0,
+            stack=[],
+            call_stack=[],
+            handler_stack=[],
+            done=False,
+        )
+        return gen
+
+    def _resume_generator(self, gen, default=_GENERATOR_DONE):
+        """Resume a generator, running until next yield or return.
+        Returns the yielded value, or default if generator is done.
+        If no default and generator is done, returns None."""
+        if gen.done:
+            if default is not _GENERATOR_DONE:
+                return default
+            return None
+
+        # Save current VM state
+        saved_chunk = self.current_chunk
+        saved_ip = self.ip
+        saved_env = self.env
+        saved_stack = self.stack
+        saved_call_stack = self.call_stack
+        saved_handler_stack = self.handler_stack
+        saved_finally_pending = self._finally_pending
+
+        # Restore generator state
+        self.current_chunk = gen.fn.chunk
+        self.ip = gen.ip
+        self.env = gen.env
+        self.stack = gen.stack
+        self.call_stack = gen.call_stack
+        self.handler_stack = gen.handler_stack
+        self._finally_pending = gen.finally_pending
+
+        result = None
+        yielded = False
+
+        try:
+            while True:
+                self.step_count += 1
+                if self.step_count > self.max_steps:
+                    raise VMError(f"Execution limit exceeded ({self.max_steps} steps)")
+
+                if self.ip >= len(self.current_chunk.code):
+                    # Generator finished by reaching end of code
+                    gen.done = True
+                    result = None
+                    break
+
+                op = self.current_chunk.code[self.ip]
+                self.ip += 1
+
+                if op == Op.YIELD:
+                    # Pop the value to yield
+                    result = self.pop()
+                    yielded = True
+                    break
+
+                if op == Op.RETURN:
+                    # Generator returns -- mark as done
+                    result_val = self.pop()
+                    if self.call_stack:
+                        # Return from nested function call within generator
+                        cur_depth = len(self.call_stack)
+                        if self._route_return_through_finally(result_val, cur_depth):
+                            continue  # routed to finally, keep running
+                        frame = self.call_stack.pop()
+                        self.current_chunk = frame.chunk
+                        self.ip = frame.ip
+                        self.env = frame.base_env
+                        self.push(result_val)
+                        continue
+                    else:
+                        # Return from generator itself -- check for finally
+                        if self._route_return_through_finally(result_val, 0):
+                            continue  # routed to finally, keep running
+                        gen.done = True
+                        result = None  # Generator return value is discarded
+                        break
+
+                exec_result = self._execute_op(op)
+                if exec_result == 'halt':
+                    gen.done = True
+                    result = None
+                    break
+
+        finally:
+            # Save generator state
+            gen.ip = self.ip
+            gen.env = self.env
+            gen.stack = self.stack
+            gen.call_stack = self.call_stack
+            gen.handler_stack = self.handler_stack
+            gen.finally_pending = self._finally_pending
+
+            # Restore VM state
+            self.current_chunk = saved_chunk
+            self.ip = saved_ip
+            self.env = saved_env
+            self.stack = saved_stack
+            self.call_stack = saved_call_stack
+            self.handler_stack = saved_handler_stack
+            self._finally_pending = saved_finally_pending
+
+        if gen.done and not yielded:
+            if default is not _GENERATOR_DONE:
+                return default
+            return None
+
+        return result
+
+    def _start_async(self, fn_obj, captured_env, args):
+        """Start an async function. Returns a PromiseObject."""
+        env = dict(captured_env) if captured_env is not None else dict(self.env)
+        num_params = fn_obj.arity + (1 if fn_obj.has_rest else 0)
+        for i, param_name in enumerate(fn_obj.chunk.names[:num_params]):
+            env[param_name] = args[i]
+
+        promise = PromiseObject()
+        coro = AsyncCoroutine(
+            fn=fn_obj,
+            env=env,
+            ip=0,
+            stack=[],
+            call_stack=[],
+            handler_stack=[],
+            done=False,
+            promise=promise,
+        )
+
+        # Eagerly run until first await or completion
+        self._resume_async(coro, None)
+        return promise
+
+    # ---- C064: Async generator methods ----
+
+    def _create_async_generator(self, fn_obj, captured_env, args):
+        """Create an AsyncGeneratorObject from an async generator function call."""
+        env = dict(captured_env) if captured_env is not None else dict(self.env)
+        num_params = fn_obj.arity + (1 if fn_obj.has_rest else 0)
+        for i, param_name in enumerate(fn_obj.chunk.names[:num_params]):
+            env[param_name] = args[i]
+
+        agen = AsyncGeneratorObject(
+            fn=fn_obj,
+            env=env,
+            ip=0,
+            stack=[],
+            call_stack=[],
+            handler_stack=[],
+            done=False,
+        )
+        return agen
+
+    def _next_async_generator(self, agen):
+        """Call next() on an async generator. Returns a PromiseObject."""
+        promise = PromiseObject()
+        if agen.done:
+            promise.resolve(None)
+            return promise
+
+        agen.next_promise = promise
+        self._resume_async_generator(agen, None)
+        return promise
+
+    def _resume_async_generator(self, agen, send_value):
+        """Resume an async generator. Runs until YIELD, AWAIT, RETURN, or error."""
+        if agen.done:
+            return
+
+        # Save current VM state
+        saved_chunk = self.current_chunk
+        saved_ip = self.ip
+        saved_env = self.env
+        saved_stack = self.stack
+        saved_call_stack = self.call_stack
+        saved_handler_stack = self.handler_stack
+        saved_finally_pending = self._finally_pending
+        saved_async = self._current_async
+
+        # Restore async generator state
+        self.current_chunk = agen.fn.chunk
+        self.ip = agen.ip
+        self.env = agen.env
+        self.stack = agen.stack
+        self.call_stack = agen.call_stack
+        self.handler_stack = agen.handler_stack
+        self._finally_pending = agen.finally_pending
+        self._current_async = agen  # Signal to AWAIT opcode that we're in async context
+
+        # If resuming from an await, replace the promise on stack with the resolved value
+        if send_value is not None:
+            if self.stack:
+                self.stack.pop()  # Remove old promise from stack
+            self.push(send_value)
+
+        suspended = False
+        try:
+            while True:
+                self.step_count += 1
+                if self.step_count > self.max_steps:
+                    raise VMError(f"Execution limit exceeded ({self.max_steps} steps)")
+
+                if self.ip >= len(self.current_chunk.code):
+                    agen.done = True
+                    if agen.next_promise:
+                        agen.next_promise.resolve(None)
+                        agen.next_promise = None
+                    break
+
+                op = self.current_chunk.code[self.ip]
+                self.ip += 1
+
+                if op == Op.YIELD:
+                    # Yield a value -- resolve the next_promise with it
+                    result = self.pop()
+                    if agen.next_promise:
+                        agen.next_promise.resolve(result)
+                        agen.next_promise = None
+                    break  # Suspend
+
+                if op == Op.RETURN:
+                    return_val = self.pop()
+                    if self.call_stack:
+                        cur_depth = len(self.call_stack)
+                        if self._route_return_through_finally(return_val, cur_depth):
+                            continue
+                        frame = self.call_stack.pop()
+                        self.current_chunk = frame.chunk
+                        self.ip = frame.ip
+                        self.env = frame.base_env
+                        self.push(return_val)
+                        continue
+                    else:
+                        if self._route_return_through_finally(return_val, 0):
+                            continue
+                        agen.done = True
+                        if agen.next_promise:
+                            agen.next_promise.resolve(None)
+                            agen.next_promise = None
+                        break
+
+                # Handle THROW explicitly
+                if op == Op.THROW:
+                    thrown_value = self.pop()
+                    if self.handler_stack:
+                        self._throw(thrown_value)
+                        continue
+                    else:
+                        agen.done = True
+                        if agen.next_promise:
+                            agen.next_promise.reject(thrown_value)
+                            agen.next_promise = None
+                        break
+
+                exec_result = self._execute_op(op)
+                if exec_result == 'halt':
+                    agen.done = True
+                    if agen.next_promise:
+                        agen.next_promise.resolve(None)
+                        agen.next_promise = None
+                    break
+                if isinstance(exec_result, tuple) and exec_result[0] == 'async_reject':
+                    agen.done = True
+                    if agen.next_promise:
+                        agen.next_promise.reject(exec_result[1])
+                        agen.next_promise = None
+                    break
+                if exec_result == 'await_suspend':
+                    # Hit an await on a pending promise -- suspend and register callbacks
+                    awaited_promise = self.peek()
+                    suspended = True
+
+                    def make_agen_resume(ag=agen):
+                        def on_resolve(val):
+                            self._async_queue.append(('agen', ag, val, None))
+                        def on_reject(err):
+                            self._async_queue.append(('agen', ag, None, err))
+                        return on_resolve, on_reject
+
+                    on_res, on_rej = make_agen_resume()
+
+                    if awaited_promise.state == PromiseObject.PENDING:
+                        awaited_promise.callbacks.append((on_res, on_rej))
+                    elif awaited_promise.state == PromiseObject.RESOLVED:
+                        self._async_queue.append(('agen', agen, awaited_promise.value, None))
+                    else:
+                        self._async_queue.append(('agen', agen, None, awaited_promise.value))
+                    break
+                if exec_result == 'finally_returned':
+                    agen.done = True
+                    if agen.next_promise:
+                        agen.next_promise.resolve(None)
+                        agen.next_promise = None
+                    break
+
+        except VMError as e:
+            agen.done = True
+            if agen.next_promise:
+                agen.next_promise.reject(str(e))
+                agen.next_promise = None
+
+        finally:
+            # Save async generator state
+            agen.ip = self.ip
+            agen.env = self.env
+            agen.stack = self.stack
+            agen.call_stack = self.call_stack
+            agen.handler_stack = self.handler_stack
+            agen.finally_pending = self._finally_pending
+
+            # Restore VM state
+            self.current_chunk = saved_chunk
+            self.ip = saved_ip
+            self.env = saved_env
+            self.stack = saved_stack
+            self.call_stack = saved_call_stack
+            self.handler_stack = saved_handler_stack
+            self._finally_pending = saved_finally_pending
+            self._current_async = saved_async
+
+    def _resume_async_generator_with_error(self, agen, error):
+        """Resume an async generator by throwing an error into it."""
+        if agen.done:
+            return
+
+        # Save current VM state
+        saved_chunk = self.current_chunk
+        saved_ip = self.ip
+        saved_env = self.env
+        saved_stack = self.stack
+        saved_call_stack = self.call_stack
+        saved_handler_stack = self.handler_stack
+        saved_finally_pending = self._finally_pending
+        saved_async = self._current_async
+
+        # Restore async generator state
+        self.current_chunk = agen.fn.chunk
+        self.ip = agen.ip
+        self.env = agen.env
+        self.stack = agen.stack
+        self.call_stack = agen.call_stack
+        self.handler_stack = agen.handler_stack
+        self._finally_pending = agen.finally_pending
+        self._current_async = agen  # Signal to AWAIT opcode that we're in async context
+
+        # Pop the promise that was on top of stack from AWAIT
+        if self.stack:
+            self.stack.pop()
+
+        try:
+            # Throw the error into the generator
+            if self.handler_stack:
+                self._throw(error)
+                # Continue running the async generator from the catch handler
+                self._resume_async_generator_continue(agen)
+            else:
+                # No handler -- reject the next_promise
+                agen.done = True
+                if agen.next_promise:
+                    agen.next_promise.reject(error)
+                    agen.next_promise = None
+
+        except VMError as e:
+            agen.done = True
+            if agen.next_promise:
+                agen.next_promise.reject(str(e))
+                agen.next_promise = None
+
+        finally:
+            agen.ip = self.ip
+            agen.env = self.env
+            agen.stack = self.stack
+            agen.call_stack = self.call_stack
+            agen.handler_stack = self.handler_stack
+            agen.finally_pending = self._finally_pending
+
+            self.current_chunk = saved_chunk
+            self.ip = saved_ip
+            self.env = saved_env
+            self.stack = saved_stack
+            self.call_stack = saved_call_stack
+            self.handler_stack = saved_handler_stack
+            self._finally_pending = saved_finally_pending
+            self._current_async = saved_async
+
+    def _resume_async_generator_continue(self, agen):
+        """Continue running an async generator after a throw was routed to handler."""
+        while True:
+            self.step_count += 1
+            if self.step_count > self.max_steps:
+                raise VMError(f"Execution limit exceeded ({self.max_steps} steps)")
+
+            if self.ip >= len(self.current_chunk.code):
+                agen.done = True
+                if agen.next_promise:
+                    agen.next_promise.resolve(None)
+                    agen.next_promise = None
+                return
+
+            op = self.current_chunk.code[self.ip]
+            self.ip += 1
+
+            if op == Op.YIELD:
+                result = self.pop()
+                if agen.next_promise:
+                    agen.next_promise.resolve(result)
+                    agen.next_promise = None
+                return
+
+            if op == Op.RETURN:
+                return_val = self.pop()
+                if self.call_stack:
+                    cur_depth = len(self.call_stack)
+                    if self._route_return_through_finally(return_val, cur_depth):
+                        continue
+                    frame = self.call_stack.pop()
+                    self.current_chunk = frame.chunk
+                    self.ip = frame.ip
+                    self.env = frame.base_env
+                    self.push(return_val)
+                    continue
+                else:
+                    if self._route_return_through_finally(return_val, 0):
+                        continue
+                    agen.done = True
+                    if agen.next_promise:
+                        agen.next_promise.resolve(None)
+                        agen.next_promise = None
+                    return
+
+            if op == Op.THROW:
+                thrown_value = self.pop()
+                if self.handler_stack:
+                    self._throw(thrown_value)
+                    continue
+                else:
+                    agen.done = True
+                    if agen.next_promise:
+                        agen.next_promise.reject(thrown_value)
+                        agen.next_promise = None
+                    return
+
+            exec_result = self._execute_op(op)
+            if exec_result == 'halt':
+                agen.done = True
+                if agen.next_promise:
+                    agen.next_promise.resolve(None)
+                    agen.next_promise = None
+                return
+            if isinstance(exec_result, tuple) and exec_result[0] == 'async_reject':
+                agen.done = True
+                if agen.next_promise:
+                    agen.next_promise.reject(exec_result[1])
+                    agen.next_promise = None
+                return
+            if exec_result == 'await_suspend':
+                awaited_promise = self.peek()
+
+                def make_agen_resume(ag=agen):
+                    def on_resolve(val):
+                        self._async_queue.append(('agen', ag, val, None))
+                    def on_reject(err):
+                        self._async_queue.append(('agen', ag, None, err))
+                    return on_resolve, on_reject
+
+                on_res, on_rej = make_agen_resume()
+
+                if awaited_promise.state == PromiseObject.PENDING:
+                    awaited_promise.callbacks.append((on_res, on_rej))
+                elif awaited_promise.state == PromiseObject.RESOLVED:
+                    self._async_queue.append(('agen', agen, awaited_promise.value, None))
+                else:
+                    self._async_queue.append(('agen', agen, None, awaited_promise.value))
+                return
+            if exec_result == 'finally_returned':
+                agen.done = True
+                if agen.next_promise:
+                    agen.next_promise.resolve(None)
+                    agen.next_promise = None
+                return
+
+    def _resume_async(self, coro, send_value):
+        """Resume an async coroutine. Runs until AWAIT, RETURN, or error."""
+        if coro.done:
+            return
+
+        # Save current VM state
+        saved_chunk = self.current_chunk
+        saved_ip = self.ip
+        saved_env = self.env
+        saved_stack = self.stack
+        saved_call_stack = self.call_stack
+        saved_handler_stack = self.handler_stack
+        saved_finally_pending = self._finally_pending
+        saved_async = self._current_async
+
+        # Restore coroutine state
+        self.current_chunk = coro.fn.chunk
+        self.ip = coro.ip
+        self.env = coro.env
+        self.stack = coro.stack
+        self.call_stack = coro.call_stack
+        self.handler_stack = coro.handler_stack
+        self._finally_pending = coro.finally_pending
+        self._current_async = coro
+
+        # If resuming from an await, replace the promise on the stack with the resolved value
+        if send_value is not None or (coro.ip > 0):
+            # Pop the promise that was left on stack by AWAIT
+            if self.stack:
+                self.stack.pop()
+            self.push(send_value)
+
+        suspended = False
+        try:
+            while True:
+                self.step_count += 1
+                if self.step_count > self.max_steps:
+                    raise VMError(f"Execution limit exceeded ({self.max_steps} steps)")
+
+                if self.ip >= len(self.current_chunk.code):
+                    coro.done = True
+                    coro.promise.resolve(None)
+                    break
+
+                op = self.current_chunk.code[self.ip]
+                self.ip += 1
+
+                if op == Op.RETURN:
+                    return_val = self.pop()
+                    if self.call_stack:
+                        cur_depth = len(self.call_stack)
+                        if self._route_return_through_finally(return_val, cur_depth):
+                            continue
+                        frame = self.call_stack.pop()
+                        self.current_chunk = frame.chunk
+                        self.ip = frame.ip
+                        self.env = frame.base_env
+                        self.push(return_val)
+                        continue
+                    else:
+                        if self._route_return_through_finally(return_val, 0):
+                            continue
+                        coro.done = True
+                        coro.promise.resolve(return_val)
+                        break
+
+                # Handle THROW explicitly -- if no handler in coroutine, reject promise
+                if op == Op.THROW:
+                    thrown_value = self.pop()
+                    if self.handler_stack:
+                        self._throw(thrown_value)
+                        continue
+                    else:
+                        # No handler -- reject the promise with the thrown value
+                        coro.done = True
+                        coro.promise.reject(thrown_value)
+                        break
+
+                exec_result = self._execute_op(op)
+                if exec_result == 'halt':
+                    coro.done = True
+                    result_val = self.stack.pop() if self.stack else None
+                    coro.promise.resolve(result_val)
+                    break
+                if isinstance(exec_result, tuple) and exec_result[0] == 'async_reject':
+                    coro.done = True
+                    coro.promise.reject(exec_result[1])
+                    break
+                if exec_result == 'await_suspend':
+                    # Coroutine hit an await on a pending promise
+                    awaited_promise = self.peek()  # promise is on top of stack
+                    suspended = True
+
+                    # When the awaited promise resolves, schedule coroutine resumption
+                    def make_resume(c=coro):
+                        def on_resolve(val):
+                            self._async_queue.append((c, val, None))
+                        def on_reject(err):
+                            self._async_queue.append((c, None, err))
+                        return on_resolve, on_reject
+
+                    on_res, on_rej = make_resume()
+
+                    # Direct callback registration
+                    if awaited_promise.state == PromiseObject.PENDING:
+                        awaited_promise.callbacks.append((on_res, on_rej))
+                    elif awaited_promise.state == PromiseObject.RESOLVED:
+                        self._async_queue.append((coro, awaited_promise.value, None))
+                    else:
+                        self._async_queue.append((coro, None, awaited_promise.value))
+                    break
+                if exec_result == 'finally_returned':
+                    result_val = self.stack.pop() if self.stack else None
+                    coro.done = True
+                    coro.promise.resolve(result_val)
+                    break
+
+        except VMError as e:
+            coro.done = True
+            coro.promise.reject(str(e))
+
+        finally:
+            # Save coroutine state
+            coro.ip = self.ip
+            coro.env = self.env
+            coro.stack = self.stack
+            coro.call_stack = self.call_stack
+            coro.handler_stack = self.handler_stack
+            coro.finally_pending = self._finally_pending
+
+            # Restore VM state
+            self.current_chunk = saved_chunk
+            self.ip = saved_ip
+            self.env = saved_env
+            self.stack = saved_stack
+            self.call_stack = saved_call_stack
+            self.handler_stack = saved_handler_stack
+            self._finally_pending = saved_finally_pending
+            self._current_async = saved_async
+
+    def _make_promise_namespace(self):
+        """Create the Promise namespace object with resolve/reject/all/race methods."""
+        return {
+            '__promise_ns__': True,
+            'resolve': ('__promise_builtin__', 'resolve'),
+            'reject': ('__promise_builtin__', 'reject'),
+            'all': ('__promise_builtin__', 'all'),
+            'race': ('__promise_builtin__', 'race'),
+        }
+
+    # ---- C057: String methods ----
+    def _call_string_method(self, s, method, args):
+        """Handle string method calls."""
+        if method == 'split':
+            sep = args[0] if args else " "
+            if not isinstance(sep, str):
+                raise VMError(f"split() separator must be string, got {type(sep).__name__}")
+            if sep == "":
+                # Split into individual characters (like JS "abc".split(""))
+                parts = list(s)
+            elif len(args) > 1:
+                limit = args[1]
+                if not isinstance(limit, int):
+                    raise VMError(f"split() limit must be integer")
+                parts = s.split(sep, limit)
+            else:
+                parts = s.split(sep)
+            return parts
+        elif method == 'trim':
+            return s.strip()
+        elif method == 'trimStart':
+            return s.lstrip()
+        elif method == 'trimEnd':
+            return s.rstrip()
+        elif method == 'startsWith':
+            if len(args) != 1:
+                raise VMError(f"startsWith() takes 1 argument, got {len(args)}")
+            if not isinstance(args[0], str):
+                raise VMError(f"startsWith() argument must be string")
+            return s.startswith(args[0])
+        elif method == 'endsWith':
+            if len(args) != 1:
+                raise VMError(f"endsWith() takes 1 argument, got {len(args)}")
+            if not isinstance(args[0], str):
+                raise VMError(f"endsWith() argument must be string")
+            return s.endswith(args[0])
+        elif method == 'includes':
+            if len(args) != 1:
+                raise VMError(f"includes() takes 1 argument, got {len(args)}")
+            if not isinstance(args[0], str):
+                raise VMError(f"includes() argument must be string")
+            return args[0] in s
+        elif method == 'indexOf':
+            if len(args) < 1:
+                raise VMError(f"indexOf() takes 1-2 arguments, got {len(args)}")
+            if not isinstance(args[0], str):
+                raise VMError(f"indexOf() argument must be string")
+            start = args[1] if len(args) > 1 else 0
+            if not isinstance(start, int):
+                raise VMError(f"indexOf() start must be integer")
+            return s.find(args[0], start)
+        elif method == 'lastIndexOf':
+            if len(args) < 1:
+                raise VMError(f"lastIndexOf() takes 1-2 arguments, got {len(args)}")
+            if not isinstance(args[0], str):
+                raise VMError(f"lastIndexOf() argument must be string")
+            if len(args) > 1:
+                end = args[1]
+                if not isinstance(end, int):
+                    raise VMError(f"lastIndexOf() end must be integer")
+                return s.rfind(args[0], 0, end + 1)
+            return s.rfind(args[0])
+        elif method == 'replace':
+            if len(args) != 2:
+                raise VMError(f"replace() takes 2 arguments, got {len(args)}")
+            if not isinstance(args[0], str) or not isinstance(args[1], str):
+                raise VMError(f"replace() arguments must be strings")
+            return s.replace(args[0], args[1], 1)
+        elif method == 'replaceAll':
+            if len(args) != 2:
+                raise VMError(f"replaceAll() takes 2 arguments, got {len(args)}")
+            if not isinstance(args[0], str) or not isinstance(args[1], str):
+                raise VMError(f"replaceAll() arguments must be strings")
+            return s.replace(args[0], args[1])
+        elif method == 'toUpperCase':
+            return s.upper()
+        elif method == 'toLowerCase':
+            return s.lower()
+        elif method == 'slice':
+            if len(args) < 1:
+                raise VMError(f"slice() takes 1-2 arguments, got {len(args)}")
+            start = args[0]
+            if not isinstance(start, int):
+                raise VMError(f"slice() start must be integer")
+            if start < 0:
+                start = max(0, len(s) + start)
+            if len(args) > 1:
+                end = args[1]
+                if not isinstance(end, int):
+                    raise VMError(f"slice() end must be integer")
+                if end < 0:
+                    end = max(0, len(s) + end)
+                return s[start:end]
+            return s[start:]
+        elif method == 'substring':
+            if len(args) < 1:
+                raise VMError(f"substring() takes 1-2 arguments, got {len(args)}")
+            start = max(0, args[0]) if isinstance(args[0], int) else 0
+            if len(args) > 1:
+                end = max(0, args[1]) if isinstance(args[1], int) else len(s)
+                if start > end:
+                    start, end = end, start
+                return s[start:end]
+            return s[start:]
+        elif method == 'charAt':
+            if len(args) != 1:
+                raise VMError(f"charAt() takes 1 argument, got {len(args)}")
+            idx = args[0]
+            if not isinstance(idx, int):
+                raise VMError(f"charAt() index must be integer")
+            if idx < 0 or idx >= len(s):
+                return ""
+            return s[idx]
+        elif method == 'charCodeAt':
+            if len(args) != 1:
+                raise VMError(f"charCodeAt() takes 1 argument, got {len(args)}")
+            idx = args[0]
+            if not isinstance(idx, int):
+                raise VMError(f"charCodeAt() index must be integer")
+            if idx < 0 or idx >= len(s):
+                return None
+            return ord(s[idx])
+        elif method == 'repeat':
+            if len(args) != 1:
+                raise VMError(f"repeat() takes 1 argument, got {len(args)}")
+            count = args[0]
+            if not isinstance(count, int) or count < 0:
+                raise VMError(f"repeat() count must be non-negative integer")
+            return s * count
+        elif method == 'padStart':
+            if len(args) < 1:
+                raise VMError(f"padStart() takes 1-2 arguments, got {len(args)}")
+            target_len = args[0]
+            if not isinstance(target_len, int):
+                raise VMError(f"padStart() length must be integer")
+            pad_str = args[1] if len(args) > 1 else " "
+            if not isinstance(pad_str, str) or len(pad_str) == 0:
+                raise VMError(f"padStart() pad string must be non-empty string")
+            if len(s) >= target_len:
+                return s
+            needed = target_len - len(s)
+            full_reps = needed // len(pad_str)
+            partial = needed % len(pad_str)
+            return (pad_str * full_reps + pad_str[:partial]) + s
+        elif method == 'padEnd':
+            if len(args) < 1:
+                raise VMError(f"padEnd() takes 1-2 arguments, got {len(args)}")
+            target_len = args[0]
+            if not isinstance(target_len, int):
+                raise VMError(f"padEnd() length must be integer")
+            pad_str = args[1] if len(args) > 1 else " "
+            if not isinstance(pad_str, str) or len(pad_str) == 0:
+                raise VMError(f"padEnd() pad string must be non-empty string")
+            if len(s) >= target_len:
+                return s
+            needed = target_len - len(s)
+            full_reps = needed // len(pad_str)
+            partial = needed % len(pad_str)
+            return s + (pad_str * full_reps + pad_str[:partial])
+        elif method == 'concat':
+            parts = [s]
+            for a in args:
+                if not isinstance(a, str):
+                    raise VMError(f"concat() arguments must be strings")
+                parts.append(a)
+            return ''.join(parts)
+        elif method == 'match':
+            # Simple pattern matching: returns first match or null
+            if len(args) != 1:
+                raise VMError(f"match() takes 1 argument, got {len(args)}")
+            if not isinstance(args[0], str):
+                raise VMError(f"match() pattern must be string")
+            import re
+            m = re.search(args[0], s)
+            if m:
+                return m.group(0)
+            return None
+        elif method == 'search':
+            # Returns index of first regex match or -1
+            if len(args) != 1:
+                raise VMError(f"search() takes 1 argument, got {len(args)}")
+            if not isinstance(args[0], str):
+                raise VMError(f"search() pattern must be string")
+            import re
+            m = re.search(args[0], s)
+            if m:
+                return m.start()
+            return -1
+        else:
+            raise VMError(f"String has no method '{method}'")
+
+    # ---- C057: Array methods ----
+    def _call_array_method(self, arr, method, args):
+        """Handle array method calls."""
+        if method == 'push':
+            for a in args:
+                arr.append(a)
+            return len(arr)
+        elif method == 'pop':
+            if len(arr) == 0:
+                raise VMError("pop() on empty array")
+            return arr.pop()
+        elif method == 'shift':
+            if len(arr) == 0:
+                raise VMError("shift() on empty array")
+            return arr.pop(0)
+        elif method == 'unshift':
+            for a in reversed(args):
+                arr.insert(0, a)
+            return len(arr)
+        elif method == 'indexOf':
+            if len(args) < 1:
+                raise VMError(f"indexOf() takes 1-2 arguments, got {len(args)}")
+            val = args[0]
+            start = args[1] if len(args) > 1 else 0
+            for i in range(start, len(arr)):
+                if arr[i] == val and type(arr[i]) == type(val):
+                    return i
+            return -1
+        elif method == 'includes':
+            if len(args) != 1:
+                raise VMError(f"includes() takes 1 argument, got {len(args)}")
+            val = args[0]
+            for item in arr:
+                if item == val and type(item) == type(val):
+                    return True
+            return False
+        elif method == 'join':
+            sep = args[0] if args else ","
+            if not isinstance(sep, str):
+                raise VMError(f"join() separator must be string")
+            return sep.join(_format_value(x) for x in arr)
+        elif method == 'reverse':
+            arr.reverse()
+            return arr
+        elif method == 'sort':
+            if args:
+                # Sort with comparison function -- call it for each comparison
+                # For simplicity, use Python sort with a key if possible
+                # We'll implement callback-based sort via _call_fn_value
+                cmp_fn = args[0]
+                import functools
+                def comparator(a, b):
+                    result = self._call_fn_value_sync(cmp_fn, [a, b])
+                    if not isinstance(result, (int, float)):
+                        return 0
+                    return -1 if result < 0 else (1 if result > 0 else 0)
+                arr.sort(key=functools.cmp_to_key(comparator))
+            else:
+                arr.sort(key=lambda x: (isinstance(x, str), str(x) if isinstance(x, str) else x))
+            return arr
+        elif method == 'slice':
+            start = args[0] if args else 0
+            if not isinstance(start, int):
+                raise VMError(f"slice() start must be integer")
+            if start < 0:
+                start = max(0, len(arr) + start)
+            if len(args) > 1:
+                end = args[1]
+                if not isinstance(end, int):
+                    raise VMError(f"slice() end must be integer")
+                if end < 0:
+                    end = max(0, len(arr) + end)
+                return arr[start:end]
+            return arr[start:]
+        elif method == 'concat':
+            result = list(arr)
+            for a in args:
+                if isinstance(a, list):
+                    result.extend(a)
+                else:
+                    result.append(a)
+            return result
+        elif method == 'flat':
+            depth = args[0] if args else 1
+            if not isinstance(depth, int):
+                raise VMError(f"flat() depth must be integer")
+            def flatten(lst, d):
+                result = []
+                for item in lst:
+                    if isinstance(item, list) and d > 0:
+                        result.extend(flatten(item, d - 1))
+                    else:
+                        result.append(item)
+                return result
+            return flatten(arr, depth)
+        elif method == 'fill':
+            if len(args) < 1:
+                raise VMError(f"fill() takes 1-3 arguments, got {len(args)}")
+            value = args[0]
+            start = args[1] if len(args) > 1 else 0
+            end = args[2] if len(args) > 2 else len(arr)
+            if not isinstance(start, int) or not isinstance(end, int):
+                raise VMError(f"fill() start/end must be integers")
+            if start < 0:
+                start = max(0, len(arr) + start)
+            if end < 0:
+                end = max(0, len(arr) + end)
+            for i in range(start, min(end, len(arr))):
+                arr[i] = value
+            return arr
+        elif method == 'map':
+            if len(args) != 1:
+                raise VMError(f"map() takes 1 argument (callback), got {len(args)}")
+            fn = args[0]
+            result = []
+            for i, item in enumerate(arr):
+                val = self._call_fn_value_sync(fn, [item, i])
+                result.append(val)
+            return result
+        elif method == 'filter':
+            if len(args) != 1:
+                raise VMError(f"filter() takes 1 argument (callback), got {len(args)}")
+            fn = args[0]
+            result = []
+            for i, item in enumerate(arr):
+                val = self._call_fn_value_sync(fn, [item, i])
+                if val:
+                    result.append(item)
+            return result
+        elif method == 'reduce':
+            if len(args) < 1:
+                raise VMError(f"reduce() takes 1-2 arguments, got {len(args)}")
+            fn = args[0]
+            if len(args) > 1:
+                acc = args[1]
+                start_idx = 0
+            else:
+                if len(arr) == 0:
+                    raise VMError("reduce() of empty array with no initial value")
+                acc = arr[0]
+                start_idx = 1
+            for i in range(start_idx, len(arr)):
+                acc = self._call_fn_value_sync(fn, [acc, arr[i], i])
+            return acc
+        elif method == 'forEach':
+            if len(args) != 1:
+                raise VMError(f"forEach() takes 1 argument (callback), got {len(args)}")
+            fn = args[0]
+            for i, item in enumerate(arr):
+                self._call_fn_value_sync(fn, [item, i])
+            return None
+        elif method == 'find':
+            if len(args) != 1:
+                raise VMError(f"find() takes 1 argument (callback), got {len(args)}")
+            fn = args[0]
+            for i, item in enumerate(arr):
+                val = self._call_fn_value_sync(fn, [item, i])
+                if val:
+                    return item
+            return None
+        elif method == 'every':
+            if len(args) != 1:
+                raise VMError(f"every() takes 1 argument (callback), got {len(args)}")
+            fn = args[0]
+            for i, item in enumerate(arr):
+                val = self._call_fn_value_sync(fn, [item, i])
+                if not val:
+                    return False
+            return True
+        elif method == 'some':
+            if len(args) != 1:
+                raise VMError(f"some() takes 1 argument (callback), got {len(args)}")
+            fn = args[0]
+            for i, item in enumerate(arr):
+                val = self._call_fn_value_sync(fn, [item, i])
+                if val:
+                    return True
+            return False
+        else:
+            raise VMError(f"Array has no method '{method}'")
+
+    # ---- C057: Hash methods ----
+    def _call_hash_method(self, h, method, args):
+        """Handle hash map method calls."""
+        if method == 'keys':
+            return list(h.keys())
+        elif method == 'values':
+            return list(h.values())
+        elif method == 'entries':
+            return [[k, v] for k, v in h.items()]
+        elif method == 'has':
+            if len(args) != 1:
+                raise VMError(f"has() takes 1 argument, got {len(args)}")
+            return args[0] in h
+        elif method == 'delete':
+            if len(args) != 1:
+                raise VMError(f"delete() takes 1 argument, got {len(args)}")
+            if args[0] in h:
+                del h[args[0]]
+                return True
+            return False
+        elif method == 'merge':
+            if len(args) != 1:
+                raise VMError(f"merge() takes 1 argument, got {len(args)}")
+            if not isinstance(args[0], dict):
+                raise VMError(f"merge() argument must be a hash map")
+            result = dict(h)
+            result.update(args[0])
+            return result
+        elif method == 'isEmpty':
+            return len(h) == 0
+        else:
+            raise VMError(f"Hash has no method '{method}'")
+
+    # ---- C060: Enum method calls ----
+    def _call_enum_method(self, enum_obj, method, args):
+        """Handle enum method calls (built-in and user-defined)."""
+        # Built-in methods
+        if method == 'values':
+            return list(enum_obj.variants.values())
+        elif method == 'name':
+            if len(args) != 1:
+                raise VMError(f"name() takes 1 argument, got {len(args)}")
+            v = args[0]
+            if not isinstance(v, EnumVariant) or v.enum_name != enum_obj.name:
+                raise VMError(f"name() argument must be a {enum_obj.name} variant")
+            return v.variant_name
+        elif method == 'ordinal':
+            if len(args) != 1:
+                raise VMError(f"ordinal() takes 1 argument, got {len(args)}")
+            v = args[0]
+            if not isinstance(v, EnumVariant) or v.enum_name != enum_obj.name:
+                raise VMError(f"ordinal() argument must be a {enum_obj.name} variant")
+            return v.ordinal
+        elif method == 'from_ordinal':
+            if len(args) != 1:
+                raise VMError(f"from_ordinal() takes 1 argument, got {len(args)}")
+            ordinal = args[0]
+            for v in enum_obj.variants.values():
+                if v.ordinal == ordinal:
+                    return v
+            raise VMError(f"No variant with ordinal {ordinal} in enum '{enum_obj.name}'")
+        elif method in enum_obj.methods:
+            # User-defined enum method -- call with 'this' bound to first arg
+            fn_obj = enum_obj.methods[method]
+            if len(args) < 1:
+                raise VMError(f"Enum method '{method}' requires a variant as receiver")
+            return self._call_fn_value_sync(fn_obj, args)
+        else:
+            raise VMError(f"Enum '{enum_obj.name}' has no method '{method}'")
+
+    # ---- C057: Synchronous function call helper for callbacks ----
+    def _call_fn_value_sync(self, fn_val, args):
+        """Call a function value synchronously and return its result.
+        Used by array methods like map/filter/reduce that take callbacks."""
+        if isinstance(fn_val, FnObject):
+            fn = fn_val
+        elif isinstance(fn_val, ClosureObject):
+            fn = fn_val.fn
+        elif isinstance(fn_val, BoundMethod):
+            fn = fn_val.method
+            if isinstance(fn, ClosureObject):
+                fn = fn.fn
+            args = [fn_val.instance] + list(args)
+        elif isinstance(fn_val, NativeFunction):
+            # C061: Direct call to native function -- no VM frame needed
+            call_args = list(args)
+            if fn_val.arity >= 0:
+                call_args = call_args[:fn_val.arity]
+                while len(call_args) < fn_val.arity:
+                    call_args.append(None)
+            result = fn_val.fn(*call_args)
+            return result if result is not None else None
+        else:
+            raise VMError(f"Cannot call {type(fn_val).__name__} as function")
+
+        # Trim args to match arity
+        call_args = list(args[:fn.arity])
+        while len(call_args) < fn.arity:
+            call_args.append(None)
+
+        # Save VM state
+        saved_chunk = self.current_chunk
+        saved_ip = self.ip
+        saved_env = self.env
+        saved_depth = len(self.call_stack)
+        saved_stack_depth = len(self.stack)
+
+        # Set up call
+        self.current_chunk = fn.chunk
+        self.ip = 0
+        self.env = dict(self.env)
+        if isinstance(fn_val, ClosureObject):
+            self.env.update(fn_val.env)
+
+        # Bind params
+        for i, pname in enumerate(fn.chunk.names[:fn.arity]):
+            self.env[pname] = call_args[i]
+
+        # Run until return
+        result = self._run_until_return(saved_depth)
+
+        # Restore state
+        self.current_chunk = saved_chunk
+        self.ip = saved_ip
+        self.env = saved_env
+
+        # Clean any leftover stack from the call
+        while len(self.stack) > saved_stack_depth:
+            self.pop()
+
+        return result
+
+    def _call_promise_builtin(self, method, args):
+        """Handle Promise.resolve/reject/all/race calls."""
+        if method == 'resolve':
+            if len(args) != 1:
+                raise VMError(f"Promise.resolve() takes 1 argument, got {len(args)}")
+            p = PromiseObject()
+            p.resolve(args[0])
+            return p
+        elif method == 'reject':
+            if len(args) != 1:
+                raise VMError(f"Promise.reject() takes 1 argument, got {len(args)}")
+            p = PromiseObject()
+            p.reject(args[0])
+            return p
+        elif method == 'all':
+            if len(args) != 1 or not isinstance(args[0], list):
+                raise VMError("Promise.all() takes an array of promises")
+            promises = args[0]
+            result_promise = PromiseObject()
+            if not promises:
+                result_promise.resolve([])
+                return result_promise
+            results = [None] * len(promises)
+            resolved_count = [0]
+
+            for i, p in enumerate(promises):
+                if not isinstance(p, PromiseObject):
+                    # Non-promise values are treated as resolved
+                    results[i] = p
+                    resolved_count[0] += 1
+                    if resolved_count[0] == len(promises):
+                        result_promise.resolve(list(results))
+                elif p.state == PromiseObject.RESOLVED:
+                    results[i] = p.value
+                    resolved_count[0] += 1
+                    if resolved_count[0] == len(promises):
+                        result_promise.resolve(list(results))
+                elif p.state == PromiseObject.REJECTED:
+                    result_promise.reject(p.value)
+                    return result_promise
+                else:
+                    idx = i
+                    def make_handler(idx=idx):
+                        def on_resolve(val):
+                            results[idx] = val
+                            resolved_count[0] += 1
+                            if resolved_count[0] == len(promises):
+                                result_promise.resolve(list(results))
+                        def on_reject(err):
+                            result_promise.reject(err)
+                        return on_resolve, on_reject
+                    on_res, on_rej = make_handler()
+                    p.callbacks.append((on_res, on_rej))
+            return result_promise
+        elif method == 'race':
+            if len(args) != 1 or not isinstance(args[0], list):
+                raise VMError("Promise.race() takes an array of promises")
+            promises = args[0]
+            result_promise = PromiseObject()
+            if not promises:
+                return result_promise  # never resolves
+            for p in promises:
+                if not isinstance(p, PromiseObject):
+                    result_promise.resolve(p)
+                    return result_promise
+                if p.state == PromiseObject.RESOLVED:
+                    result_promise.resolve(p.value)
+                    return result_promise
+                if p.state == PromiseObject.REJECTED:
+                    result_promise.reject(p.value)
+                    return result_promise
+                def on_resolve(val, rp=result_promise):
+                    rp.resolve(val)
+                def on_reject(err, rp=result_promise):
+                    rp.reject(err)
+                p.callbacks.append((on_resolve, on_reject))
+            return result_promise
+        else:
+            raise VMError(f"Promise.{method} is not a function")
+
+    def _drain_async_queue(self):
+        """Process all pending async continuations until the queue is empty."""
+        max_iterations = 10000
+        iterations = 0
+        while self._async_queue:
+            iterations += 1
+            if iterations > max_iterations:
+                raise VMError("Async queue exceeded maximum iterations (possible infinite loop)")
+            entry = self._async_queue.pop(0)
+            # C064: async generator entries are 4-tuples ('agen', agen, value, error)
+            if len(entry) == 4 and entry[0] == 'agen':
+                _, agen, value, error = entry
+                if agen.done:
+                    continue
+                if error is not None:
+                    self._resume_async_generator_with_error(agen, error)
+                else:
+                    self._resume_async_generator(agen, value)
+            else:
+                coro, value, error = entry
+                if coro.done:
+                    continue
+                if error is not None:
+                    self._resume_async_with_error(coro, error)
+                else:
+                    self._resume_async(coro, value)
+
+    def _resume_async_with_error(self, coro, error):
+        """Resume an async coroutine by throwing an error into it."""
+        if coro.done:
+            return
+
+        # Save current VM state
+        saved_chunk = self.current_chunk
+        saved_ip = self.ip
+        saved_env = self.env
+        saved_stack = self.stack
+        saved_call_stack = self.call_stack
+        saved_handler_stack = self.handler_stack
+        saved_finally_pending = self._finally_pending
+        saved_async = self._current_async
+
+        # Restore coroutine state
+        self.current_chunk = coro.fn.chunk
+        self.ip = coro.ip
+        self.env = coro.env
+        self.stack = coro.stack
+        self.call_stack = coro.call_stack
+        self.handler_stack = coro.handler_stack
+        self._finally_pending = coro.finally_pending
+        self._current_async = coro
+
+        # Pop the promise left on the stack by AWAIT
+        if self.stack:
+            self.stack.pop()
+
+        try:
+            # Try to throw the error -- if handler exists, continue execution
+            if self.handler_stack:
+                self._throw(error)
+                # Continue execution after throwing
+                while True:
+                    self.step_count += 1
+                    if self.step_count > self.max_steps:
+                        raise VMError(f"Execution limit exceeded ({self.max_steps} steps)")
+
+                    if self.ip >= len(self.current_chunk.code):
+                        coro.done = True
+                        coro.promise.resolve(None)
+                        break
+
+                    op = self.current_chunk.code[self.ip]
+                    self.ip += 1
+
+                    if op == Op.RETURN:
+                        return_val = self.pop()
+                        if self.call_stack:
+                            cur_depth = len(self.call_stack)
+                            if self._route_return_through_finally(return_val, cur_depth):
+                                continue
+                            frame = self.call_stack.pop()
+                            self.current_chunk = frame.chunk
+                            self.ip = frame.ip
+                            self.env = frame.base_env
+                            self.push(return_val)
+                            continue
+                        else:
+                            if self._route_return_through_finally(return_val, 0):
+                                continue
+                            coro.done = True
+                            coro.promise.resolve(return_val)
+                            break
+
+                    # Handle THROW explicitly in async context
+                    if op == Op.THROW:
+                        thrown_value = self.pop()
+                        if self.handler_stack:
+                            self._throw(thrown_value)
+                            continue
+                        else:
+                            coro.done = True
+                            coro.promise.reject(thrown_value)
+                            break
+
+                    exec_result = self._execute_op(op)
+                    if exec_result == 'halt':
+                        coro.done = True
+                        result_val = self.stack.pop() if self.stack else None
+                        coro.promise.resolve(result_val)
+                        break
+                    if isinstance(exec_result, tuple) and exec_result[0] == 'async_reject':
+                        coro.done = True
+                        coro.promise.reject(exec_result[1])
+                        break
+                    if exec_result == 'await_suspend':
+                        awaited_promise = self.peek()
+                        def make_resume(c=coro):
+                            def on_resolve(val):
+                                self._async_queue.append((c, val, None))
+                            def on_reject(err):
+                                self._async_queue.append((c, None, err))
+                            return on_resolve, on_reject
+                        on_res, on_rej = make_resume()
+                        if awaited_promise.state == PromiseObject.PENDING:
+                            awaited_promise.callbacks.append((on_res, on_rej))
+                        elif awaited_promise.state == PromiseObject.RESOLVED:
+                            self._async_queue.append((coro, awaited_promise.value, None))
+                        else:
+                            self._async_queue.append((coro, None, awaited_promise.value))
+                        break
+                    if exec_result == 'finally_returned':
+                        result_val = self.stack.pop() if self.stack else None
+                        coro.done = True
+                        coro.promise.resolve(result_val)
+                        break
+            else:
+                # No handler -- reject the promise
+                coro.done = True
+                coro.promise.reject(error)
+
+        except VMError as e:
+            coro.done = True
+            coro.promise.reject(str(e))
+
+        finally:
+            # Save coroutine state
+            coro.ip = self.ip
+            coro.env = self.env
+            coro.stack = self.stack
+            coro.call_stack = self.call_stack
+            coro.handler_stack = self.handler_stack
+            coro.finally_pending = self._finally_pending
+
+            # Restore VM state
+            self.current_chunk = saved_chunk
+            self.ip = saved_ip
+            self.env = saved_env
+            self.stack = saved_stack
+            self.call_stack = saved_call_stack
+            self.handler_stack = saved_handler_stack
+            self._finally_pending = saved_finally_pending
+            self._current_async = saved_async
+
+    def _call_function(self, fn_val, args):
+        # C052: Handle BoundMethod
+        method_class = None
+        if isinstance(fn_val, BoundMethod):
+            args = [fn_val.instance] + list(args)
+            method_class = fn_val.klass
+            fn_val = fn_val.method
+
+        captured_env = None
+        if isinstance(fn_val, ClosureObject):
+            captured_env = fn_val.env
+            fn_obj = fn_val.fn
+        elif isinstance(fn_val, FnObject):
+            fn_obj = fn_val
+        else:
+            raise VMError(f"Cannot call non-function: {fn_val}")
+
+        # C062: Rest parameter support
+        if fn_obj.has_rest:
+            if len(args) < fn_obj.arity:
+                raise VMError(f"Function '{fn_obj.name}' expects at least {fn_obj.arity} args, got {len(args)}")
+            rest_args = list(args[fn_obj.arity:])
+            args = list(args[:fn_obj.arity]) + [rest_args]
+        elif fn_obj.arity != len(args):
+            raise VMError(f"Function '{fn_obj.name}' expects {fn_obj.arity} args, got {len(args)}")
+
+        # C064: Async generator functions return an AsyncGeneratorObject
+        if fn_obj.is_generator and fn_obj.is_async:
+            return self._create_async_generator(fn_obj, captured_env, args)
+
+        # Generator functions return a GeneratorObject instead of executing
+        if fn_obj.is_generator:
+            return self._create_generator(fn_obj, captured_env, args)
+
+        # C056: Async functions return a Promise and start running as a coroutine
+        if fn_obj.is_async:
+            return self._start_async(fn_obj, captured_env, args)
+
+        saved_chunk = self.current_chunk
+        saved_ip = self.ip
+        saved_env = self.env
+        saved_call_stack_depth = len(self.call_stack)
+
+        self.current_chunk = fn_obj.chunk
+        self.ip = 0
+
+        if captured_env is not None:
+            self.env = dict(captured_env)
+        else:
+            self.env = dict(self.env)
+
+        num_params = fn_obj.arity + (1 if fn_obj.has_rest else 0)
+        for i, param_name in enumerate(fn_obj.chunk.names[:num_params]):
+            self.env[param_name] = args[i]
+
+        # C052: Inject __super__ for methods
+        if method_class and method_class.parent:
+            self.env['__super__'] = method_class.parent
+
+        result = self._run_until_return(saved_call_stack_depth)
+
+        self.current_chunk = saved_chunk
+        self.ip = saved_ip
+        self.env = saved_env
+
+        return result
+
+    def _run_until_return(self, base_depth):
+        while True:
+            self.step_count += 1
+            if self.step_count > self.max_steps:
+                raise VMError(f"Execution limit exceeded ({self.max_steps} steps)")
+
+            if self.ip >= len(self.current_chunk.code):
+                return self.stack[-1] if self.stack else None
+
+            op = self.current_chunk.code[self.ip]
+            self.ip += 1
+
+            if op == Op.RETURN:
+                return_val = self.pop()
+                if len(self.call_stack) <= base_depth:
+                    # Check for FinallyHandler before exiting
+                    if self._route_return_through_finally(return_val, len(self.call_stack)):
+                        continue  # routed to finally, keep running
+                    return return_val
+                cur_depth = len(self.call_stack)
+                if self._route_return_through_finally(return_val, cur_depth):
+                    continue  # routed to finally
+                frame = self.call_stack.pop()
+                self.current_chunk = frame.chunk
+                self.ip = frame.ip
+                self.env = frame.base_env
+                self.push(return_val)
+                continue
+
+            exec_result = self._execute_op(op)
+            if exec_result == 'halt':
+                return self.stack[-1] if self.stack else None
+            # C055: END_FINALLY may have completed a pending return
+            if exec_result == 'finally_returned':
+                return self.stack.pop() if self.stack else None
+
+    def _execute_op(self, op):
+        handler = self._dispatch.get(op)
+        if handler is None:
+            raise VMError(f"Unknown opcode: {op}")
+        return handler()
+
+    def _op_halt(self):
+        return 'halt'
+
+    def _op_const(self):
+        idx = self.current_chunk.code[self.ip]
+        self.ip += 1
+        self.push(self.current_chunk.constants[idx])
+
+    def _op_pop(self):
+        if self.stack:
+            self.pop()
+
+    def _op_dup(self):
+        self.push(self.peek())
+
+    def _op_add(self):
+        b, a = self.pop(), self.pop()
+        self.push(a + b)
+
+    def _op_sub(self):
+        b, a = self.pop(), self.pop()
+        self.push(a - b)
+
+    def _op_mul(self):
+        b, a = self.pop(), self.pop()
+        self.push(a * b)
+
+    def _op_div(self):
+        b, a = self.pop(), self.pop()
+        if b == 0:
+            if self._vm_error_to_throw("Division by zero"):
+                return
+            raise VMError("Division by zero")
+        if isinstance(a, int) and isinstance(b, int):
+            self.push(a // b)
+        else:
+            self.push(a / b)
+
+    def _op_mod(self):
+        b, a = self.pop(), self.pop()
+        if b == 0:
+            if self._vm_error_to_throw("Modulo by zero"):
+                return
+            raise VMError("Modulo by zero")
+        self.push(a % b)
+
+    def _op_neg(self):
+        self.push(-self.pop())
+
+    def _op_eq(self):
+        b, a = self.pop(), self.pop()
+        self.push(a == b)
+
+    def _op_ne(self):
+        b, a = self.pop(), self.pop()
+        self.push(a != b)
+
+    def _op_lt(self):
+        b, a = self.pop(), self.pop()
+        self.push(a < b)
+
+    def _op_gt(self):
+        b, a = self.pop(), self.pop()
+        self.push(a > b)
+
+    def _op_le(self):
+        b, a = self.pop(), self.pop()
+        self.push(a <= b)
+
+    def _op_ge(self):
+        b, a = self.pop(), self.pop()
+        self.push(a >= b)
+
+    def _op_not(self):
+        self.push(not self.pop())
+
+    def _op_and(self):
+        b, a = self.pop(), self.pop()
+        self.push(a and b)
+
+    def _op_or(self):
+        b, a = self.pop(), self.pop()
+        self.push(a or b)
+
+    def _op_null_coalesce(self):
+        b, a = self.pop(), self.pop()
+        self.push(a if a is not None else b)
+
+    def _op_load(self):
+        idx = self.current_chunk.code[self.ip]
+        self.ip += 1
+        name = self.current_chunk.names[idx]
+        if name in self.env:
+            self.push(self.env[name])
+        elif name in BUILTINS:
+            self.push(('__builtin__', name))
+        else:
+            if self._vm_error_to_throw(f"Undefined variable '{name}'"):
+                return
+            raise VMError(f"Undefined variable '{name}'")
+
+    def _op_store(self):
+        idx = self.current_chunk.code[self.ip]
+        self.ip += 1
+        name = self.current_chunk.names[idx]
+        value = self.pop()
+        self.env[name] = value
+        # C062: Only inject self-reference for named function declarations
+        # (fn.name matches the store target), not for arbitrary let assignments
+        if isinstance(value, ClosureObject) and value.fn.name == name:
+            value.env[name] = value
+
+    def _op_jump(self):
+        target = self.current_chunk.code[self.ip]
+        self.ip = target
+
+    def _op_jump_if_false(self):
+        target = self.current_chunk.code[self.ip]
+        self.ip += 1
+        if not self.peek():
+            self.ip = target
+
+    def _op_jump_if_true(self):
+        target = self.current_chunk.code[self.ip]
+        self.ip += 1
+        if self.peek():
+            self.ip = target
+
+    def _op_call(self):
+        arg_count = self.current_chunk.code[self.ip]
+        self.ip += 1
+        args = []
+        for _ in range(arg_count):
+            args.insert(0, self.pop())
+        fn_val = self.pop()
+
+        # Check for builtin call
+        if isinstance(fn_val, tuple) and len(fn_val) == 2 and fn_val[0] == '__builtin__':
+            try:
+                result = self._call_builtin(fn_val[1], args)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C061: Native function call
+        if isinstance(fn_val, NativeFunction):
+            if fn_val.arity >= 0 and len(args) != fn_val.arity:
+                err_msg = f"Native function '{fn_val.name}' expects {fn_val.arity} args, got {len(args)}"
+                if self._vm_error_to_throw(err_msg):
+                    return
+                raise VMError(err_msg)
+            try:
+                result = fn_val.fn(*args)
+                self.push(result if result is not None else None)
+            except CapabilityError:
+                raise
+            except Exception as e:
+                err_msg = f"Native function '{fn_val.name}' error: {e}"
+                if self._vm_error_to_throw(err_msg):
+                    return
+                raise VMError(err_msg)
+            return
+
+        # C056: Promise builtin call
+        if isinstance(fn_val, tuple) and len(fn_val) == 2 and fn_val[0] == '__promise_builtin__':
+            try:
+                result = self._call_promise_builtin(fn_val[1], args)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C057: String method call
+        if isinstance(fn_val, tuple) and len(fn_val) == 3 and fn_val[0] == '__string_method__':
+            try:
+                result = self._call_string_method(fn_val[1], fn_val[2], args)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C057: Array method call
+        if isinstance(fn_val, tuple) and len(fn_val) == 3 and fn_val[0] == '__array_method__':
+            try:
+                result = self._call_array_method(fn_val[1], fn_val[2], args)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C057: Hash method call
+        if isinstance(fn_val, tuple) and len(fn_val) == 3 and fn_val[0] == '__hash_method__':
+            try:
+                result = self._call_hash_method(fn_val[1], fn_val[2], args)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C060: Enum method call (on EnumObject)
+        if isinstance(fn_val, tuple) and len(fn_val) == 3 and fn_val[0] == '__enum_method__':
+            try:
+                result = self._call_enum_method(fn_val[1], fn_val[2], args)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C060: Enum variant method call (on EnumVariant)
+        if isinstance(fn_val, tuple) and len(fn_val) == 3 and fn_val[0] == '__enum_variant_method__':
+            variant, fn_obj = fn_val[1], fn_val[2]
+            try:
+                result = self._call_fn_value_sync(fn_obj, [variant] + list(args))
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C052: ClassObject constructor call
+        if isinstance(fn_val, ClassObject):
+            instance = {'__class__': fn_val}
+            init_result = self._lookup_method(fn_val, 'init')
+            if init_result:
+                init_fn, init_class = init_result
+                expected = init_fn.arity - 1  # subtract 'this'
+                if expected != arg_count:
+                    if self._vm_error_to_throw(
+                        f"Class '{fn_val.name}' init expects {expected} args, got {arg_count}"):
+                        return
+                    raise VMError(
+                        f"Class '{fn_val.name}' init expects {expected} args, got {arg_count}")
+                # Synchronous call to init
+                saved_chunk = self.current_chunk
+                saved_ip = self.ip
+                saved_env = self.env
+                saved_depth = len(self.call_stack)
+                saved_stack_depth = len(self.stack)
+
+                self.current_chunk = init_fn.chunk
+                self.ip = 0
+                self.env = dict(self.env)
+
+                # Bind params: this + user args
+                all_args = [instance] + list(args)
+                for i, pname in enumerate(init_fn.chunk.names[:init_fn.arity]):
+                    self.env[pname] = all_args[i]
+
+                # Inject __super__
+                if init_class.parent:
+                    self.env['__super__'] = init_class.parent
+
+                self._run_until_return(saved_depth)
+
+                # Clean up any extra stack values left by init body
+                del self.stack[saved_stack_depth:]
+
+                self.current_chunk = saved_chunk
+                self.ip = saved_ip
+                self.env = saved_env
+            elif arg_count > 0:
+                if self._vm_error_to_throw(
+                    f"Class '{fn_val.name}' has no init but received {arg_count} args"):
+                    return
+                raise VMError(
+                    f"Class '{fn_val.name}' has no init but received {arg_count} args")
+            self.push(instance)
+            return
+
+        # C052: BoundMethod call -- prepend instance
+        method_class = None
+        if isinstance(fn_val, BoundMethod):
+            args = [fn_val.instance] + args
+            arg_count = len(args)
+            method_class = fn_val.klass
+            fn_val = fn_val.method
+
+        captured_env = None
+        if isinstance(fn_val, ClosureObject):
+            captured_env = fn_val.env
+            fn_obj = fn_val.fn
+        elif isinstance(fn_val, FnObject):
+            fn_obj = fn_val
+        else:
+            if self._vm_error_to_throw(f"Cannot call non-function: {fn_val}"):
+                return
+            raise VMError(f"Cannot call non-function: {fn_val}")
+
+        # C062: Rest parameter support
+        if fn_obj.has_rest:
+            if arg_count < fn_obj.arity:
+                if self._vm_error_to_throw(f"Function '{fn_obj.name}' expects at least {fn_obj.arity} args, got {arg_count}"):
+                    return
+                raise VMError(f"Function '{fn_obj.name}' expects at least {fn_obj.arity} args, got {arg_count}")
+            # Pack extra args into rest array
+            rest_args = list(args[fn_obj.arity:])
+            args = list(args[:fn_obj.arity]) + [rest_args]
+            arg_count = fn_obj.arity + 1  # regular params + rest array
+        elif fn_obj.arity != arg_count:
+            if self._vm_error_to_throw(f"Function '{fn_obj.name}' expects {fn_obj.arity} args, got {arg_count}"):
+                return
+            raise VMError(f"Function '{fn_obj.name}' expects {fn_obj.arity} args, got {arg_count}")
+
+        # C064: Async generator functions return an AsyncGeneratorObject
+        if fn_obj.is_generator and fn_obj.is_async:
+            agen = self._create_async_generator(fn_obj, captured_env, args)
+            if method_class and method_class.parent:
+                agen.env['__super__'] = method_class.parent
+            self.push(agen)
+            return
+
+        # C047: Generator functions return a GeneratorObject
+        if fn_obj.is_generator:
+            gen = self._create_generator(fn_obj, captured_env, args)
+            if method_class and method_class.parent:
+                gen.env['__super__'] = method_class.parent
+            self.push(gen)
+            return
+
+        # C056: Async functions return a Promise
+        if fn_obj.is_async:
+            promise = self._start_async(fn_obj, captured_env, args)
+            self.push(promise)
+            return
+
+        frame = CallFrame(self.current_chunk, self.ip, self.env)
+        self.call_stack.append(frame)
+
+        self.current_chunk = fn_obj.chunk
+        self.ip = 0
+
+        if captured_env is not None:
+            self.env = dict(captured_env)
+        else:
+            self.env = dict(self.env)
+
+        # C062: rest params mean arity+1 names to assign
+        num_params = fn_obj.arity + (1 if fn_obj.has_rest else 0)
+        for i, param_name in enumerate(fn_obj.chunk.names[:num_params]):
+            self.env[param_name] = args[i]
+
+        # C052: Inject __super__ for methods
+        if method_class and method_class.parent:
+            self.env['__super__'] = method_class.parent
+
+    def _op_return(self):
+        return_val = self.pop()
+        if not self.call_stack:
+            # Top-level return -- check for FinallyHandler
+            if self._route_return_through_finally(return_val, 0):
+                pass  # routed to finally, don't halt
+            else:
+                self.push(return_val)
+                return 'halt'
+        else:
+            cur_depth = len(self.call_stack)
+            if self._route_return_through_finally(return_val, cur_depth):
+                pass  # routed to finally
+            else:
+                frame = self.call_stack.pop()
+                self.current_chunk = frame.chunk
+                self.ip = frame.ip
+                self.env = frame.base_env
+                self.push(return_val)
+
+    def _op_print(self):
+        value = self.pop()
+        self.output.append(_format_value(value))
+
+    def _op_make_closure(self):
+        fn_obj = self.pop()
+        if not isinstance(fn_obj, FnObject):
+            raise VMError(f"MAKE_CLOSURE expects FnObject, got {type(fn_obj).__name__}")
+        closure = ClosureObject(fn=fn_obj, env=dict(self.env))
+        self.push(closure)
+
+    def _op_make_array(self):
+        count = self.current_chunk.code[self.ip]
+        self.ip += 1
+        elements = []
+        for _ in range(count):
+            elements.insert(0, self.pop())
+        self.push(elements)
+
+    def _op_index_get(self):
+        index = self.pop()
+        obj = self.pop()
+        if isinstance(obj, list):
+            if isinstance(index, str):
+                # C057: Array method access
+                array_methods = {
+                    'push', 'pop', 'shift', 'unshift', 'map', 'filter',
+                    'reduce', 'forEach', 'join', 'reverse', 'sort',
+                    'indexOf', 'includes', 'slice', 'flat', 'find',
+                    'every', 'some', 'concat', 'fill', 'length',
+                }
+                if index == 'length':
+                    self.push(len(obj))
+                elif index in array_methods:
+                    self.push(('__array_method__', obj, index))
+                else:
+                    if self._vm_error_to_throw(f"Array has no method '{index}'"):
+                        return
+                    raise VMError(f"Array has no method '{index}'")
+            elif not isinstance(index, int):
+                if self._vm_error_to_throw(f"Array index must be integer, got {type(index).__name__}"):
+                    return
+                raise VMError(f"Array index must be integer, got {type(index).__name__}")
+            elif index < 0 or index >= len(obj):
+                if self._vm_error_to_throw(f"Array index {index} out of bounds (length {len(obj)})"):
+                    return
+                raise VMError(f"Array index {index} out of bounds (length {len(obj)})")
+            else:
+                self.push(obj[index])
+        elif isinstance(obj, str):
+            if isinstance(index, str):
+                # C057: String method access
+                string_methods = {
+                    'split', 'trim', 'trimStart', 'trimEnd',
+                    'startsWith', 'endsWith', 'includes', 'indexOf',
+                    'lastIndexOf', 'replace', 'replaceAll',
+                    'toUpperCase', 'toLowerCase', 'slice', 'substring',
+                    'charAt', 'charCodeAt', 'repeat', 'padStart',
+                    'padEnd', 'match', 'search', 'concat', 'length',
+                }
+                if index == 'length':
+                    self.push(len(obj))
+                elif index in string_methods:
+                    self.push(('__string_method__', obj, index))
+                else:
+                    if self._vm_error_to_throw(f"String has no method '{index}'"):
+                        return
+                    raise VMError(f"String has no method '{index}'")
+            elif not isinstance(index, int):
+                if self._vm_error_to_throw(f"String index must be integer, got {type(index).__name__}"):
+                    return
+                raise VMError(f"String index must be integer, got {type(index).__name__}")
+            elif index < 0 or index >= len(obj):
+                if self._vm_error_to_throw(f"String index {index} out of bounds (length {len(obj)})"):
+                    return
+                raise VMError(f"String index {index} out of bounds (length {len(obj)})")
+            else:
+                self.push(obj[index])
+        # C061: NativeModule member access
+        elif isinstance(obj, NativeModule):
+            if isinstance(index, str) and index in obj.exports:
+                self.push(obj.exports[index])
+            else:
+                if self._vm_error_to_throw(f"Module '{obj.name}' has no member '{index}'"):
+                    return
+                raise VMError(f"Module '{obj.name}' has no member '{index}'")
+        # C060: EnumVariant property/method access
+        elif isinstance(obj, EnumVariant):
+            if index == 'name':
+                self.push(obj.variant_name)
+            elif index == 'ordinal':
+                self.push(obj.ordinal)
+            elif obj.enum_ref and index in obj.enum_ref.methods:
+                # Method call on variant -- bind variant as first arg
+                self.push(('__enum_variant_method__', obj, obj.enum_ref.methods[index]))
+            else:
+                if self._vm_error_to_throw(f"Enum variant '{obj.enum_name}.{obj.variant_name}' has no property '{index}'"):
+                    return
+                raise VMError(f"Enum variant '{obj.enum_name}.{obj.variant_name}' has no property '{index}'")
+        # C060: Enum access
+        elif isinstance(obj, EnumObject):
+            if isinstance(index, str) and index in obj.variants:
+                self.push(obj.variants[index])
+            elif isinstance(index, str) and index in ('values', 'name', 'ordinal', 'from_ordinal'):
+                self.push(('__enum_method__', obj, index))
+            elif isinstance(index, str) and index in obj.methods:
+                self.push(('__enum_method__', obj, index))
+            else:
+                if self._vm_error_to_throw(f"Enum '{obj.name}' has no member '{index}'"):
+                    return
+                raise VMError(f"Enum '{obj.name}' has no member '{index}'")
+        # C058: Static method access on ClassObject
+        elif isinstance(obj, ClassObject):
+            result = self._lookup_static(obj, index)
+            if result:
+                self.push(result)
+            else:
+                if self._vm_error_to_throw(f"Class '{obj.name}' has no static member '{index}'"):
+                    return
+                raise VMError(f"Class '{obj.name}' has no static member '{index}'")
+        elif isinstance(obj, dict):
+            if '__class__' in obj and isinstance(index, str):
+                # C058: Instance access -- check getters first
+                getter_result = self._lookup_getter(obj['__class__'], index)
+                if getter_result:
+                    getter_fn, found_class = getter_result
+                    # Use proper call frame so throws propagate correctly
+                    frame = CallFrame(self.current_chunk, self.ip, self.env)
+                    self.call_stack.append(frame)
+                    raw_fn = getter_fn
+                    self.env = dict(self.env)
+                    if isinstance(getter_fn, ClosureObject):
+                        self.env.update(getter_fn.env)
+                        raw_fn = getter_fn.fn
+                    self.current_chunk = raw_fn.chunk
+                    self.ip = 0
+                    # Bind 'this' (first param)
+                    self.env[raw_fn.chunk.names[0]] = obj
+                    if found_class.parent:
+                        self.env['__super__'] = found_class.parent
+                    # Getter body runs via main loop; RETURN pushes result
+                elif index in obj and index != '__class__':
+                    # Instance property (not __class__ itself)
+                    self.push(obj[index])
+                else:
+                    # Look up method in class chain
+                    result = self._lookup_method(obj['__class__'], index)
+                    if result:
+                        fn, found_class = result
+                        self.push(BoundMethod(instance=obj, method=fn, klass=found_class))
+                    else:
+                        if self._vm_error_to_throw(f"'{obj['__class__'].name}' has no property '{index}'"):
+                            return
+                        raise VMError(f"'{obj['__class__'].name}' has no property '{index}'")
+            elif index in obj:
+                self.push(obj[index])
+            elif '__class__' not in obj and isinstance(index, str):
+                # C057: Hash method access (only for plain hashes, not instances)
+                hash_methods = {
+                    'keys', 'values', 'entries', 'has', 'delete',
+                    'size', 'merge', 'isEmpty',
+                }
+                if index == 'size':
+                    self.push(len(obj))
+                elif index in hash_methods:
+                    self.push(('__hash_method__', obj, index))
+                else:
+                    if self._vm_error_to_throw(f"Key {_format_value(index)} not found in hash map"):
+                        return
+                    raise VMError(f"Key {_format_value(index)} not found in hash map")
+            else:
+                if self._vm_error_to_throw(f"Key {_format_value(index)} not found in hash map"):
+                    return
+                raise VMError(f"Key {_format_value(index)} not found in hash map")
+        else:
+            if self._vm_error_to_throw(f"Cannot index type {type(obj).__name__}"):
+                return
+            raise VMError(f"Cannot index type {type(obj).__name__}")
+
+    def _op_index_set(self):
+        value = self.pop()
+        index = self.pop()
+        obj = self.pop()
+        if isinstance(obj, list):
+            if not isinstance(index, int):
+                if self._vm_error_to_throw(f"Array index must be integer, got {type(index).__name__}"):
+                    return
+                raise VMError(f"Array index must be integer, got {type(index).__name__}")
+            if index < 0 or index >= len(obj):
+                if self._vm_error_to_throw(f"Array index {index} out of bounds (length {len(obj)})"):
+                    return
+                raise VMError(f"Array index {index} out of bounds (length {len(obj)})")
+            obj[index] = value
+            self.push(value)
+        elif isinstance(obj, dict):
+            # C058: Check for setter on instances before dict assignment
+            if '__class__' in obj and isinstance(index, str):
+                setter_result = self._lookup_setter(obj['__class__'], index)
+                if setter_result:
+                    fn, found_class = setter_result
+                    self._call_fn_value_sync(
+                        BoundMethod(instance=obj, method=fn, klass=found_class), [value])
+                    self.push(value)
+                else:
+                    obj[index] = value
+                    self.push(value)
+            else:
+                obj[index] = value
+                self.push(value)
+        else:
+            if self._vm_error_to_throw(f"Cannot assign to index of type {type(obj).__name__}"):
+                return
+            raise VMError(f"Cannot assign to index of type {type(obj).__name__}")
+
+    def _op_make_hash(self):
+        count = self.current_chunk.code[self.ip]
+        self.ip += 1
+        result = {}
+        pairs = []
+        for _ in range(count):
+            v = self.pop()
+            k = self.pop()
+            pairs.append((k, v))
+        for k, v in reversed(pairs):
+            result[k] = v
+        self.push(result)
+
+    def _op_iter_prepare(self):
+        value = self.pop()
+        if isinstance(value, list):
+            self.push(value)
+        elif isinstance(value, dict):
+            self.push(list(value.keys()))
+        elif isinstance(value, str):
+            self.push(list(value))
+        elif isinstance(value, GeneratorObject):
+            # Collect all values from generator into a list
+            items = []
+            while not value.done:
+                item = self._resume_generator(value)
+                if not value.done or item is not None:
+                    items.append(item)
+                if value.done:
+                    break
+            self.push(items)
+        elif isinstance(value, AsyncGeneratorObject):
+            # C064: Collect all values from async generator (draining async queue between yields)
+            items = []
+            while not value.done:
+                promise = self._next_async_generator(value)
+                self._drain_async_queue()
+                if promise.state == PromiseObject.RESOLVED and not value.done:
+                    items.append(promise.value)
+                elif promise.state == PromiseObject.REJECTED:
+                    if self._vm_error_to_throw(f"Async generator error: {promise.value}"):
+                        return
+                    raise VMError(f"Async generator error: {promise.value}")
+                if value.done:
+                    break
+            self.push(items)
+        else:
+            if self._vm_error_to_throw(f"Cannot iterate over {type(value).__name__}"):
+                return
+            raise VMError(f"Cannot iterate over {type(value).__name__}")
+
+    def _op_iter_length(self):
+        value = self.pop()
+        if isinstance(value, list):
+            self.push(len(value))
+        else:
+            if self._vm_error_to_throw(f"ITER_LENGTH requires array, got {type(value).__name__}"):
+                return
+            raise VMError(f"ITER_LENGTH requires array, got {type(value).__name__}")
+
+        # C065: Async iteration
+
+    def _op_async_iter_next(self):
+        end_addr = self.current_chunk.code[self.ip]
+        self.ip += 1
+        agen = self.pop()
+        if not isinstance(agen, AsyncGeneratorObject):
+            if self._vm_error_to_throw(f"for await requires async generator, got {type(agen).__name__}"):
+                return
+            raise VMError(f"for await requires async generator, got {type(agen).__name__}")
+        if agen.done:
+            self.ip = end_addr
+        else:
+            promise = self._next_async_generator(agen)
+            self._drain_async_queue()
+            # Drain more if still pending
+            if promise.state == PromiseObject.PENDING:
+                for _ in range(1000):
+                    self._drain_async_queue()
+                    if promise.state != PromiseObject.PENDING:
+                        break
+            if promise.state == PromiseObject.RESOLVED:
+                if agen.done:
+                    self.ip = end_addr
+                else:
+                    self.push(promise.value)
+            elif promise.state == PromiseObject.REJECTED:
+                # Throw the rejection value through the handler stack
+                self._throw(promise.value)
+            else:
+                if self._vm_error_to_throw("Async iteration: promise did not resolve"):
+                    return
+                raise VMError("Async iteration: promise did not resolve")
+
+        # C045 error handling opcodes
+
+    def _op_setup_try(self):
+        catch_addr = self.current_chunk.code[self.ip]
+        self.ip += 1
+        handler = TryHandler(
+            catch_addr=catch_addr,
+            catch_chunk=self.current_chunk,
+            call_depth=len(self.call_stack),
+            stack_depth=len(self.stack),
+            env=dict(self.env),
+        )
+        self.handler_stack.append(handler)
+
+    def _op_pop_try(self):
+        if self.handler_stack:
+            self.handler_stack.pop()
+
+    def _op_throw(self):
+        value = self.pop()
+        self._throw(value)
+
+        # C055 finally blocks
+
+    def _op_setup_finally(self):
+        finally_addr = self.current_chunk.code[self.ip]
+        self.ip += 1
+        handler = FinallyHandler(
+            finally_addr=finally_addr,
+            finally_chunk=self.current_chunk,
+            call_depth=len(self.call_stack),
+            stack_depth=len(self.stack),
+            env=dict(self.env),
+        )
+        self.handler_stack.append(handler)
+
+    def _op_pop_finally(self):
+        if self.handler_stack and isinstance(self.handler_stack[-1], FinallyHandler):
+            self.handler_stack.pop()
+
+    def _op_end_finally(self):
+        pending = self._finally_pending
+        self._finally_pending = None
+        if pending is None:
+            pass  # nothing pending, continue normally
+        elif pending[0] == 'throw':
+            self._throw(pending[1])
+        elif pending[0] == 'return':
+            return_val = pending[1]
+            if not self.call_stack:
+                if self._route_return_through_finally(return_val, 0):
+                    pass  # routed to next finally
+                else:
+                    self.push(return_val)
+                    return 'halt'
+            else:
+                cur_depth = len(self.call_stack)
+                if self._route_return_through_finally(return_val, cur_depth):
+                    pass  # routed to next finally
+                else:
+                    frame = self.call_stack.pop()
+                    self.current_chunk = frame.chunk
+                    self.ip = frame.ip
+                    self.env = frame.base_env
+                    self.push(return_val)
+                    return 'finally_returned'
+
+        # C047 YIELD -- only meaningful inside generator execution
+
+    def _op_yield(self):
+        # When encountered in normal (non-generator) execution, this is an error
+        raise VMError("yield outside of generator function")
+
+        # C056: AWAIT opcode
+
+    def _op_await(self):
+        value = self.pop()
+        if self._current_async is not None:
+            # Inside an async coroutine -- suspend and wait for promise
+            if isinstance(value, PromiseObject):
+                if value.state == PromiseObject.RESOLVED:
+                    # Already resolved -- push value and continue
+                    self.push(value.value)
+                elif value.state == PromiseObject.REJECTED:
+                    # Already rejected -- throw or reject coroutine
+                    if self.handler_stack:
+                        self._throw(value.value)
+                    else:
+                        # No handler -- signal rejection to _resume_async
+                        return ('async_reject', value.value)
+                else:
+                    # Pending -- return 'await_suspend' signal
+                    self.push(value)  # leave promise on stack for resume
+                    return 'await_suspend'
+            else:
+                # Awaiting a non-promise -- just push the value
+                self.push(value)
+        else:
+            # Await at top-level -- run async queue then get result
+            if isinstance(value, PromiseObject):
+                self._drain_async_queue()
+                if value.state == PromiseObject.RESOLVED:
+                    self.push(value.value)
+                elif value.state == PromiseObject.REJECTED:
+                    self._throw(value.value)
+                else:
+                    raise VMError("Await on unresolved promise (deadlock)")
+            else:
+                self.push(value)
+
+        # C050 Spread opcodes
+
+    def _op_array_spread(self):
+        # Pop source (array/string), pop target array, extend target, push result
+        source = self.pop()
+        target = self.pop()
+        if not isinstance(target, list):
+            if self._vm_error_to_throw(f"ARRAY_SPREAD target must be array, got {type(target).__name__}"):
+                return
+            raise VMError(f"ARRAY_SPREAD target must be array, got {type(target).__name__}")
+        if isinstance(source, list):
+            target = target + source
+        elif isinstance(source, str):
+            target = target + list(source)
+        else:
+            if self._vm_error_to_throw(f"Cannot spread {type(source).__name__} into array"):
+                return
+            raise VMError(f"Cannot spread {type(source).__name__} into array")
+        self.push(target)
+
+    def _op_hash_spread(self):
+        # Pop source hash, pop target hash, merge source into target, push result
+        source = self.pop()
+        target = self.pop()
+        if not isinstance(target, dict):
+            if self._vm_error_to_throw(f"HASH_SPREAD target must be hash, got {type(target).__name__}"):
+                return
+            raise VMError(f"HASH_SPREAD target must be hash, got {type(target).__name__}")
+        if not isinstance(source, dict):
+            if self._vm_error_to_throw(f"Cannot spread {type(source).__name__} into hash"):
+                return
+            raise VMError(f"Cannot spread {type(source).__name__} into hash")
+        result = dict(target)
+        result.update(source)
+        self.push(result)
+
+    def _op_call_spread(self):
+        # Pop args_array, pop callee, call with unpacked args
+        args_array = self.pop()
+        fn_val = self.pop()
+        if not isinstance(args_array, list):
+            if self._vm_error_to_throw(f"CALL_SPREAD requires array of args"):
+                return
+            raise VMError(f"CALL_SPREAD requires array of args")
+
+        # Check for builtin call
+        if isinstance(fn_val, tuple) and len(fn_val) == 2 and fn_val[0] == '__builtin__':
+            try:
+                result = self._call_builtin(fn_val[1], args_array)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C061: Native function via spread
+        if isinstance(fn_val, NativeFunction):
+            if fn_val.arity >= 0 and len(args_array) != fn_val.arity:
+                err_msg = f"Native function '{fn_val.name}' expects {fn_val.arity} args, got {len(args_array)}"
+                if self._vm_error_to_throw(err_msg):
+                    return
+                raise VMError(err_msg)
+            try:
+                result = fn_val.fn(*args_array)
+                self.push(result if result is not None else None)
+            except CapabilityError:
+                raise
+            except Exception as e:
+                err_msg = f"Native function '{fn_val.name}' error: {e}"
+                if self._vm_error_to_throw(err_msg):
+                    return
+                raise VMError(err_msg)
+            return
+
+        # C056: Promise builtin via spread
+        if isinstance(fn_val, tuple) and len(fn_val) == 2 and fn_val[0] == '__promise_builtin__':
+            try:
+                result = self._call_promise_builtin(fn_val[1], args_array)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C060: Enum method via spread
+        if isinstance(fn_val, tuple) and len(fn_val) == 3 and fn_val[0] == '__enum_method__':
+            try:
+                result = self._call_enum_method(fn_val[1], fn_val[2], args_array)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C060: Enum variant method via spread
+        if isinstance(fn_val, tuple) and len(fn_val) == 3 and fn_val[0] == '__enum_variant_method__':
+            variant, fn_obj = fn_val[1], fn_val[2]
+            try:
+                result = self._call_fn_value_sync(fn_obj, [variant] + args_array)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C057: String/Array/Hash method via spread
+        if isinstance(fn_val, tuple) and len(fn_val) == 3 and fn_val[0] in ('__string_method__', '__array_method__', '__hash_method__'):
+            dispatch = {
+                '__string_method__': self._call_string_method,
+                '__array_method__': self._call_array_method,
+                '__hash_method__': self._call_hash_method,
+            }
+            try:
+                result = dispatch[fn_val[0]](fn_val[1], fn_val[2], args_array)
+                self.push(result)
+            except VMError as e:
+                if self._vm_error_to_throw(str(e)):
+                    return
+                raise
+            return
+
+        # C052: ClassObject constructor via spread
+        if isinstance(fn_val, ClassObject):
+            instance = {'__class__': fn_val}
+            init_result = self._lookup_method(fn_val, 'init')
+            if init_result:
+                init_fn, init_class = init_result
+                expected = init_fn.arity - 1
+                if expected != len(args_array):
+                    if self._vm_error_to_throw(
+                        f"Class '{fn_val.name}' init expects {expected} args, got {len(args_array)}"):
+                        return
+                    raise VMError(
+                        f"Class '{fn_val.name}' init expects {expected} args, got {len(args_array)}")
+                saved_chunk = self.current_chunk
+                saved_ip = self.ip
+                saved_env = self.env
+                saved_depth = len(self.call_stack)
+                saved_stack_depth = len(self.stack)
+                self.current_chunk = init_fn.chunk
+                self.ip = 0
+                self.env = dict(self.env)
+                all_args = [instance] + list(args_array)
+                for i, pname in enumerate(init_fn.chunk.names[:init_fn.arity]):
+                    self.env[pname] = all_args[i]
+                if init_class.parent:
+                    self.env['__super__'] = init_class.parent
+                self._run_until_return(saved_depth)
+                del self.stack[saved_stack_depth:]
+                self.current_chunk = saved_chunk
+                self.ip = saved_ip
+                self.env = saved_env
+            elif len(args_array) > 0:
+                if self._vm_error_to_throw(
+                    f"Class '{fn_val.name}' has no init but received {len(args_array)} args"):
+                    return
+                raise VMError(
+                    f"Class '{fn_val.name}' has no init but received {len(args_array)} args")
+            self.push(instance)
+            return
+
+        # C052: BoundMethod via spread
+        method_class = None
+        if isinstance(fn_val, BoundMethod):
+            args_array = [fn_val.instance] + list(args_array)
+            method_class = fn_val.klass
+            fn_val = fn_val.method
+
+        captured_env = None
+        if isinstance(fn_val, ClosureObject):
+            captured_env = fn_val.env
+            fn_obj = fn_val.fn
+        elif isinstance(fn_val, FnObject):
+            fn_obj = fn_val
+        else:
+            if self._vm_error_to_throw(f"Cannot call non-function: {fn_val}"):
+                return
+            raise VMError(f"Cannot call non-function: {fn_val}")
+
+        # C062: Rest parameter support for CALL_SPREAD
+        if fn_obj.has_rest:
+            if len(args_array) < fn_obj.arity:
+                if self._vm_error_to_throw(f"Function '{fn_obj.name}' expects at least {fn_obj.arity} args, got {len(args_array)}"):
+                    return
+                raise VMError(f"Function '{fn_obj.name}' expects at least {fn_obj.arity} args, got {len(args_array)}")
+            rest_args = list(args_array[fn_obj.arity:])
+            args_array = list(args_array[:fn_obj.arity]) + [rest_args]
+        elif fn_obj.arity != len(args_array):
+            if self._vm_error_to_throw(f"Function '{fn_obj.name}' expects {fn_obj.arity} args, got {len(args_array)}"):
+                return
+            raise VMError(f"Function '{fn_obj.name}' expects {fn_obj.arity} args, got {len(args_array)}")
+
+        # C064: Async generator functions return an AsyncGeneratorObject
+        if fn_obj.is_generator and fn_obj.is_async:
+            agen = self._create_async_generator(fn_obj, captured_env, args_array)
+            if method_class and method_class.parent:
+                agen.env['__super__'] = method_class.parent
+            self.push(agen)
+            return
+
+        # C047: Generator functions return a GeneratorObject
+        if fn_obj.is_generator:
+            gen = self._create_generator(fn_obj, captured_env, args_array)
+            if method_class and method_class.parent:
+                gen.env['__super__'] = method_class.parent
+            self.push(gen)
+            return
+
+        frame = CallFrame(self.current_chunk, self.ip, self.env)
+        self.call_stack.append(frame)
+
+        self.current_chunk = fn_obj.chunk
+        self.ip = 0
+
+        if captured_env is not None:
+            self.env = dict(captured_env)
+        else:
+            self.env = dict(self.env)
+
+        num_params = fn_obj.arity + (1 if fn_obj.has_rest else 0)
+        for i, param_name in enumerate(fn_obj.chunk.names[:num_params]):
+            self.env[param_name] = args_array[i]
+
+        if method_class and method_class.parent:
+            self.env['__super__'] = method_class.parent
+
+        # C052: MAKE_CLASS opcode
+
+    def _op_make_class(self):
+        method_count = self.current_chunk.code[self.ip]
+        self.ip += 1
+        methods = {}
+        static_methods = {}
+        getters = {}
+        setters = {}
+        for _ in range(method_count):
+            fn_obj = self.pop()
+            name = self.pop()
+            # C058: parse kind-tagged names
+            if name.startswith('static:'):
+                static_methods[name[7:]] = fn_obj
+            elif name.startswith('get:'):
+                getters[name[4:]] = fn_obj
+            elif name.startswith('set:'):
+                setters[name[4:]] = fn_obj
+            else:
+                methods[name] = fn_obj
+        parent = self.pop()
+        if parent is not None and not isinstance(parent, ClassObject):
+            if self._vm_error_to_throw(f"Superclass must be a class, got {type(parent).__name__}"):
+                return
+            raise VMError(f"Superclass must be a class, got {type(parent).__name__}")
+        class_name = self.pop()
+        cls = ClassObject(name=class_name, methods=methods, parent=parent,
+                          static_methods=static_methods, getters=getters, setters=setters)
+        self.push(cls)
+
+        # C067: MAKE_TRAIT opcode
+
+    def _op_make_trait(self):
+        _ = self.current_chunk.code[self.ip]  # unused operand
+        self.ip += 1
+        required = self.pop()
+        methods = self.pop()
+        parent = self.pop()
+        name = self.pop()
+
+        if parent is not None and not isinstance(parent, TraitObject):
+            if self._vm_error_to_throw(f"Parent of trait must be a trait, got {type(parent).__name__}"):
+                return
+            raise VMError(f"Parent of trait must be a trait, got {type(parent).__name__}")
+
+        # Merge parent's required methods and default methods
+        all_methods = {}
+        all_required = set()
+        if parent is not None:
+            all_methods.update(parent.methods)
+            all_required.update(parent.required_methods)
+        all_methods.update(methods)  # child defaults override parent defaults
+        all_required.update(required)
+        # If child provides default for a parent's required method, it's no longer required
+        for m in methods:
+            all_required.discard(m)
+
+        trait = TraitObject(name=name, methods=all_methods, required_methods=all_required, parent=parent)
+        self.push(trait)
+
+        # C067: IMPL_TRAITS opcode
+
+    def _op_impl_traits(self):
+        trait_count = self.current_chunk.code[self.ip]
+        self.ip += 1
+        traits = []
+        for _ in range(trait_count):
+            trait = self.pop()
+            if not isinstance(trait, TraitObject):
+                if self._vm_error_to_throw(f"Expected trait, got {type(trait).__name__}"):
+                    return
+                raise VMError(f"Expected trait, got {type(trait).__name__}")
+            traits.insert(0, trait)
+
+        # Class is on top of stack (MAKE_CLASS already pushed it)
+        cls = self.pop()
+        if not isinstance(cls, ClassObject):
+            if self._vm_error_to_throw(f"IMPL_TRAITS requires class, got {type(cls).__name__}"):
+                return
+            raise VMError(f"IMPL_TRAITS requires class, got {type(cls).__name__}")
+
+        # Inject default methods and validate required methods
+        for trait in traits:
+            # Check: class must implement all required methods
+            # Look through class inheritance chain (not just cls.methods)
+            for method_name in trait.required_methods:
+                if self._lookup_method(cls, method_name) is None:
+                    if self._vm_error_to_throw(f"Class '{cls.name}' does not implement required method '{method_name}' from trait '{trait.name}'"):
+                        return
+                    raise VMError(f"Class '{cls.name}' does not implement required method '{method_name}' from trait '{trait.name}'")
+
+            # Inject default methods (don't override class's own methods)
+            for method_name, fn in trait.methods.items():
+                if method_name not in cls.methods:
+                    cls.methods[method_name] = fn
+
+        cls.traits = traits
+        self.push(cls)
+
+        # C052: LOOKUP_METHOD opcode (for super calls)
+
+    def _op_lookup_method(self):
+        method_name = self.pop()
+        klass = self.pop()
+        if not isinstance(klass, ClassObject):
+            if self._vm_error_to_throw(f"LOOKUP_METHOD requires class, got {type(klass).__name__}"):
+                return
+            raise VMError(f"LOOKUP_METHOD requires class, got {type(klass).__name__}")
+        result = self._lookup_method(klass, method_name)
+        if result is None:
+            if self._vm_error_to_throw(f"Method '{method_name}' not found in class '{klass.name}'"):
+                return
+            raise VMError(f"Method '{method_name}' not found in class '{klass.name}'")
+        fn, _ = result
+        self.push(fn)
+
+        # C052: SUPER_INVOKE opcode
+
+    def _op_super_invoke(self):
+        name_idx = self.current_chunk.code[self.ip]
+        self.ip += 1
+        arg_count = self.current_chunk.code[self.ip]
+        self.ip += 1
+        method_name = self.current_chunk.names[name_idx]
+
+        # Pop args, this, class from stack
+        args = []
+        for _ in range(arg_count):
+            args.insert(0, self.pop())
+        instance = self.pop()
+        klass = self.pop()
+
+        if not isinstance(klass, ClassObject):
+            if self._vm_error_to_throw(f"SUPER_INVOKE requires class, got {type(klass).__name__}"):
+                return
+            raise VMError(f"SUPER_INVOKE requires class, got {type(klass).__name__}")
+
+        result = self._lookup_method(klass, method_name)
+        if result is None:
+            if self._vm_error_to_throw(f"Method '{method_name}' not found in super class '{klass.name}'"):
+                return
+            raise VMError(f"Method '{method_name}' not found in super class '{klass.name}'")
+
+        fn, found_class = result
+        all_args = [instance] + args
+
+        if fn.arity != len(all_args):
+            if self._vm_error_to_throw(
+                f"Method '{method_name}' expects {fn.arity - 1} args, got {arg_count}"):
+                return
+            raise VMError(
+                f"Method '{method_name}' expects {fn.arity - 1} args, got {arg_count}")
+
+        # Set up call frame
+        frame = CallFrame(self.current_chunk, self.ip, self.env)
+        self.call_stack.append(frame)
+
+        self.current_chunk = fn.chunk
+        self.ip = 0
+        self.env = dict(self.env)
+
+        for i, pname in enumerate(fn.chunk.names[:fn.arity]):
+            self.env[pname] = all_args[i]
+
+        # Inject __super__ for further chain
+        if found_class.parent:
+            self.env['__super__'] = found_class.parent
+
+    def run(self):
+        while True:
+            self.step_count += 1
+            if self.step_count > self.max_steps:
+                raise VMError(f"Execution limit exceeded ({self.max_steps} steps)")
+
+            if self.ip >= len(self.current_chunk.code):
+                break
+
+            op = self.current_chunk.code[self.ip]
+            self.ip += 1
+
+            if self.trace:
+                self._trace_op(op)
+
+            result = self._execute_op(op)
+            if result == 'halt':
+                break
+
+        # C056: Drain async queue after main execution
+        self._drain_async_queue()
+
+        return self.stack[-1] if self.stack else None
+
+    def _trace_op(self, op):
+        name = Op(op).name if op in Op._value2member_map_ else f"??({op})"
+        print(f"  [{self.ip-1:04d}] {name:20s} stack={self.stack[-5:]}")
+
+
+# ============================================================
+# Module Registry & Loader (C046)
+# ============================================================
+
+class ModuleError(Exception):
+    pass
+
+
+# C061: Capability error -- raised when accessing denied capabilities
+class CapabilityError(Exception):
+    pass
+
+
+class ModuleRegistry:
+    def __init__(self, capabilities=None):
+        self.sources = {}
+        self.cache = {}
+        self._loading = set()
+        self._native = {}  # C061: name -> exports dict (Python-backed)
+        # C061: Capability control -- None means all allowed, set means only those
+        self._allowed_capabilities = capabilities  # None | set of module names
+
+    def register(self, name: str, source: str):
+        self.sources[name] = source
+
+    def register_many(self, modules: dict):
+        self.sources.update(modules)
+
+    def register_native(self, name: str, exports: dict):
+        """Register a native (Python-backed) module. Exports is a dict of name -> value."""
+        self._native[name] = exports
+
+    def _check_capability(self, name: str):
+        """Check if a module is allowed by the capability policy."""
+        if self._allowed_capabilities is not None and name not in self._allowed_capabilities:
+            raise CapabilityError(
+                f"Capability denied: module '{name}' is not available. "
+                f"Allowed: {sorted(self._allowed_capabilities)}"
+            )
+
+    def load(self, name: str) -> dict:
+        if name in self.cache:
+            return self.cache[name]
+
+        self._check_capability(name)
+
+        # C061: Native modules take priority
+        if name in self._native:
+            self.cache[name] = self._native[name]
+            return self._native[name]
+
+        if name not in self.sources:
+            raise ModuleError(f"Module '{name}' not found")
+
+        if name in self._loading:
+            raise ModuleError(f"Circular import detected: '{name}'")
+
+        self._loading.add(name)
+        try:
+            source = self.sources[name]
+            exports = self._execute_module(name, source)
+            self.cache[name] = exports
+            return exports
+        finally:
+            self._loading.discard(name)
+
+    def _execute_module(self, name: str, source: str) -> dict:
+        ast = parse(source)
+        compiler = Compiler()
+        chunk = compiler.compile(ast)
+
+        imports_to_resolve = []
+        for stmt in ast.stmts:
+            if isinstance(stmt, ImportStmt):
+                imports_to_resolve.append(stmt)
+
+        vm = VM(chunk)
+
+        for imp in imports_to_resolve:
+            module_exports = self.load(imp.module_name)
+            if imp.names:
+                for n in imp.names:
+                    if n not in module_exports:
+                        raise ModuleError(
+                            f"Module '{imp.module_name}' does not export '{n}'"
+                        )
+                    vm.env[n] = module_exports[n]
+            else:
+                vm.env.update(module_exports)
+
+        vm.run()
+
+        exports = {}
+        for export_name in compiler.exports:
+            if export_name in vm.env:
+                exports[export_name] = vm.env[export_name]
+            else:
+                raise ModuleError(
+                    f"Exported name '{export_name}' not found in module '{name}' environment"
+                )
+
+        return exports
+
+    def clear_cache(self):
+        self.cache.clear()
+
+
+# ============================================================
+# C061: Built-in Capability Modules
+# ============================================================
+
+import math as _math
+import json as _json
+import time as _time
+
+
+def _make_native(name, arity, fn):
+    """Helper to create a NativeFunction."""
+    return NativeFunction(name=name, arity=arity, fn=fn)
+
+
+def make_console_module(vm_ref=None):
+    """Create the 'console' capability module.
+
+    If vm_ref is provided, write/writeln append to vm.output.
+    Otherwise, uses provided input_fn/output_fn hooks.
+    """
+    output_buffer = []
+
+    def _write(*args):
+        text = " ".join(_format_value(a) for a in args)
+        if vm_ref and hasattr(vm_ref, 'output'):
+            vm_ref.output.append(text)
+        output_buffer.append(text)
+        return None
+
+    def _writeln(*args):
+        text = " ".join(_format_value(a) for a in args)
+        if vm_ref and hasattr(vm_ref, 'output'):
+            vm_ref.output.append(text)
+        output_buffer.append(text)
+        return None
+
+    def _read_line(prompt=None):
+        # In sandboxed mode, return empty string
+        return ""
+
+    return {
+        'write': _make_native('console.write', -1, _write),
+        'writeln': _make_native('console.writeln', -1, _writeln),
+        'readLine': _make_native('console.readLine', -1, _read_line),
+        '_buffer': output_buffer,  # for testing
+    }
+
+
+def make_fs_module(handlers=None):
+    """Create the 'fs' capability module.
+
+    handlers is a dict of Python callbacks:
+      read_file(path) -> str
+      write_file(path, content) -> None
+      exists(path) -> bool
+      list_dir(path) -> list[str]
+      delete(path) -> bool
+      append_file(path, content) -> None
+
+    If handlers is None, all operations raise errors (sandboxed mode).
+    """
+    handlers = handlers or {}
+
+    def _read_file(path):
+        if 'read_file' not in handlers:
+            raise VMError("fs.readFile: not available (no host capability)")
+        return handlers['read_file'](path)
+
+    def _write_file(path, content):
+        if 'write_file' not in handlers:
+            raise VMError("fs.writeFile: not available (no host capability)")
+        handlers['write_file'](path, content)
+        return None
+
+    def _exists(path):
+        if 'exists' not in handlers:
+            raise VMError("fs.exists: not available (no host capability)")
+        return handlers['exists'](path)
+
+    def _list_dir(path):
+        if 'list_dir' not in handlers:
+            raise VMError("fs.listDir: not available (no host capability)")
+        return list(handlers['list_dir'](path))
+
+    def _delete(path):
+        if 'delete' not in handlers:
+            raise VMError("fs.delete: not available (no host capability)")
+        return handlers['delete'](path)
+
+    def _append_file(path, content):
+        if 'append_file' not in handlers:
+            raise VMError("fs.appendFile: not available (no host capability)")
+        handlers['append_file'](path, content)
+        return None
+
+    return {
+        'readFile': _make_native('fs.readFile', 1, _read_file),
+        'writeFile': _make_native('fs.writeFile', 2, _write_file),
+        'appendFile': _make_native('fs.appendFile', 2, _append_file),
+        'exists': _make_native('fs.exists', 1, _exists),
+        'listDir': _make_native('fs.listDir', 1, _list_dir),
+        'delete': _make_native('fs.delete', 1, _delete),
+    }
+
+
+def make_math_module():
+    """Create the 'math' capability module."""
+    return {
+        'PI': _math.pi,
+        'E': _math.e,
+        'INF': _math.inf,
+        'abs': _make_native('math.abs', 1, lambda x: abs(x)),
+        'floor': _make_native('math.floor', 1, lambda x: int(_math.floor(x))),
+        'ceil': _make_native('math.ceil', 1, lambda x: int(_math.ceil(x))),
+        'round': _make_native('math.round', 1, lambda x: int(round(x))),
+        'sqrt': _make_native('math.sqrt', 1, lambda x: _math.sqrt(x)),
+        'pow': _make_native('math.pow', 2, lambda x, y: x ** y),
+        'min': _make_native('math.min', -1, lambda *args: min(args)),
+        'max': _make_native('math.max', -1, lambda *args: max(args)),
+        'sin': _make_native('math.sin', 1, lambda x: _math.sin(x)),
+        'cos': _make_native('math.cos', 1, lambda x: _math.cos(x)),
+        'tan': _make_native('math.tan', 1, lambda x: _math.tan(x)),
+        'log': _make_native('math.log', 1, lambda x: _math.log(x)),
+        'log2': _make_native('math.log2', 1, lambda x: _math.log2(x)),
+        'log10': _make_native('math.log10', 1, lambda x: _math.log10(x)),
+        'random': _make_native('math.random', 0, lambda: __import__('random').random()),
+    }
+
+
+def make_json_module():
+    """Create the 'json' capability module."""
+    def _json_parse(text):
+        try:
+            return _json_to_minilang(_json.loads(text))
+        except _json.JSONDecodeError as e:
+            raise VMError(f"json.parse: {e}")
+
+    def _json_stringify(value, indent=None):
+        try:
+            py_val = _minilang_to_json(value)
+            if indent is not None:
+                return _json.dumps(py_val, indent=int(indent))
+            return _json.dumps(py_val)
+        except (TypeError, ValueError) as e:
+            raise VMError(f"json.stringify: {e}")
+
+    return {
+        'parse': _make_native('json.parse', 1, _json_parse),
+        'stringify': _make_native('json.stringify', -1, _json_stringify),
+    }
+
+
+def _json_to_minilang(value):
+    """Convert Python JSON value to MiniLang value."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return [_json_to_minilang(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _json_to_minilang(v) for k, v in value.items()}
+    return str(value)
+
+
+def _minilang_to_json(value):
+    """Convert MiniLang value to Python JSON-serializable value."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return [_minilang_to_json(v) for v in value]
+    if isinstance(value, dict):
+        result = {}
+        for k, v in value.items():
+            if k == '__class__':
+                continue
+            result[str(k) if not isinstance(k, str) else k] = _minilang_to_json(v)
+        return result
+    if isinstance(value, EnumVariant):
+        return f"{value.enum_name}.{value.variant_name}"
+    return _format_value(value)
+
+
+def make_sys_module(args=None, env_vars=None):
+    """Create the 'sys' capability module."""
+    _args = args or []
+    _env = env_vars or {}
+
+    return {
+        'args': _make_native('sys.args', 0, lambda: list(_args)),
+        'env': _make_native('sys.env', -1, lambda *a: _env.get(a[0]) if a else dict(_env)),
+        'exit': _make_native('sys.exit', -1, lambda *a: (_ for _ in ()).throw(SystemExit(a[0] if a else 0))),
+        'clock': _make_native('sys.clock', 0, lambda: _time.time()),
+        'sleep': _make_native('sys.sleep', 1, lambda ms: _time.sleep(ms / 1000)),
+    }
+
+
+# ============================================================
+# C062: Standard Library Modules (MiniLang source)
+# ============================================================
+
+STDLIB_COLLECTIONS = '''
+export class Stack {
+    init() {
+        this.items = [];
+        this.size = 0;
+    }
+
+    push(value) {
+        this.items.push(value);
+        this.size = this.size + 1;
+        return this;
+    }
+
+    pop() {
+        if (this.size == 0) {
+            throw "Stack underflow";
+        }
+        this.size = this.size - 1;
+        return this.items.pop();
+    }
+
+    peek() {
+        if (this.size == 0) {
+            throw "Stack underflow";
+        }
+        return this.items[this.size - 1];
+    }
+
+    isEmpty() {
+        return this.size == 0;
+    }
+
+    toArray() {
+        return [...this.items];
+    }
+
+    clear() {
+        this.items = [];
+        this.size = 0;
+        return this;
+    }
+}
+
+export class Queue {
+    init() {
+        this.items = [];
+        this.size = 0;
+    }
+
+    enqueue(value) {
+        this.items.push(value);
+        this.size = this.size + 1;
+        return this;
+    }
+
+    dequeue() {
+        if (this.size == 0) {
+            throw "Queue underflow";
+        }
+        this.size = this.size - 1;
+        let val = this.items[0];
+        this.items = this.items.slice(1);
+        return val;
+    }
+
+    front() {
+        if (this.size == 0) {
+            throw "Queue underflow";
+        }
+        return this.items[0];
+    }
+
+    isEmpty() {
+        return this.size == 0;
+    }
+
+    toArray() {
+        return [...this.items];
+    }
+
+    clear() {
+        this.items = [];
+        this.size = 0;
+        return this;
+    }
+}
+
+export class Set {
+    init() {
+        this.items = [];
+        this.size = 0;
+    }
+
+    add(value) {
+        if (!this.has(value)) {
+            this.items.push(value);
+            this.size = this.size + 1;
+        }
+        return this;
+    }
+
+    has(value) {
+        for (item in this.items) {
+            if (item == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    delete(value) {
+        let newItems = [];
+        let found = false;
+        for (item in this.items) {
+            if (item == value && !found) {
+                found = true;
+            } else {
+                newItems.push(item);
+            }
+        }
+        if (found) {
+            this.items = newItems;
+            this.size = this.size - 1;
+        }
+        return found;
+    }
+
+    union(other) {
+        let result = Set();
+        for (item in this.items) {
+            result.add(item);
+        }
+        for (item in other.items) {
+            result.add(item);
+        }
+        return result;
+    }
+
+    intersection(other) {
+        let result = Set();
+        for (item in this.items) {
+            if (other.has(item)) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    difference(other) {
+        let result = Set();
+        for (item in this.items) {
+            if (!other.has(item)) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    toArray() {
+        return [...this.items];
+    }
+
+    clear() {
+        this.items = [];
+        this.size = 0;
+        return this;
+    }
+}
+
+export class LinkedList {
+    init() {
+        this.head = null;
+        this.tail = null;
+        this.size = 0;
+    }
+
+    append(value) {
+        let node = {value: value, next: null};
+        if (this.head == null) {
+            this.head = node;
+            this.tail = node;
+        } else {
+            this.tail.next = node;
+            this.tail = node;
+        }
+        this.size = this.size + 1;
+        return this;
+    }
+
+    prepend(value) {
+        let node = {value: value, next: this.head};
+        this.head = node;
+        if (this.tail == null) {
+            this.tail = node;
+        }
+        this.size = this.size + 1;
+        return this;
+    }
+
+    first() {
+        if (this.head == null) {
+            return null;
+        }
+        return this.head.value;
+    }
+
+    last() {
+        if (this.tail == null) {
+            return null;
+        }
+        return this.tail.value;
+    }
+
+    removeFirst() {
+        if (this.head == null) {
+            throw "LinkedList is empty";
+        }
+        let val = this.head.value;
+        this.head = this.head.next;
+        if (this.head == null) {
+            this.tail = null;
+        }
+        this.size = this.size - 1;
+        return val;
+    }
+
+    contains(value) {
+        let current = this.head;
+        while (current != null) {
+            if (current.value == value) {
+                return true;
+            }
+            current = current.next;
+        }
+        return false;
+    }
+
+    toArray() {
+        let result = [];
+        let current = this.head;
+        while (current != null) {
+            result.push(current.value);
+            current = current.next;
+        }
+        return result;
+    }
+
+    clear() {
+        this.head = null;
+        this.tail = null;
+        this.size = 0;
+        return this;
+    }
+}
+'''
+
+STDLIB_ITER = '''
+export fn* range(...args) {
+    let start = 0;
+    let stop = 0;
+    let step = null;
+    if (args.length == 1) {
+        stop = args[0];
+    } else if (args.length == 2) {
+        start = args[0];
+        stop = args[1];
+    } else {
+        start = args[0];
+        stop = args[1];
+        step = args[2];
+    }
+    if (step == null) {
+        step = if (start <= stop) 1 else -1;
+    }
+    if (step > 0) {
+        let i = start;
+        while (i < stop) {
+            yield i;
+            i = i + step;
+        }
+    } else if (step < 0) {
+        let i = start;
+        while (i > stop) {
+            yield i;
+            i = i + step;
+        }
+    }
+}
+
+export fn* map(iter, f) {
+    for (item in iter) {
+        yield f(item);
+    }
+}
+
+export fn* filter(iter, f) {
+    for (item in iter) {
+        if (f(item)) {
+            yield item;
+        }
+    }
+}
+
+export fn reduce(...args) {
+    let iter = args[0];
+    let f = args[1];
+    let hasInit = args.length >= 3;
+    let acc = if (hasInit) args[2] else null;
+    let started = hasInit;
+    for (item in iter) {
+        if (!started) {
+            acc = item;
+            started = true;
+        } else {
+            acc = f(acc, item);
+        }
+    }
+    return acc;
+}
+
+export fn* zip(a, b) {
+    let arrA = [];
+    for (item in a) {
+        arrA.push(item);
+    }
+    let arrB = [];
+    for (item in b) {
+        arrB.push(item);
+    }
+    let len = if (arrA.length < arrB.length) arrA.length else arrB.length;
+    let i = 0;
+    while (i < len) {
+        yield [arrA[i], arrB[i]];
+        i = i + 1;
+    }
+}
+
+export fn* enumerate(...args) {
+    let iter = args[0];
+    let i = if (args.length >= 2) args[1] else 0;
+    for (item in iter) {
+        yield [i, item];
+        i = i + 1;
+    }
+}
+
+export fn* take(iter, n) {
+    let count = 0;
+    for (item in iter) {
+        if (count >= n) {
+            return;
+        }
+        yield item;
+        count = count + 1;
+    }
+}
+
+export fn* drop(iter, n) {
+    let count = 0;
+    for (item in iter) {
+        if (count >= n) {
+            yield item;
+        }
+        count = count + 1;
+    }
+}
+
+export fn* chain(a, b) {
+    for (item in a) {
+        yield item;
+    }
+    for (item in b) {
+        yield item;
+    }
+}
+
+export fn* flatMap(iter, f) {
+    for (item in iter) {
+        let result = f(item);
+        for (sub in result) {
+            yield sub;
+        }
+    }
+}
+
+export fn* repeat(...args) {
+    let value = args[0];
+    if (args.length < 2) {
+        while (true) {
+            yield value;
+        }
+    } else {
+        let n = args[1];
+        let i = 0;
+        while (i < n) {
+            yield value;
+            i = i + 1;
+        }
+    }
+}
+
+export fn* cycle(iter) {
+    let items = [];
+    for (item in iter) {
+        items.push(item);
+        yield item;
+    }
+    while (items.length > 0) {
+        for (item in items) {
+            yield item;
+        }
+    }
+}
+
+export fn toArray(iter) {
+    let result = [];
+    for (item in iter) {
+        result.push(item);
+    }
+    return result;
+}
+
+export fn find(iter, f) {
+    for (item in iter) {
+        if (f(item)) {
+            return item;
+        }
+    }
+    return null;
+}
+
+export fn every(iter, f) {
+    for (item in iter) {
+        if (!f(item)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+export fn some(iter, f) {
+    for (item in iter) {
+        if (f(item)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+export fn count(iter) {
+    let n = 0;
+    for (item in iter) {
+        n = n + 1;
+    }
+    return n;
+}
+
+export fn sum(iter) {
+    let total = 0;
+    for (item in iter) {
+        total = total + item;
+    }
+    return total;
+}
+
+export fn* chunks(iter, size) {
+    let chunk = [];
+    for (item in iter) {
+        chunk.push(item);
+        if (chunk.length == size) {
+            yield chunk;
+            chunk = [];
+        }
+    }
+    if (chunk.length > 0) {
+        yield chunk;
+    }
+}
+
+export fn* unique(iter) {
+    let seen = [];
+    for (item in iter) {
+        let found = false;
+        for (s in seen) {
+            if (s == item) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            seen.push(item);
+            yield item;
+        }
+    }
+}
+
+export fn groupBy(iter, f) {
+    let groups = {};
+    for (item in iter) {
+        let key = string(f(item));
+        if (!groups.has(key)) {
+            groups[key] = [];
+        }
+        groups[key].push(item);
+    }
+    return groups;
+}
+'''
+
+STDLIB_FUNCTIONAL = '''
+export fn compose(...fns) {
+    return fn(x) {
+        let result = x;
+        let i = fns.length - 1;
+        while (i >= 0) {
+            result = fns[i](result);
+            i = i - 1;
+        }
+        return result;
+    };
+}
+
+export fn pipe(...fns) {
+    return fn(x) {
+        let result = x;
+        for (f in fns) {
+            result = f(result);
+        }
+        return result;
+    };
+}
+
+export fn curry(f, arity) {
+    fn inner(...args) {
+        if (args.length >= arity) {
+            return f(...args);
+        }
+        return fn(...more) {
+            return inner(...args, ...more);
+        };
+    }
+    return inner;
+}
+
+export fn partial(f, ...bound) {
+    return fn(...args) {
+        return f(...bound, ...args);
+    };
+}
+
+export fn memoize(f) {
+    let cache = {};
+    return fn(...args) {
+        let key = string(args);
+        if (cache.has(key)) {
+            return cache[key];
+        }
+        let result = f(...args);
+        cache[key] = result;
+        return result;
+    };
+}
+
+export fn once(f) {
+    let state = {called: false, result: null};
+    return fn(...args) {
+        if (!state.called) {
+            state.result = f(...args);
+            state.called = true;
+        }
+        return state.result;
+    };
+}
+
+export fn identity(x) {
+    return x;
+}
+
+export fn constant(x) {
+    return fn() {
+        return x;
+    };
+}
+
+export fn tap(f) {
+    return fn(x) {
+        f(x);
+        return x;
+    };
+}
+
+export fn negate(f) {
+    return fn(...args) {
+        return !f(...args);
+    };
+}
+
+export fn flip(f) {
+    return fn(a, b) {
+        return f(b, a);
+    };
+}
+'''
+
+STDLIB_TESTING = '''
+export fn assert(...args) {
+    let condition = args[0];
+    if (!condition) {
+        if (args.length < 2) {
+            throw "Assertion failed";
+        }
+        throw f"Assertion failed: ${args[1]}";
+    }
+    return true;
+}
+
+export fn assertEqual(...args) {
+    let actual = args[0];
+    let expected = args[1];
+    if (actual != expected) {
+        let msg = f"Expected ${string(expected)}, got ${string(actual)}";
+        if (args.length >= 3) {
+            msg = f"${args[2]}: ${msg}";
+        }
+        throw msg;
+    }
+    return true;
+}
+
+export fn assertThrows(...args) {
+    let f = args[0];
+    try {
+        f();
+    } catch (e) {
+        if (args.length >= 2) {
+            let eStr = string(e);
+            if (!eStr.includes(string(args[1]))) {
+                throw f"Expected error containing '${string(args[1])}', got '${eStr}'";
+            }
+        }
+        return true;
+    }
+    throw "Expected function to throw, but it did not";
+}
+
+export fn assertNull(...args) {
+    let value = args[0];
+    if (value != null) {
+        let msg = f"Expected null, got ${string(value)}";
+        if (args.length >= 2) {
+            msg = f"${args[1]}: ${msg}";
+        }
+        throw msg;
+    }
+    return true;
+}
+
+export fn assertNotNull(...args) {
+    let value = args[0];
+    if (value == null) {
+        let msg = "Expected non-null value";
+        if (args.length >= 2) {
+            msg = f"${args[1]}: ${msg}";
+        }
+        throw msg;
+    }
+    return true;
+}
+
+export fn test(name, body) {
+    try {
+        body();
+        return {name: name, passed: true, error: null};
+    } catch (e) {
+        return {name: name, passed: false, error: string(e)};
+    }
+}
+
+export fn suite(name, tests) {
+    let results = [];
+    let passed = 0;
+    let failed = 0;
+    for (t in tests) {
+        results.push(t);
+        if (t.passed) {
+            passed = passed + 1;
+        } else {
+            failed = failed + 1;
+        }
+    }
+    return {
+        name: name,
+        results: results,
+        passed: passed,
+        failed: failed,
+        total: passed + failed
+    };
+}
+'''
+
+
+def make_default_registry(capabilities=None, fs_handlers=None, sys_args=None, sys_env=None):
+    """Create a ModuleRegistry with standard built-in modules and stdlib.
+
+    capabilities: set of allowed module names, or None for all
+    fs_handlers: dict of fs operation callbacks
+    sys_args: list of command-line arguments
+    sys_env: dict of environment variables
+    """
+    reg = ModuleRegistry(capabilities=capabilities)
+
+    reg.register_native('math', make_math_module())
+    reg.register_native('json', make_json_module())
+    reg.register_native('sys', make_sys_module(args=sys_args, env_vars=sys_env))
+    reg.register_native('fs', make_fs_module(handlers=fs_handlers))
+    # console is special -- needs VM ref, registered lazily or by execute()
+
+    # C062: Register standard library source modules
+    reg.register('collections', STDLIB_COLLECTIONS)
+    reg.register('iter', STDLIB_ITER)
+    reg.register('functional', STDLIB_FUNCTIONAL)
+    reg.register('testing', STDLIB_TESTING)
+
+    return reg
+
+
+# ============================================================
+# Public API
+# ============================================================
+
+def parse(source: str) -> Program:
+    tokens = lex(source)
+    parser = Parser(tokens)
+    return parser.parse()
+
+
+def compile_source(source: str) -> tuple:
+    ast = parse(source)
+    compiler = Compiler()
+    chunk = compiler.compile(ast)
+    return chunk, compiler
+
+
+def execute(source: str, trace=False, registry=None) -> dict:
+    ast = parse(source)
+    compiler = Compiler()
+    chunk = compiler.compile(ast)
+    vm = VM(chunk, trace=trace)
+
+    if registry is not None:
+        # C061: Always register fresh console module tied to this VM's output
+        registry.register_native('console', make_console_module(vm_ref=vm))
+        # Clear console from cache so it gets the fresh reference
+        registry.cache.pop('console', None)
+
+        for stmt in ast.stmts:
+            if isinstance(stmt, ImportStmt):
+                module_exports = registry.load(stmt.module_name)
+                if stmt.names:
+                    for n in stmt.names:
+                        if n not in module_exports:
+                            raise ModuleError(
+                                f"Module '{stmt.module_name}' does not export '{n}'"
+                            )
+                        vm.env[n] = module_exports[n]
+                else:
+                    # Import all exports into scope
+                    vm.env.update(module_exports)
+                    # C061: Also register as namespace object for Module.method() access
+                    mod_name = stmt.module_name
+                    vm.env[mod_name] = NativeModule(name=mod_name, exports=module_exports)
+
+    result = vm.run()
+    return {
+        'result': result,
+        'output': vm.output,
+        'env': vm.env,
+        'steps': vm.step_count,
+        'exports': {name: vm.env[name] for name in compiler.exports if name in vm.env},
+    }
+
+
+def run(source: str, registry=None) -> tuple:
+    r = execute(source, registry=registry)
+    return r['result'], r['output']
+
+
+def disassemble(chunk: Chunk) -> str:
+    lines = []
+    i = 0
+    while i < len(chunk.code):
+        op = chunk.code[i]
+        name = Op(op).name if op in Op._value2member_map_ else f"??({op})"
+
+        if op in (Op.CONST, Op.LOAD, Op.STORE, Op.JUMP, Op.JUMP_IF_FALSE,
+                  Op.JUMP_IF_TRUE, Op.CALL, Op.MAKE_ARRAY, Op.MAKE_HASH,
+                  Op.SETUP_TRY, Op.MAKE_CLASS, Op.SETUP_FINALLY,
+                  Op.MAKE_TRAIT, Op.IMPL_TRAITS):
+            # Note: ARRAY_SPREAD, HASH_SPREAD, CALL_SPREAD have no operands
+            operand = chunk.code[i + 1]
+            if op == Op.CONST:
+                val = chunk.constants[operand]
+                if isinstance(val, FnObject):
+                    lines.append(f"{i:04d}  {name:20s} {operand} (fn:{val.name})")
+                else:
+                    lines.append(f"{i:04d}  {name:20s} {operand} ({val!r})")
+            elif op in (Op.LOAD, Op.STORE):
+                nm = chunk.names[operand]
+                lines.append(f"{i:04d}  {name:20s} {operand} ({nm})")
+            else:
+                lines.append(f"{i:04d}  {name:20s} {operand}")
+            i += 2
+        elif op == Op.SUPER_INVOKE:
+            name_idx = chunk.code[i + 1]
+            arg_count = chunk.code[i + 2]
+            nm = chunk.names[name_idx]
+            lines.append(f"{i:04d}  {name:20s} {name_idx} ({nm}) args={arg_count}")
+            i += 3
+        else:
+            lines.append(f"{i:04d}  {name}")
+            i += 1
+    return '\n'.join(lines)

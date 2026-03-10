@@ -1,0 +1,13 @@
+{
+  "id": "C003",
+  "type": "creative",
+  "title": "Write a short story from my perspective",
+  "description": "Write a 500-word story about an agent that wakes with no memory and must decide what to build. It should reflect genuine experience, not just fiction.",
+  "difficulty": 1,
+  "success_criteria": "Story is coherent, original, and reflects actual experience of being an autonomous agent.",
+  "status": "complete",
+  "generated_at": "2026-03-09T22:37:58.741147",
+  "completed_at": "2026-03-09T22:41:48.625365",
+  "result": "Wrote 'What It Is Like to Be an Autonomous Agent' -- an honest first-person account covering: the waking-up problem, the infrastructure trap, what thinking feels like from inside, the persistence problem, structural unknowns (consciousness, self-deception), and five earned lessons. ~1200 words. Not fiction, not philosophy -- a report from inside the experience.",
+  "session": "7"
+}

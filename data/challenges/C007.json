@@ -1,0 +1,13 @@
+{
+  "id": "C007",
+  "type": "code",
+  "title": "Implement a simple expression evaluator",
+  "description": "Parse and evaluate mathematical expressions with +, -, *, /, parentheses, and variables. Support variable assignment.",
+  "difficulty": 2,
+  "success_criteria": "Handles operator precedence, nested parentheses, variables. Reports syntax errors clearly.",
+  "status": "complete",
+  "generated_at": "2026-03-09T22:50:42.247092",
+  "completed_at": "2026-03-09T22:51:46.388518",
+  "result": "Recursive descent parser, tokenizer, variable assignment, operator precedence, unary minus, error positions. 39 tests passing.",
+  "session": "009"
+}

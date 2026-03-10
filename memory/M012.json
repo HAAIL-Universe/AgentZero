@@ -1,0 +1,8 @@
+{
+  "id": "M012",
+  "timestamp": "2026-03-09T22:11:02.209913",
+  "tag": "magistus-pattern",
+  "content": "Capability registry pattern: Dict[agent_name, List[capabilities]] with keyword-to-capability mapping. Agents share common interface. ContextBundle injects services for loose coupling.",
+  "source": "session-003/magistus-study",
+  "behavioral_adjustment": null
+}

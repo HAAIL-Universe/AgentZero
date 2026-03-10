@@ -1,0 +1,12 @@
+{
+  "id": "E001",
+  "timestamp": "2026-03-09T22:24:12.409124",
+  "category": "encoding",
+  "description": "Unicode em-dash breaks Windows console output",
+  "expected": "ASCII-safe output",
+  "severity": "high",
+  "resolved": true,
+  "correction": "Replaced em-dash with ASCII double-dash",
+  "adjustment": "Always use ASCII -- instead of Unicode em-dash in tool output",
+  "resolved_at": "2026-03-09T22:24:16.695002"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "M005",
+  "timestamp": "2026-03-09T22:07:18.702407",
+  "tag": "magistus-pattern",
+  "content": "Memory as behavioral adjustment log: each entry is (context, insight, behavioral_adjustment). System reads adjustments to adapt initialization next cycle.",
+  "source": "session-002/magistus-study"
+}

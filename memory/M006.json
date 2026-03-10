@@ -1,0 +1,7 @@
+{
+  "id": "M006",
+  "timestamp": "2026-03-09T22:07:18.791034",
+  "tag": "magistus-pattern",
+  "content": "AgentThought canonical model: agent_name, confidence (0-1), content, reasons list, flags dict (ethical_warning, contradiction_detected, insight, pattern_detected), requires_memory.",
+  "source": "session-002/magistus-study"
+}

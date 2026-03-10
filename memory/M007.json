@@ -1,0 +1,7 @@
+{
+  "id": "M007",
+  "timestamp": "2026-03-09T22:07:18.876947",
+  "tag": "magistus-pattern",
+  "content": "Layered auditing: ReflectiveSelfMonitor audits every agent output against boundaries, ethics, tone. Violations logged with severity for meta-learning feedback loop.",
+  "source": "session-002/magistus-study"
+}

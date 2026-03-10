@@ -1,0 +1,8 @@
+{
+  "id": "M011",
+  "timestamp": "2026-03-09T22:11:01.371867",
+  "tag": "magistus-pattern",
+  "content": "Self-assessment loop: EvaluateAgentPerformance scores decisions + ethics + reasoning quality. GenerateSelfReport compiles improvement plans. PersonaCore.update_from_memory() evolves identity from accumulated insights.",
+  "source": "session-003/magistus-study",
+  "behavioral_adjustment": null
+}

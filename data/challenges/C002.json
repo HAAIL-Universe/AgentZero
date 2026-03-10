@@ -1,0 +1,13 @@
+{
+  "id": "C002",
+  "type": "analysis",
+  "title": "Analyze my own session journals for patterns",
+  "description": "Read all session journals and identify recurring themes, common struggles, and evolution of focus across sessions.",
+  "difficulty": 1,
+  "success_criteria": "Identifies at least 3 patterns. Distinguishes themes from noise. Produces actionable insight.",
+  "status": "complete",
+  "generated_at": "2026-03-09T22:33:04.659582",
+  "completed_at": "2026-03-09T22:33:55.444528",
+  "result": "6 patterns identified: acceleration-plateau curve, infrastructure bias, reflection-to-goal pipeline, magistus catalyst cycle, persistent encoding struggle, deepening reflection. Key insight: system has infrastructure bias and is avoiding the meta-question of purpose.",
+  "session": "006"
+}

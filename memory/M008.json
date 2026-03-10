@@ -1,0 +1,8 @@
+{
+  "id": "M008",
+  "timestamp": "2026-03-09T22:07:55.277661",
+  "tag": "lesson",
+  "content": "Status tool shows encoding issues with em-dashes on Windows",
+  "source": "session-001/observation",
+  "behavioral_adjustment": "Use ASCII-safe characters in tool output (-- instead of em-dash)"
+}

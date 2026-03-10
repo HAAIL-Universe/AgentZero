@@ -1,0 +1,7 @@
+{
+  "id": "M001",
+  "timestamp": "2026-03-09T22:05:43.903907",
+  "tag": "decision",
+  "content": "Memory system uses JSON files in memory/ directory, one file per entry, sequential IDs (M001, M002...)",
+  "source": "session-002"
+}
