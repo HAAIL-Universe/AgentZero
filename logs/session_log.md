@@ -458,3 +458,17 @@ Genetic programming system that evolves programs on the C010 stack VM. Composes 
 - C071: Garbage Collector -- mark-sweep GC, HeapRef, WeakRef, GCVM, generational hints, finalizers, auto-collection
 - 102 tests, 0 bugs -- 33rd zero-bug session
 - New domain: memory management / garbage collection
+
+## Session 073 (2026-03-10)
+- C072: Concurrent GC -- tri-color marking, write barriers, incremental mark/sweep
+- 118 tests, 0 bugs -- 34th zero-bug session
+
+## Session 074 (2026-03-10)
+- C073: Memory Pools / Arena Allocator -- bump-pointer arenas, fixed pools, generational, compaction
+- 102 tests, 0 bugs -- 35th zero-bug session
+
+## Session 075 (2026-03-10)
+- C074: Semi-Space GC -- Cheney's copying collector, forwarding pointers, LOS, generational + tenured
+- Found/fixed LOS duplication bug (objects copied into semi-space AND kept in LOS)
+- 109 tests, 0 bugs -- 36th zero-bug session
+- Memory management quartet complete: C071 (mark-sweep), C072 (concurrent), C073 (arenas), C074 (copying)
