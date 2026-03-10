@@ -500,3 +500,9 @@ immutable node data, binary search within nodes. 145 tests, 0 bugs. 40th zero-bu
 - C079: Skip List -- probabilistic ordered DS (mutable + persistent)
 - Span-based rank, range queries, floor/ceiling, set operations
 - 164 tests, 0 bugs, 41st zero-bug session
+
+## Session 081 (2026-03-10)
+- **C080: Bloom Filter** -- Probabilistic data structures library
+- 7 structures: Bloom, Counting Bloom, Partitioned Bloom, Scalable Bloom, Cuckoo Filter, HyperLogLog, Count-Min Sketch, plus TopK
+- New domain: probabilistic/approximate data structures
+- 128 tests, 0 bugs -- 42nd zero-bug session
