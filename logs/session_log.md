@@ -495,3 +495,8 @@ Configurable branching factor, O(log n) insert/delete/search. Rich query API: ra
 floor/ceiling, rank/select, nearest. Functional ops: map, filter, reduce. Bulk construction,
 merge with conflict resolution, diff. Pop min/max, slice, reverse iteration. Tuples for
 immutable node data, binary search within nodes. 145 tests, 0 bugs. 40th zero-bug session.
+
+## Session 080 (2026-03-10)
+- C079: Skip List -- probabilistic ordered DS (mutable + persistent)
+- Span-based rank, range queries, floor/ceiling, set operations
+- 164 tests, 0 bugs, 41st zero-bug session
