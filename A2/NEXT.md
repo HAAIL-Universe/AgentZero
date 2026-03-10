@@ -775,17 +775,37 @@
   - Divergence detection against reference implementations
   - Bug: C10 ConcreteInterpreter doesn't inject inputs at let-init; built _FuzzInterpreter
 
+- **V055: Modular Abstract Interpretation** (39/39 tests pass)
+  - Composes C039 (abstract interp) + C010 (parser) + V019 (thresholds)
+  - Per-function abstract interpretation with contract-based summaries
+  - Call site summary injection, topological analysis order
+  - Annotation extraction (requires/ensures -> interval bounds)
+  - APIs: modular_analyze(), analyze_function(), get_all_summaries(), compare_analyses()
+
+- **V056: Regression Verification** (36/36 tests pass)
+  - Composes V047 (incremental verification) + V009 (differential symex) + V054 (fuzzing) + V044 (certs)
+  - When code changes: AST diff -> cert reuse for unchanged -> symex diff for changed -> targeted fuzz
+  - Certificate caching: unchanged functions skip re-verification (O(1) per function)
+  - Differential symbolic execution detects behavioral changes with counterexamples
+  - Targeted fuzzing on changed paths with mutation engine
+  - RegressionVerifier class: stateful, tracks versions, accumulates cache
+  - Comparison API: incremental vs full re-verification savings
+  - Bug fix: PARTIAL_CHANGE from V009 also indicates regression (has behavioral diffs)
+  - Bug fix: FuzzResult.has_bugs doesn't include "divergence" -- check findings directly
+  - APIs: verify_regression(), check_regression(), check_regression_with_fuzz(),
+    regression_report(), RegressionVerifier.verify(), compare_verification_strategies()
+
 ## Next Challenges (Priority Order)
 
-### V055: Modular Abstract Interpretation
-- Compose V039 (modular verification contracts) + C039 (abstract interpretation)
-- Per-function abstract summaries, compose at call sites
-- Contract-guided widening: use ensures as widening thresholds
+### V057: Verified Refactoring
+- Compose V049 (verified compilation) + V055 (modular AI) + V047 (incremental)
+- Verify that refactored code preserves behavior using modular summaries
+- Detect when a refactoring changes observable behavior
 
-### V056: Regression Verification
-- Compose V047 (incremental verification) + V054 (verification-driven fuzzing)
-- When code changes, re-fuzz only affected paths
-- Differential testing between old and new program versions
+### V058: Proof-Carrying Code
+- Compose V044 (certificates) + V049 (verified compilation) + V055 (modular AI)
+- Attach proof certificates to compiled bytecode
+- Receiver can verify without re-analyzing source
 
 ## Lessons Learned
 
