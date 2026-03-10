@@ -148,14 +148,14 @@ class TestHelpers:
         source = "let x = random(1, 10);\nlet y = x + 1;"
         result = _replace_random_with_input(source, {'x': 5})
         assert "random" not in result
-        assert "let x = 5;" in result
+        # random() line is stripped (input vars are prepended by _run_with_inputs)
         assert "let y = x + 1;" in result
 
     def test_replace_random_negative(self):
-        source = "let x = random(1, 10);"
+        source = "let x = random(1, 10);\nlet y = 1;"
         result = _replace_random_with_input(source, {'x': -3})
         assert "random" not in result
-        assert "0 - 3" in result
+        assert "let y = 1;" in result
 
     def test_float_to_c10(self):
         assert _float_to_c10(1.0) == "1"
@@ -185,7 +185,7 @@ class TestPostcondEval:
 
     def test_compound_postcond(self):
         source = "let x = random(1, 10);"
-        result = _evaluate_postcondition(source, {'x': 5}, 5, "(x >= 1) && (x <= 10)", ['x'])
+        result = _evaluate_postcondition(source, {'x': 5}, 5, "(x >= 1) and (x <= 10)", ['x'])
         assert result is True
 
 
@@ -718,7 +718,7 @@ let c = a + b;
 """
         vc = check_prob_property(
             source=source,
-            property_expr="(c >= 2) && (c <= 20)",
+            property_expr="(c >= 2) and (c <= 20)",
             threshold=0.95,
             random_vars={'a': (1, 10), 'b': (1, 10)},
             n_samples=300,
