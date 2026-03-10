@@ -14,10 +14,14 @@ test suites covering:
 """
 
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V004_verification_conditions'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V001_guided_symbolic_execution'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V054_verification_driven_fuzzing'))
+_base = os.path.dirname(__file__)
+_root = os.path.join(_base, '..', '..', '..')
+sys.path.insert(0, _root)
+sys.path.insert(0, os.path.join(_base, '..', 'V004_verification_conditions'))
+sys.path.insert(0, os.path.join(_base, '..', 'V001_guided_symbolic_execution'))
+sys.path.insert(0, os.path.join(_base, '..', 'V054_verification_driven_fuzzing'))
+sys.path.insert(0, os.path.join(_root, 'challenges', 'C010_stack_vm'))
+sys.path.insert(0, os.path.join(_root, 'challenges', 'C037_smt_solver'))
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set, Tuple, Any
@@ -26,7 +30,7 @@ import random
 import copy
 
 # V004: Verification conditions
-from vcgen import (
+from vc_gen import (
     verify_function, verify_program, VerificationResult, VCResult, VCStatus,
     FnSpec, extract_fn_spec, WPCalculus, SExpr, SVar, SInt, SBool,
     SBinOp, SUnaryOp, SAnd, SOr, SNot, SImplies, SIte,
@@ -34,18 +38,18 @@ from vcgen import (
 )
 
 # V001: Guided symbolic execution
-from guided_symex import GuidedSymbolicExecutor, GuidedResult
+from guided_symbolic import GuidedSymbolicExecutor, GuidedResult
 
 # V054: Fuzzing
-from verification_fuzzer import (
+from verification_driven_fuzzing import (
     MutationEngine, FuzzInput, FuzzFinding, CoverageInfo
 )
 
 # C010: Parser
-from challenges.C010_stack_vm.vm import lex, Parser
+from stack_vm import lex, Parser
 
 # C037: SMT solver
-from challenges.C037_smt_solver.smt_solver import SMTSolver
+from smt_solver import SMTSolver, SMTResult, App, Op, IntConst, BOOL
 
 
 # ---------------------------------------------------------------------------
@@ -204,12 +208,27 @@ class SpecAnalyzer:
 
     def _extract_var_const(self, binop: SBinOp) -> Tuple[Optional[str], Optional[int]]:
         """Extract (variable_name, constant_value) from a comparison."""
-        if isinstance(binop.left, SVar) and isinstance(binop.right, SInt):
-            return binop.left.name, binop.right.value
-        if isinstance(binop.right, SVar) and isinstance(binop.left, SInt):
-            # Flip: 5 > x means x < 5
-            return binop.right.name, binop.left.value
+        left_var = self._as_var(binop.left)
+        right_const = self._as_const(binop.right)
+        if left_var is not None and right_const is not None:
+            return left_var, right_const
+        right_var = self._as_var(binop.right)
+        left_const = self._as_const(binop.left)
+        if right_var is not None and left_const is not None:
+            return right_var, left_const
         return None, None
+
+    def _as_var(self, expr: SExpr) -> Optional[str]:
+        if isinstance(expr, SVar):
+            return expr.name
+        return None
+
+    def _as_const(self, expr: SExpr) -> Optional[int]:
+        if isinstance(expr, SInt):
+            return expr.value
+        if isinstance(expr, SUnaryOp) and expr.op == '-' and isinstance(expr.operand, SInt):
+            return -expr.operand.value
+        return None
 
     def check_precondition(self, spec: FnSpec, inputs: Dict[str, int]) -> bool:
         """Check if inputs satisfy the precondition."""
@@ -310,7 +329,7 @@ class SpecAnalyzer:
         # Generate diverse inputs by excluding previous solutions
         for i in range(count):
             status = solver.check()
-            if status == 'SAT':
+            if status == SMTResult.SAT:
                 model = solver.model()
                 inputs = {}
                 for p in spec.params:
@@ -324,7 +343,7 @@ class SpecAnalyzer:
                 exclusion_parts = []
                 for p in spec.params:
                     exclusion_parts.append(
-                        solver.NEQ(smt_vars[p], solver.IntVal(inputs[p]))
+                        App(Op.NEQ, [smt_vars[p], IntConst(inputs[p])], BOOL)
                     )
                 if exclusion_parts:
                     solver.add(solver.Or(*exclusion_parts) if len(exclusion_parts) > 1
@@ -344,17 +363,19 @@ class TestExecutor:
 
     def execute(self, source: str, fn_name: str, inputs: Dict[str, int]) -> Tuple[Any, Optional[str]]:
         """Execute function with inputs. Returns (result, error_or_None)."""
+        # Strip annotation calls (requires/ensures/invariant) before execution
+        clean_source = self._strip_annotations(source)
         # Build a call expression
         args = ', '.join(str(inputs.get(p, 0)) for p in self._get_params(source, fn_name))
-        call_source = source + f'\nlet __result = {fn_name}({args});\nprint __result;'
+        call_source = clean_source + f'\nlet __r = {fn_name}({args});\nprint(__r);'
         try:
-            from challenges.C010_stack_vm.vm import lex, Parser, Compiler, VM
-            tokens = lex(call_source)
-            ast = Parser(tokens).parse()
+            from stack_vm import lex as lex_fn, Parser as P, Compiler, VM
+            tokens = lex_fn(call_source)
+            ast = P(tokens).parse()
             compiler = Compiler()
             chunk = compiler.compile(ast)
-            vm = VM()
-            vm.run(chunk)
+            vm = VM(chunk)
+            vm.run()
             # Get printed output
             if vm.output:
                 result_str = vm.output[-1]
@@ -362,6 +383,19 @@ class TestExecutor:
             return None, None
         except Exception as e:
             return None, str(e)
+
+    def _strip_annotations(self, source: str) -> str:
+        """Remove requires/ensures/invariant/assert calls from source."""
+        import re
+        lines = source.split('\n')
+        result = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith(('requires(', 'ensures(', 'invariant(')):
+                # Skip annotation lines
+                continue
+            result.append(line)
+        return '\n'.join(result)
 
     def _get_params(self, source: str, fn_name: str) -> List[str]:
         """Extract parameter names for a function."""

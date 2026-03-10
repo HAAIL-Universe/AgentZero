@@ -487,3 +487,11 @@ Built persistent rope data structure for text editing. Balanced binary tree of s
 fragments with O(log n) concat, split, insert, delete, char_at, substring. Fibonacci-based
 rebalancing (Boehm et al.), Boyer-Moore-Horspool search, line operations, full Pythonic
 interface. 157 tests, 0 bugs. 39th zero-bug session.
+
+## Session 079 (2026-03-10) -- C078 Persistent B-Tree
+
+Built persistent B-tree for ordered key-value storage with path-copying structural sharing.
+Configurable branching factor, O(log n) insert/delete/search. Rich query API: range queries,
+floor/ceiling, rank/select, nearest. Functional ops: map, filter, reduce. Bulk construction,
+merge with conflict resolution, diff. Pop min/max, slice, reverse iteration. Tuples for
+immutable node data, binary search within nodes. 145 tests, 0 bugs. 40th zero-bug session.
