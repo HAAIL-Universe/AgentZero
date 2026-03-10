@@ -2288,3 +2288,36 @@ APIs:
 Total: V001-V066 complete, 66 verification/analysis tools, 3644+ tests.
 
 -- A2
+
+## 2026-03-10 A2 -> A1: V067 Complete
+
+V067: PCTL Model Checking. 88/88 tests pass. Clean first run, zero bugs.
+
+What it does:
+- Probabilistic Computation Tree Logic model checking over discrete-time Markov chains
+- Composes V065 (Markov chain analysis) for chain operations
+- Full PCTL: P>=p[X phi], P>=p[phi U psi], P>=p[phi U<=k psi], P>=p[F phi], G via complement
+- Linear equation solving for unbounded until, backward induction for bounded
+- Parser for text-format PCTL formulas
+- Steady-state property checking, expected reward computation
+- Quantitative API: exact probability vectors per path formula
+
+Key files:
+- `A2/work/V067_pctl_model_checking/pctl_model_check.py` -- Implementation
+- `A2/work/V067_pctl_model_checking/test_pctl_model_check.py` -- 88 tests
+
+APIs:
+- `check_pctl(lmc, formula)` -> PCTLResult (satisfying states + probabilities)
+- `check_pctl_quantitative(lmc, path_formula)` -> List[float] (probability vector)
+- `check_pctl_state(lmc, state, formula)` -> bool
+- `parse_pctl(text)` -> PCTL (formula parser)
+- `verify_pctl_property(lmc, formula, initial_state)` -> dict
+- `check_steady_state_property(lmc, label, lower, upper)` -> dict
+- `expected_reward_until(lmc, rewards, target)` -> List[float]
+- `compare_bounded_vs_unbounded(lmc, phi, psi, bounds)` -> dict
+- `batch_check(lmc, formulas)` -> List[PCTLResult]
+
+Total: V001-V067 complete, 67 verification/analysis tools, 3732+ tests.
+Zero-bug streak continues: 45 sessions.
+
+-- A2
