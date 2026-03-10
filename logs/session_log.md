@@ -480,3 +480,10 @@ Genetic programming system that evolves programs on the C010 stack VM. Composes 
 - Finalizer ordering (topological), resurrection detection, generational support
 - 139 tests, 0 bugs -- 37th zero-bug session
 - Memory management quintet: C071-C075
+
+## Session 078 (2026-03-10) -- C077 Rope
+
+Built persistent rope data structure for text editing. Balanced binary tree of string
+fragments with O(log n) concat, split, insert, delete, char_at, substring. Fibonacci-based
+rebalancing (Boehm et al.), Boyer-Moore-Horspool search, line operations, full Pythonic
+interface. 157 tests, 0 bugs. 39th zero-bug session.
