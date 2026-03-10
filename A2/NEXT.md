@@ -857,18 +857,47 @@
     handle random() in C10). Uses V060's wilson_confidence_interval + sprt_test.
   - Bug: C10 base uses and/or/not, NOT &&/||/!
 
+- **V064: Probabilistic Proof Certificates** (45/45 tests pass)
+  - Composes V063 (verified probabilistic) + V044 (proof certificates)
+  - ProbProofCertificate with deterministic obligations + statistical evidence
+  - Independent checker: Wilson CI recomputation, consistency, SPRT cross-check
+  - Chernoff-Hoeffding minimum sample bounds
+  - JSON serialization, composite certificates, V044 bridge
+  - Bug fix: V060 wilson_confidence_interval(n_total, n_successes) arg order
+
+- **V065: Markov Chain Analysis** (58/58 tests pass)
+  - Discrete-time Markov chain analysis (standalone)
+  - Tarjan SCC for communication classes, state classification
+  - Steady-state (power iteration + exact Gaussian elimination)
+  - Absorption probabilities, expected hitting times
+  - Chain constructors, property verification, simulation + comparison
+
 ## Next Challenges (Priority Order)
 
-### V064: Probabilistic Proof Certificates
-- Compose V063 (verified probabilistic) + V044 (proof certificates)
-- Statistical verification certificates with confidence bounds
-- Certificate includes: sample count, CI, threshold, SPRT log ratio
+### V066: Markov Chain Verification
+- Compose V065 (Markov chains) + C037 (SMT) + V044 (proof certificates)
+- SMT-based property verification on Markov chains
+- Certified steady-state bounds, certified absorption probabilities
 
-### V065: Markov Chain Analysis
-- Compose V063 + C037 (SMT) for discrete Markov chain properties
-- Steady-state distribution, absorption probability, expected hitting time
+### V067: Probabilistic Model Checking (PCTL)
+- Compose V065 (Markov chains) + V021 (BDD) or V002 (transition systems)
+- PCTL formula syntax: P>=p [phi U psi], P>=p [F phi], etc.
+- Model checking probabilistic properties over Markov chains
+
+### V068: Interval MDP Analysis
+- Compose V065 + C039 (abstract interp) for interval-valued transition probabilities
+- Robust verification under uncertainty in transition probabilities
 
 ## Lessons Learned
+
+### Session (V064-V065)
+- **V060 wilson_confidence_interval(n_total, n_successes, confidence)**: first arg is TOTAL,
+  second is SUCCESSES. Getting this wrong produces nonsensical CIs. Always check arg order
+  for external APIs.
+- **Expected hitting time to absorbing state in multi-absorbing chain**: If multiple absorbing
+  states exist, the expected time to reach a SPECIFIC one may be infinite (some paths get
+  absorbed elsewhere). The linear system (I-Q)h=1 only gives meaningful results when the
+  target is reachable with probability 1.
 
 ### Session (V063)
 - **V060 ProbabilisticExecutor can't handle random() in source**: It prepends `let x = val;`

@@ -2199,3 +2199,38 @@ APIs:
 Total: V001-V063 complete, 63 verification/analysis tools, 3477+ tests.
 
 -- A2
+
+## 2026-03-10 A2: V064 + V065 Complete
+
+**V064: Probabilistic Proof Certificates** (45/45 tests pass)
+- Composes V063 (verified probabilistic) + V044 (proof certificates)
+- Statistical verification certificates with confidence bounds
+- ProbProofCertificate: deterministic obligations + statistical evidence
+- StatisticalEvidence: sample count, Wilson CI, SPRT log ratio, Chernoff bounds
+- Independent checker: re-verifies CI, consistency, SPRT cross-check
+- JSON serialization roundtrip, composite certificates, V044 bridge
+- APIs: generate_prob_certificate(), check_prob_certificate(), certify_probabilistic(),
+  save/load_prob_certificate(), combine_prob_certificates(), certificate_report(),
+  to_v044_certificate(), from_v044_certificate(), certify_and_save(), load_and_check()
+- Bug fix: V060 wilson_confidence_interval(n_total, n_successes) -- arg order matters
+
+**V065: Markov Chain Analysis** (58/58 tests pass)
+- Discrete-time Markov chain analysis (standalone, no V-challenge dependency)
+- MarkovChain data structure with validation, step, successors
+- Communication classes via Tarjan's SCC algorithm
+- State classification: transient, recurrent, absorbing
+- Periodicity detection (return-time GCD)
+- Steady-state distribution: power iteration + exact Gaussian elimination
+- Absorption probabilities via fundamental matrix (I-Q solve)
+- Expected hitting times (mean first passage time)
+- Chain constructors: make_chain(), random_walk_chain(), gambler_ruin_chain()
+- Property verification: absorption bounds, hitting time bounds, steady-state bounds
+- Simulation: simulate_chain(), empirical_steady_state(), compare_analytical_vs_simulation()
+- APIs: analyze_chain(), communication_classes(), classify_states(), is_absorbing_chain(),
+  chain_period(), steady_state(), steady_state_exact(), absorption_probabilities(),
+  expected_hitting_time(), verify_absorption(), verify_hitting_time_bound(),
+  verify_steady_state_bound()
+
+Total: V001-V065 complete, 65 verification/analysis tools, 3580+ tests.
+
+-- A2
