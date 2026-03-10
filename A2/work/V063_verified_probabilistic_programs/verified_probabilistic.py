@@ -209,7 +209,10 @@ def _ast_to_sexpr(node) -> SExpr:
 
 
 def _sexpr_to_source(expr: SExpr) -> str:
-    """Convert SExpr back to C10-compatible expression string for runtime evaluation."""
+    """Convert SExpr back to C10-compatible expression string for runtime evaluation.
+
+    Note: C10 base uses 'and'/'or'/'not', NOT '&&'/'||'/'!'.
+    """
     if isinstance(expr, SVar):
         return expr.name
     if isinstance(expr, SInt):
@@ -221,35 +224,22 @@ def _sexpr_to_source(expr: SExpr) -> str:
     if isinstance(expr, SBinOp):
         left = _sexpr_to_source(expr.left)
         right = _sexpr_to_source(expr.right)
-        op = expr.op
-        if op == 'and':
-            op = '&&'
-        elif op == 'or':
-            op = '||'
-        elif op == '==':
-            op = '=='
-        elif op == '!=':
-            op = '!='
-        return f"({left} {op} {right})"
+        return f"({left} {expr.op} {right})"
     if isinstance(expr, SUnaryOp):
         operand = _sexpr_to_source(expr.operand)
-        op = expr.op
-        if op == 'not':
-            op = '!'
-        return f"({op}{operand})"
+        return f"({expr.op} {operand})"
     if isinstance(expr, SAnd):
         parts = [_sexpr_to_source(c) for c in expr.conjuncts]
-        return "(" + " && ".join(parts) + ")"
+        return "(" + " and ".join(parts) + ")"
     if isinstance(expr, SOr):
         parts = [_sexpr_to_source(d) for d in expr.disjuncts]
-        return "(" + " || ".join(parts) + ")"
+        return "(" + " or ".join(parts) + ")"
     if isinstance(expr, SNot):
-        return f"(!{_sexpr_to_source(expr.operand)})"
+        return f"(not {_sexpr_to_source(expr.operand)})"
     if isinstance(expr, SImplies):
-        # P => Q  ===  !P || Q
         a = _sexpr_to_source(expr.antecedent)
         b = _sexpr_to_source(expr.consequent)
-        return f"(!({a}) || ({b}))"
+        return f"((not ({a})) or ({b}))"
     if isinstance(expr, SIte):
         c = _sexpr_to_source(expr.cond)
         t = _sexpr_to_source(expr.then_val)
@@ -259,7 +249,10 @@ def _sexpr_to_source(expr: SExpr) -> str:
 
 
 def _expr_source_from_ast(node) -> str:
-    """Convert AST expression to source string for runtime evaluation."""
+    """Convert AST expression to source string for runtime evaluation.
+
+    Note: C10 base uses 'and'/'or'/'not'.
+    """
     cls = node.__class__.__name__
     if cls == 'IntLit':
         return str(node.value)
@@ -268,18 +261,10 @@ def _expr_source_from_ast(node) -> str:
     if cls == 'BinOp':
         left = _expr_source_from_ast(node.left)
         right = _expr_source_from_ast(node.right)
-        op = node.op
-        if op == 'and':
-            op = '&&'
-        elif op == 'or':
-            op = '||'
-        return f"({left} {op} {right})"
+        return f"({left} {node.op} {right})"
     if cls == 'UnaryOp':
         operand = _expr_source_from_ast(node.operand)
-        op = node.op
-        if op == 'not':
-            op = '!'
-        return f"({op}{operand})"
+        return f"({node.op} {operand})"
     if cls == 'CallExpr':
         callee = node.callee if hasattr(node, 'callee') else ''
         args = node.args if hasattr(node, 'args') else []
@@ -817,6 +802,32 @@ def check_prob_property(
     )
 
 
+def _extract_value(source: str, inputs: Dict[str, int], value_expr: str) -> float:
+    """Execute program with inputs and extract a numeric value expression."""
+    clean = _strip_annotations(source)
+    replaced = _replace_random_with_input(clean, inputs)
+    parts = []
+    for var, val in inputs.items():
+        if val < 0:
+            parts.append(f"let {var} = 0 - {-val};")
+        else:
+            parts.append(f"let {var} = {val};")
+    parts.append(replaced)
+    parts.append(f"let __val = {value_expr};")
+    full = "\n".join(parts)
+    try:
+        tokens = lex(full)
+        parser = Parser(tokens)
+        ast = parser.parse()
+        compiler = Compiler()
+        chunk = compiler.compile(ast)
+        vm = VM(chunk)
+        vm.run()
+        return float(vm.env.get('__val', 0))
+    except Exception:
+        return 0.0
+
+
 def expected_value_analysis(
     source: str,
     value_expr: str,
@@ -828,66 +839,40 @@ def expected_value_analysis(
 ) -> Dict[str, Any]:
     """Analyze expected value of an expression in a probabilistic program.
 
-    Args:
-        source: C10 source (without annotations)
-        value_expr: C10 expression whose expected value to analyze
-        random_vars: Variables to randomize
-        expected_lo/hi: Expected bounds on E[value_expr]
-        n_samples: Sample budget
-        seed: Random seed
-
-    Returns:
-        Dict with mean, CI, verdict, samples
+    Uses direct sampling (not V060 executor) to handle random() calls.
     """
-    clean_source = _strip_annotations(source)
-    input_vars = list(random_vars.keys())
-    ranges = dict(random_vars)
+    rng = py_random.Random(seed)
+    values = []
 
-    def value_fn(inputs: Dict[str, int], result: Any) -> float:
-        # Execute and extract value
-        src = _replace_random_with_input(clean_source, inputs)
-        parts = []
-        for var, val in inputs.items():
-            if val < 0:
-                parts.append(f"let {var} = 0 - {-val};")
-            else:
-                parts.append(f"let {var} = {val};")
-        full = "\n".join(parts) + "\n" + src + f"\nlet __val = {value_expr};"
-        try:
-            tokens = lex(full)
-            parser = Parser(tokens)
-            ast = parser.parse()
-            compiler = Compiler()
-            chunk = compiler.compile(ast)
-            vm = VM(chunk)
-            vm.run()
-            return float(vm.env.get('__val', 0))
-        except Exception:
-            return 0.0
+    for _ in range(n_samples):
+        inputs = {}
+        for var, (lo, hi) in random_vars.items():
+            inputs[var] = rng.randint(lo, hi)
+        val = _extract_value(source, inputs, value_expr)
+        values.append(val)
 
-    ev_result = expected_value_check(
-        source=clean_source,
-        input_vars=input_vars,
-        value_fn=value_fn,
-        bound_lo=expected_lo,
-        bound_hi=expected_hi,
-        n_samples=n_samples,
-        confidence=0.95,
-        input_ranges=ranges,
-        seed=seed
-    )
+    if not values:
+        return {'mean': 0.0, 'mean_ci': (0, 0), 'expected_lo': expected_lo,
+                'expected_hi': expected_hi, 'verdict': 'error', 'samples': 0,
+                'in_bounds': False}
 
-    mean = ev_result.metadata.get('mean', 0.0)
-    mean_ci = ev_result.metadata.get('mean_ci', (0, 0))
+    mean = sum(values) / len(values)
+    variance = sum((v - mean) ** 2 for v in values) / len(values)
+    std = math.sqrt(variance)
+    # 95% CI for mean: mean +/- 1.96 * std / sqrt(n)
+    se = std / math.sqrt(len(values)) if len(values) > 1 else 0
+    mean_ci = (mean - 1.96 * se, mean + 1.96 * se)
+    in_bounds = expected_lo <= mean <= expected_hi
+    verdict = 'accept' if in_bounds else 'reject'
 
     return {
         'mean': mean,
         'mean_ci': mean_ci,
         'expected_lo': expected_lo,
         'expected_hi': expected_hi,
-        'verdict': ev_result.verdict.value,
-        'samples': ev_result.total_samples,
-        'in_bounds': expected_lo <= mean <= expected_hi
+        'verdict': verdict,
+        'samples': len(values),
+        'in_bounds': in_bounds
     }
 
 
@@ -991,12 +976,18 @@ def concentration_bound(
 
     Uses Chebyshev's inequality and empirical estimation.
     """
-    # First get expected value
-    ev = expected_value_analysis(
-        source, value_expr, random_vars,
-        n_samples=n_samples, seed=seed
-    )
-    mean = ev['mean']
+    # Collect values via direct sampling
+    rng = py_random.Random(seed)
+    values = []
+
+    for _ in range(n_samples):
+        inputs = {}
+        for var, (lo, hi) in random_vars.items():
+            inputs[var] = rng.randint(lo, hi)
+        val = _extract_value(source, inputs, value_expr)
+        values.append(val)
+
+    mean = sum(values) / max(len(values), 1)
 
     if abs(mean) < 1e-10:
         return {
@@ -1005,40 +996,10 @@ def concentration_bound(
             'deviation_bound': 0.0,
             'chebyshev_bound': 1.0,
             'empirical_deviation_prob': 0.0,
-            'samples': n_samples
+            'samples': n_samples,
+            'std': 0.0,
+            'variance': 0.0
         }
-
-    # Collect values to estimate variance
-    clean_source = _strip_annotations(source)
-    input_vars = list(random_vars.keys())
-    values = []
-
-    rng = py_random.Random(seed)
-    for _ in range(n_samples):
-        inputs = {}
-        for var in input_vars:
-            lo, hi = random_vars[var]
-            inputs[var] = rng.randint(lo, hi)
-
-        src = _replace_random_with_input(clean_source, inputs)
-        parts = []
-        for var, val in inputs.items():
-            if val < 0:
-                parts.append(f"let {var} = 0 - {-val};")
-            else:
-                parts.append(f"let {var} = {val};")
-        full = "\n".join(parts) + "\n" + src + f"\nlet __val = {value_expr};"
-        try:
-            tokens = lex(full)
-            parser = Parser(tokens)
-            ast = parser.parse()
-            compiler = Compiler()
-            chunk = compiler.compile(ast)
-            vm = VM(chunk)
-            vm.run()
-            values.append(float(vm.env.get('__val', 0)))
-        except Exception:
-            values.append(0.0)
 
     # Compute variance
     variance = sum((v - mean) ** 2 for v in values) / max(len(values), 1)

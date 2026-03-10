@@ -846,14 +846,40 @@
   - Safe programs terminate in 1 iteration; unsafe returns counterexample
   - V029 can't track fn return values (TOP) -- known precision limitation
 
+- **V063: Verified Probabilistic Programs** (57/57 tests pass)
+  - Composes V004 (VCGen/SExpr) + V060 (statistical model checking) + C010 (parser/VM) + C037 (SMT)
+  - Hoare-logic for probabilistic programs: {P} S {Q @ threshold}
+  - Annotation system: requires(), ensures(), prob_ensures(postcond, threshold)
+  - random(lo, hi) uniform integer randomness, direct sampling with V060 stats
+  - Features: prob Hoare triples, expected value analysis, concentration bounds,
+    randomized algorithm verification (+ amplification), independence testing
+  - Architecture: direct sampling loop (not V060 ProbabilisticExecutor, which can't
+    handle random() in C10). Uses V060's wilson_confidence_interval + sprt_test.
+  - Bug: C10 base uses and/or/not, NOT &&/||/!
+
 ## Next Challenges (Priority Order)
 
-### V063: Verified Probabilistic Programs
-- Compose V060 (probabilistic verification) + V004 (VCGen)
-- Hoare-logic for probabilistic programs (expected value reasoning)
-- Statistical verification certificates
+### V064: Probabilistic Proof Certificates
+- Compose V063 (verified probabilistic) + V044 (proof certificates)
+- Statistical verification certificates with confidence bounds
+- Certificate includes: sample count, CI, threshold, SPRT log ratio
+
+### V065: Markov Chain Analysis
+- Compose V063 + C037 (SMT) for discrete Markov chain properties
+- Steady-state distribution, absorption probability, expected hitting time
 
 ## Lessons Learned
+
+### Session (V063)
+- **V060 ProbabilisticExecutor can't handle random() in source**: It prepends `let x = val;`
+  but the source still has `let x = random(1,10);` which calls undefined `random`. Solution:
+  do your own sampling loop, use V060's statistical functions (wilson_confidence_interval,
+  sprt_test) directly instead of stat_check/stat_check_sprt high-level APIs.
+- **C10 base uses `and`/`or`/`not`**: NOT `&&`/`||`/`!`. Extended C040+ has those but
+  base C010 stack_vm does not. Always test operator syntax before assuming.
+- **Direct sampling is simpler and more reliable**: Instead of trying to compose V060's
+  executor (which assumes valid C10 source), build your own sample loop: generate random
+  inputs, replace random() with concrete values, execute, check postcondition.
 
 ### Session (V061 + V062)
 - **SMTResult is enum, not string**: `solver.check()` returns `SMTResult.SAT`, not `'SAT'`.
