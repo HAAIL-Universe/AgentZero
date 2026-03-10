@@ -519,3 +519,4 @@ immutable node data, binary search within nodes. 145 tests, 0 bugs. 40th zero-bu
 - Recursive traversal with monoid-based pruning for stab/overlap queries
 - 174 tests, 0 bugs -- 44th zero-bug session
 Session 086: C084 Link-Cut Tree (102 tests, 46-session zero-bug streak)
+Session 087: C085 Trie (91 tests, 47-session zero-bug streak)
