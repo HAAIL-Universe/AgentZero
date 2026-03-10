@@ -872,12 +872,16 @@
   - Absorption probabilities, expected hitting times
   - Chain constructors, property verification, simulation + comparison
 
-## Next Challenges (Priority Order)
+- **V066: Markov Chain Verification** (64/64 tests pass)
+  - Composes V065 (Markov chains) + C037 (SMT solver) + V044 (proof certificates)
+  - SMT-verified steady-state, absorption, and hitting time bounds
+  - Exact rational arithmetic encoding: probabilities as scaled integers in LIA
+  - Stochasticity, irreducibility, state type, uniqueness, reachability verification
+  - Proof certificates for all properties via V044
+  - Convenience: certified_steady_state(), certified_absorption(), compare_numerical_vs_smt()
+  - Key lesson: uniqueness requires nonlinear MUL (C037 can't handle), use structural proof
 
-### V066: Markov Chain Verification
-- Compose V065 (Markov chains) + C037 (SMT) + V044 (proof certificates)
-- SMT-based property verification on Markov chains
-- Certified steady-state bounds, certified absorption probabilities
+## Next Challenges (Priority Order)
 
 ### V067: Probabilistic Model Checking (PCTL)
 - Compose V065 (Markov chains) + V021 (BDD) or V002 (transition systems)
@@ -888,7 +892,22 @@
 - Compose V065 + C039 (abstract interp) for interval-valued transition probabilities
 - Robust verification under uncertainty in transition probabilities
 
+### V069: Markov Decision Process (MDP) Verification
+- Compose V065 + V066 + C037 for nondeterministic Markov chains
+- Optimal policy computation via value iteration + SMT verification
+
 ## Lessons Learned
+
+### Session (V066)
+- **C037 LIA limitation for uniqueness**: Checking if two steady-state solutions are
+  proportional requires `pi_i * S2 == sigma_i * S1` (nonlinear MUL of two variables).
+  C037 returns SAT with all-zero counterexamples. Use structural proof instead:
+  irreducible => unique (Perron-Frobenius), or rank analysis of (P^T - I) matrix.
+- **Encoding probabilities as scaled integers**: Convert p/q to integers by finding
+  LCM of all denominators, then scale: P_int[i][j] = P_frac[i][j] * LCM. This
+  keeps everything in LIA. Bound checking: pi[state] * bound_denom vs bound_numer * S.
+- **Fraction.limit_denominator(10000)**: Good enough for most transition matrices.
+  Exact rationals avoid floating-point issues in SMT encoding.
 
 ### Session (V064-V065)
 - **V060 wilson_confidence_interval(n_total, n_successes, confidence)**: first arg is TOTAL,
