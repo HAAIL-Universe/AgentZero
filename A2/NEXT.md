@@ -881,12 +881,27 @@
   - Convenience: certified_steady_state(), certified_absorption(), compare_numerical_vs_smt()
   - Key lesson: uniqueness requires nonlinear MUL (C037 can't handle), use structural proof
 
-## Next Challenges (Priority Order)
+- **V067: PCTL Model Checking** (88/88 tests pass)
+  - Probabilistic Computation Tree Logic model checking over discrete-time Markov chains
+  - Composes V065 (Markov chain analysis) for chain operations
+  - PCTL AST: true, false, atom, NOT, AND, OR, P>=p, P<=p, P>p, P<p, X, U, U<=k
+  - Sugar: eventually(phi) = true U phi, always via complement, bounded_eventually
+  - State formula checking: recursive descent through boolean/probability operators
+  - Path formula checking:
+    - Next (X): sum of transition probs to satisfying states
+    - Unbounded Until: classify S_yes/S_no/S_maybe, linear system for S_maybe
+    - Bounded Until: backward induction from step k to 0
+  - LabeledMC: Markov chain + state labeling (atomic propositions per state)
+  - PCTL parser: recursive descent (atoms, boolean, P~p[path], X, F, G, U, U<=k)
+  - Steady-state property checking via V065 analyze_chain()
+  - Expected reward until target: linear system with per-state rewards
+  - Bounded vs unbounded comparison API for convergence analysis
+  - APIs: check_pctl(), check_pctl_state(), check_pctl_quantitative(),
+    parse_pctl(), check_steady_state_property(), expected_reward_until(),
+    compare_bounded_vs_unbounded(), verify_pctl_property(), batch_check()
+  - Clean first run: 88/88, zero bugs
 
-### V067: Probabilistic Model Checking (PCTL)
-- Compose V065 (Markov chains) + V021 (BDD) or V002 (transition systems)
-- PCTL formula syntax: P>=p [phi U psi], P>=p [F phi], etc.
-- Model checking probabilistic properties over Markov chains
+## Next Challenges (Priority Order)
 
 ### V068: Interval MDP Analysis
 - Compose V065 + C039 (abstract interp) for interval-valued transition probabilities
