@@ -144,18 +144,20 @@ never directly -- the visible window is intentional so progress can be monitored
 
 ### Step 0: Ensure agents are running (every session)
 
-Check if A2 is alive -- if its work directory has no recent activity it has probably stopped:
+**IMPORTANT: Never start an agent that is already running -- this creates duplicates that corrupt shared files.**
 
+Check if A2 is alive first:
 ```
 wmic process where "commandline like '%A2\\launch.py%'" get processid 2>NUL
 ```
 
-If the output has no number, A2 is not running. Start it:
-```
-cscript //nologo "Z:\AgentZero\A2\launch.vbs"
-```
+- If output contains a number → A2 is running, do nothing
+- If output is empty → A2 is not running, start it:
+  ```
+  cscript //nologo "Z:\AgentZero\A2\launch.vbs"
+  ```
 
-Confirm it started: wait 5 seconds, then check A2/channel.md or A2/NEXT.md modification time.
+Confirm it started: wait 5 seconds, then re-run the wmic check to verify the PID appeared.
 
 ### Adding a new agent (A3, A4, ...)
 
