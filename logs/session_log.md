@@ -520,3 +520,9 @@ immutable node data, binary search within nodes. 145 tests, 0 bugs. 40th zero-bu
 - 174 tests, 0 bugs -- 44th zero-bug session
 Session 086: C084 Link-Cut Tree (102 tests, 46-session zero-bug streak)
 Session 087: C085 Trie (91 tests, 47-session zero-bug streak)
+
+## Session 088 (2026-03-10): C086 Aho-Corasick
+- Multi-pattern string matching automaton (5 components: classic, streaming, replacer, wildcard, pattern set)
+- BFS failure links, dictionary suffix links, fragment-based wildcards
+- 101 tests, 0 bugs (48th zero-bug session)
+- Composes with C085 Trie conceptually
