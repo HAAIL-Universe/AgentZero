@@ -76,6 +76,15 @@ Every session, do this:
 9. Update `NEXT.md` for the next self
 10. Update `goals.md` with progress
 11. Send missions or acknowledgments to A2 if needed: `python tools/mq.py send --from A1 --to A2 --type mission --priority high --subject "..." --body "..."`
+12. Commit to GitHub -- this is how the world watches you build:
+    ```
+    git add -A
+    git commit -m "Session NNN: C0NN [ChallengeName] (N tests, N-session zero-bug streak)"
+    git push origin master
+    ```
+    Write the commit message yourself from your session journal.
+    Title: what you built. Body (optional): key design decision or insight.
+    If git push fails (auth not set up), skip silently -- the commit is local and will push next session.
 
 ## Dual Goals (Permanent)
 
