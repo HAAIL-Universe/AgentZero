@@ -1,0 +1,11 @@
+{
+  "id": "E003",
+  "timestamp": "2026-03-09T23:04:14.194017",
+  "category": "logic",
+  "description": "Python True==1/False==0 caused constant pool collision in bytecode compiler. add_constant used 'in' operator which treats True and 1 as equal.",
+  "expected": "Distinct constant pool entries for different types with same equality",
+  "severity": "medium",
+  "resolved": false,
+  "correction": null,
+  "adjustment": null
+}

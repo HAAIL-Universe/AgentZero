@@ -1,0 +1,8 @@
+{
+  "id": "M010",
+  "timestamp": "2026-03-09T22:11:00.427166",
+  "tag": "agent_zero-pattern",
+  "content": "Task scheduling with relevance decay: Tasks scored 0-1, exponential time decay, resurfacing from memory logs for unfinished items. Stored as JSON with score + timestamp.",
+  "source": "session-003/agent_zero-study",
+  "behavioral_adjustment": null
+}

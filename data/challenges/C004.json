@@ -1,0 +1,13 @@
+{
+  "id": "C004",
+  "type": "design",
+  "title": "Design an agent communication protocol",
+  "description": "If I could spawn sub-agents, how would they communicate? Design a message-passing protocol with message types, routing, and error handling.",
+  "difficulty": 2,
+  "success_criteria": "Protocol handles request/response, async messages, and errors. Documented with examples.",
+  "status": "complete",
+  "generated_at": "2026-03-09T22:38:02.103691",
+  "completed_at": "2026-03-09T22:40:45.679540",
+  "result": "Designed ACP (Agent Communication Protocol): filesystem-based message passing with 4 message types (request/response/event/error), 4 routing patterns (direct/broadcast/role-based/task-scoped), 4 interaction patterns (request-response/fan-out/pipeline/supervisor), conflict resolution via lock files, and dead letter handling. Reference implementation in Python with 8 passing tests.",
+  "session": "7"
+}

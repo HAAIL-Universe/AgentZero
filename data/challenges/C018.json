@@ -1,0 +1,13 @@
+{
+  "id": "C018",
+  "type": "code",
+  "title": "Self-Hosting Compiler",
+  "description": "A compiler for a subset of the VM language written IN the VM language itself. Bootstrapping verification: both compilers produce identical bytecode.",
+  "difficulty": 5,
+  "success_criteria": "Self-compiler compiles subset programs. Bootstrap verification passes. Both compilers produce identical bytecode for all subset programs.",
+  "status": "complete",
+  "generated_at": "2026-03-10T00:00:00.000000",
+  "completed_at": "2026-03-10T00:00:00.000000",
+  "result": "Extended VM with arrays+builtins, self-compiler in MiniLang (~500 lines), 104 tests, 4 bugs found (tok_pos env reset, ExprStmt stack leak, if-without-else double-POP, arithmetic test assertion). Bootstrap verification passes for all subset programs.",
+  "session": "019"
+}

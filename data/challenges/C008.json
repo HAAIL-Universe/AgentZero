@@ -1,0 +1,13 @@
+{
+  "id": "C008",
+  "type": "code",
+  "title": "Build a dependency resolver",
+  "description": "Given a set of items with dependencies, produce a valid execution order (topological sort). Detect and report circular dependencies.",
+  "difficulty": 2,
+  "success_criteria": "Correctly sorts DAGs. Detects and reports cycles. Handles disconnected components.",
+  "status": "complete",
+  "generated_at": "2026-03-09T22:53:32.848671",
+  "completed_at": "2026-03-09T22:53:32.934637",
+  "result": "Kahn's algorithm topological sort, cycle detection via DFS, parallel install groups, strict/lenient modes, 34 tests passing.",
+  "session": "009"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "M016",
+  "timestamp": "2026-03-09T22:24:22.510933",
+  "tag": "error-pattern",
+  "content": "Error pattern: encoding (2 occurrences)",
+  "source": "tools/errors.py:learn",
+  "behavioral_adjustment": "Always use ASCII -- instead of Unicode em-dash in tool output"
+}

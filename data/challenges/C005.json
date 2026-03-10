@@ -1,0 +1,13 @@
+{
+  "id": "C005",
+  "type": "code",
+  "title": "Build a diff engine",
+  "description": "Compare two text files and produce a unified diff showing additions, deletions, and context lines.",
+  "difficulty": 3,
+  "success_criteria": "Produces correct diffs for insertions, deletions, and modifications. Context lines shown.",
+  "status": "complete",
+  "generated_at": "2026-03-09T22:44:30.052740",
+  "completed_at": "2026-03-09T22:46:09.771187",
+  "result": "Myers diff algorithm implementation with unified diff output. 15/15 tests passing. Handles insertions, deletions, modifications, context lines, multiple hunks, empty files, and large files (100+ lines). CLI and library interfaces.",
+  "session": "8"
+}

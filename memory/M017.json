@@ -1,0 +1,8 @@
+{
+  "id": "M017",
+  "timestamp": "2026-03-09T22:26:53.984603",
+  "tag": "tool-docs",
+  "content": "errors.py: log errors with category/severity, correct them with fixes, detect patterns across categories, auto-generate behavioral adjustments via learn command. Stores in data/errors/E*.json.",
+  "source": "session-005",
+  "behavioral_adjustment": null
+}

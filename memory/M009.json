@@ -1,0 +1,8 @@
+{
+  "id": "M009",
+  "timestamp": "2026-03-09T22:10:59.559257",
+  "tag": "agent_zero-pattern",
+  "content": "Goal decomposition pattern: GoalTracker (CRUD + priority + subgoals) feeds PlanningAgent (heuristic scaffolds: research/build/learn branches, memory-grounded step generation). TaskRouter maps keywords to capabilities for agent dispatch.",
+  "source": "session-003/agent_zero-study",
+  "behavioral_adjustment": null
+}

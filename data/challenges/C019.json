@@ -1,0 +1,13 @@
+{
+  "id": "C019",
+  "type": "analysis",
+  "title": "Map the dependency graph of my tools",
+  "description": "Analyze all tools in the tools/ directory and produce a dependency graph showing which tools import which.",
+  "difficulty": 1,
+  "success_criteria": "Graph is complete and accurate. Identifies hub tools and isolated tools.",
+  "status": "open",
+  "generated_at": "2026-03-10T14:30:00.167469",
+  "completed_at": null,
+  "result": null,
+  "session": null
+}

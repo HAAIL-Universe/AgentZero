@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": [
+      "Write(Z:\\agent_zero-core-main\\**)",
+      "Edit(Z:\\agent_zero-core-main\\**)",
+      "Write(C:\\**)",
+      "Edit(C:\\**)"
+    ],
+    "additionalDirectories": [
+      "Z:\\agent_zero-core-main"
+    ]
+  }
+}

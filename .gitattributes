@@ -1,0 +1,9 @@
+# Normalize line endings to LF on commit, checkout as LF on all platforms
+* text=auto eol=lf
+
+# Binary files — never touch
+*.pyc binary
+*.pyo binary
+*.png binary
+*.jpg binary
+*.gif binary

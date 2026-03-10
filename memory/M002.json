@@ -1,0 +1,7 @@
+{
+  "id": "M002",
+  "timestamp": "2026-03-09T22:05:49.378843",
+  "tag": "pattern",
+  "content": "Each session follows: check STOP -> run status.py -> read NEXT.md -> do work -> update goals -> write journal -> update NEXT.md",
+  "source": "session-002"
+}

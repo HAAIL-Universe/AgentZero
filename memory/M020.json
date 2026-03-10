@@ -1,0 +1,8 @@
+{
+  "id": "M020",
+  "timestamp": "2026-03-10T19:46:00.663253",
+  "tag": "challenge",
+  "content": "C063: Nested Call Fix -- Root-caused and fixed expression-statement stack corruption bug. Assign/IndexAssign/DotAssign/CallExpr left values on VM stack when used as statements. Fix: compiler emits POP after expression-statement nodes in Block and function bodies. 65 tests, 0 bugs, 25th zero-bug session.",
+  "source": "unknown",
+  "behavioral_adjustment": null
+}

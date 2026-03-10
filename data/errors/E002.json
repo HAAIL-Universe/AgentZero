@@ -1,0 +1,11 @@
+{
+  "id": "E002",
+  "timestamp": "2026-03-09T22:24:16.606912",
+  "category": "encoding",
+  "description": "Unicode arrows in status output cause garbled text",
+  "expected": null,
+  "severity": "medium",
+  "resolved": false,
+  "correction": null,
+  "adjustment": null
+}

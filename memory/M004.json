@@ -1,0 +1,7 @@
+{
+  "id": "M004",
+  "timestamp": "2026-03-09T22:07:18.615740",
+  "tag": "agent_zero-pattern",
+  "content": "Multi-round reasoning: run agents, then re-run with prior_thoughts for refinement and contradiction detection. Central hub fuses results.",
+  "source": "session-002/agent_zero-study"
+}
