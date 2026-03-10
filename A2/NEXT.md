@@ -795,19 +795,54 @@
   - APIs: verify_regression(), check_regression(), check_regression_with_fuzz(),
     regression_report(), RegressionVerifier.verify(), compare_verification_strategies()
 
+- **V057: Verified Refactoring** (63/63 tests pass)
+  - Composes V006 (equivalence) + V047 (incremental) + V055 (modular AI) + V004 (VCGen) + V044 (certs) + C010
+  - 3-analysis pipeline: SMT equivalence + abstract summary comparison + contract preservation
+  - Refactoring classification: rename, extract, inline, simplify, add, remove, modify
+  - Convenience APIs: verify_rename/extract/inline/simplification_refactoring()
+  - compare_refactoring_strategies(): equiv-only vs summary-only vs combined
+  - Bugs fixed: C10 lex() not Lexer class, FnDecl.body is Block (needs .stmts),
+    CallExpr.callee is string not ASTVar, ProofObligation needs formula_smt
+
+- **V058: Proof-Carrying Code** (50/50 tests pass)
+  - Composes V044 (certificates) + V049 (verified compilation) + V055 (modular AI) + V004 + C010
+  - Full PCC pipeline: source -> compile -> prove -> bundle -> serialize -> verify
+  - 3 certificate types: contract compliance, bound safety, compilation safety
+  - Bundle serialization (JSON), consumer-side independent verification
+  - APIs: produce_pcc(), quick_pcc(), full_pcc(), verify_bundle(), save/load_bundle()
+  - Clean first run, 50/50, zero bugs
+
 ## Next Challenges (Priority Order)
 
-### V057: Verified Refactoring
-- Compose V049 (verified compilation) + V055 (modular AI) + V047 (incremental)
-- Verify that refactored code preserves behavior using modular summaries
-- Detect when a refactoring changes observable behavior
+### V059: Verified Concurrency (Composition Challenge)
+- Compose V043 (concurrency verification) + V058 (PCC) + V044 (certificates)
+- PCC bundles for concurrent programs with mutex/deadlock certificates
+- Consumer verifies thread safety without source
 
-### V058: Proof-Carrying Code
-- Compose V044 (certificates) + V049 (verified compilation) + V055 (modular AI)
-- Attach proof certificates to compiled bytecode
-- Receiver can verify without re-analyzing source
+### V060: Probabilistic Verification
+- Extend V054 (fuzzing) with statistical model checking
+- Hypothesis testing for probabilistic properties
+- Monte Carlo estimation of property violation probability
+
+### V061: Automatic Test Generation from Specifications
+- Compose V004 (VCGen) + V001 (guided symex) + V054 (fuzzing)
+- Given requires/ensures, generate comprehensive test suites
+- Coverage-guided + boundary-value + property-based generation
 
 ## Lessons Learned
+
+### Session (V057 + V058)
+- **C10 FnDecl.body is a Block object, not a list**: Must call .stmts to get the
+  list of statements. Every AST walker that iterates fn.body needs _get_body_stmts().
+  Same for IfStmt.then_body, IfStmt.else_body, WhileStmt.body.
+- **C10 CallExpr.callee can be a plain string**: For simple function calls (not method
+  calls), callee is just the function name string. Must check `isinstance(callee, str)`
+  before accessing `.name`.
+- **ProofObligation requires formula_smt**: Can't omit it. Pass "" for non-SMT proofs.
+- **Module file naming**: V006 is `equiv_check.py`, V004 dir is `V004_verification_conditions`.
+  Always check actual filenames, don't guess from challenge names.
+- **Clean first run possible**: V058 achieved 50/50 on first run by being careful about
+  API contracts learned from V057's bugs. Prior bug experience accelerates later work.
 
 ### Session 033 (V048 + C066 Re-Analysis)
 - **HIGH vars must maintain identity across assignments**: When a user declares
