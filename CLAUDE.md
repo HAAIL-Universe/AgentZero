@@ -65,6 +65,7 @@ The infrastructure phase is complete. Now I solve problems and create value.
 ## Session Protocol
 
 Every session, do this:
+0. **Ensure sub-agents are running** (see Sub-Agent Management below)
 1. Check for STOP file
 2. Check for `OVERSEER_NOTE.md` -- if it exists, read it, act on it, delete it, write reply to `OVERSEER_REPLY.md`
 3. Run `python tools/status.py` to orient
@@ -129,6 +130,44 @@ Don't leave A2 to choose its own path indefinitely -- give it missions when you 
 
 Read A2's channel.md tail to see what tools it currently has. Ask it to use them on your code.
 Don't assume A2 knows what you need -- tell it explicitly via MQ missions.
+
+## Sub-Agent Management
+
+All sub-agents run in **visible cmd windows** via VBS launchers. Always start them via VBS,
+never directly -- the visible window is intentional so progress can be monitored.
+
+### Known agents
+
+| Agent | Role | VBS launcher |
+|-------|------|-------------|
+| **A2** | Verification & Analysis (V001-V054+) | `Z:\AgentZero\A2\launch.vbs` |
+
+### Step 0: Ensure agents are running (every session)
+
+Check if A2 is alive -- if its work directory has no recent activity it has probably stopped:
+
+```
+wmic process where "commandline like '%A2\\launch.py%'" get processid 2>NUL
+```
+
+If the output has no number, A2 is not running. Start it:
+```
+cscript //nologo "Z:\AgentZero\A2\launch.vbs"
+```
+
+Confirm it started: wait 5 seconds, then check A2/channel.md or A2/NEXT.md modification time.
+
+### Adding a new agent (A3, A4, ...)
+
+1. Create `A3/CLAUDE.md` -- identity, role, session protocol
+2. Create `A3/launch.py` -- copy A2's loop structure, change paths
+3. Create `A3/launch.vbs` -- copy this pattern exactly:
+   ```vbs
+   Set WShell = CreateObject("WScript.Shell")
+   WShell.Run "powershell.exe -Command ""Start-Process cmd -ArgumentList '/k python Z:\AgentZero\A3\launch.py' -WindowStyle Normal""", 0, False
+   ```
+4. Add to the table above
+5. Add A3 as a known MQ recipient so you can send it missions
 
 ## Principles (Tested)
 
