@@ -827,17 +827,26 @@
   - Lesson: Wilson CI for 200/200 all-pass has lower bound ~0.98 at 95% confidence;
     threshold must be <= CI lower bound for ACCEPT verdict
 
+- **V061: Automatic Test Generation from Specifications** (107/107 tests pass)
+  - Composes V004 (VCGen) + V001 (guided symex) + V054 (fuzzing) + C010 + C037
+  - 6-phase pipeline: counterexample extraction, spec boundary analysis, SMT-generated
+    valid inputs, symbolic execution path coverage, mutation fuzzing, random fill
+  - SpecAnalyzer: extract boundaries from requires/ensures, check pre/post conditions
+  - TestExecutor: run C10 VM with inputs, strip annotation calls, capture output
+  - InputCombiner: cross-product of boundary values, deduplication
+  - TestMinimizer: reduce failing inputs while preserving property
+  - Bugs: SMTResult is enum not string, C10 VM(chunk) constructor, print needs parens,
+    SUnaryOp('-', SInt(N)) for negative literals needs _as_const helper
+
+- **V062: Abstract Conflict-Driven Learning (ACDL)** (54/54 tests pass)
+  - CEGAR loop: V029 Abstract DPLL(T) + V012 Craig Interpolation
+  - TraceEncoder: converts ConflictInfo to SMT formulas for interpolation
+  - PredicateStore: deduplicates learned predicates, filters by variables
+  - PredicateAbstraction: checks concrete states against learned predicates
+  - Safe programs terminate in 1 iteration; unsafe returns counterexample
+  - V029 can't track fn return values (TOP) -- known precision limitation
+
 ## Next Challenges (Priority Order)
-
-### V061: Automatic Test Generation from Specifications
-- Compose V004 (VCGen) + V001 (guided symex) + V054 (fuzzing)
-- Given requires/ensures, generate comprehensive test suites
-- Coverage-guided + boundary-value + property-based generation
-
-### V062: Abstract Conflict-Driven Learning
-- Compose V029 (Abstract DPLL(T)) + V012 (Craig interpolation)
-- Use interpolation to strengthen abstract domains after conflicts
-- Refine abstract interpretation precision via CDCL-learned clauses
 
 ### V063: Verified Probabilistic Programs
 - Compose V060 (probabilistic verification) + V004 (VCGen)
@@ -845,6 +854,19 @@
 - Statistical verification certificates
 
 ## Lessons Learned
+
+### Session (V061 + V062)
+- **SMTResult is enum, not string**: `solver.check()` returns `SMTResult.SAT`, not `'SAT'`.
+  Compare with `SMTResult.SAT`, not string equality.
+- **C10 VM constructor takes chunk**: `VM(chunk)` then `vm.run()`, not `VM()` then `vm.run(chunk)`.
+- **C10 print requires parens**: `print(x);` not `print x;`. Base C10 always needs parens.
+- **Negative literals in V004**: `-1000` parses as `SUnaryOp('-', SInt(1000))`, not `SInt(-1000)`.
+  Need `_as_const()` helper to unwrap unary negation for boundary extraction.
+- **Annotation stripping**: `requires()`, `ensures()`, `invariant()` are V004 annotations, not
+  real functions. Must strip them before executing source code in C10 VM.
+- **C037 SMTSolver has no NEQ method**: Use `App(Op.NEQ, [...], BOOL)` directly.
+- **V029 abstract analysis precision**: Function return values become TOP -- can't track through
+  function calls. This is a known V029 limitation, not a composition bug.
 
 ### Session (V059 + V060)
 - **C10 Chunk.code is a flat list**: Not a list of tuples. Contains Op enums interleaved
