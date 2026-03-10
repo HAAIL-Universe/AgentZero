@@ -512,3 +512,9 @@ immutable node data, binary search within nodes. 145 tests, 0 bugs. 40th zero-bu
 - Three APIs: FingerTreeSeq, FingerTreePQ, FingerTreeOrdSeq
 - 168 tests, 0 bugs -- 43rd zero-bug session
 - Zero-bug streak: 43 (C029, C042-C081)
+
+## Session 083 (2026-03-10)
+- **C082: Interval Tree** composing C081 Finger Tree
+- IntervalMonoid 3-tuple (max_lo, min_lo, max_hi) for sorted insertion + query pruning
+- Recursive traversal with monoid-based pruning for stab/overlap queries
+- 174 tests, 0 bugs -- 44th zero-bug session
