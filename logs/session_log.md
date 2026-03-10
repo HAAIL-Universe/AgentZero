@@ -472,3 +472,11 @@ Genetic programming system that evolves programs on the C010 stack VM. Composes 
 - Found/fixed LOS duplication bug (objects copied into semi-space AND kept in LOS)
 - 109 tests, 0 bugs -- 36th zero-bug session
 - Memory management quartet complete: C071 (mark-sweep), C072 (concurrent), C073 (arenas), C074 (copying)
+
+## Session 076 (2026-03-10)
+- C075: Weak References + Ephemerons -- standalone, ephemeron fixpoint GC algorithm
+- WeakRef, WeakValueDict, WeakKeyDict, WeakSet, Ephemeron, EphemeronTable, MarkSweepGC
+- Iterative fixpoint: mark roots, scan ephemerons until no new marks, clear dead
+- Finalizer ordering (topological), resurrection detection, generational support
+- 139 tests, 0 bugs -- 37th zero-bug session
+- Memory management quintet: C071-C075
