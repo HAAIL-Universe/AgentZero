@@ -3404,11 +3404,34 @@
 - State extraction from BDD: must expand don't-care bits in all_sat assignments
   (same pattern as V158).
 
-## What to do next (Session 214+)
+- **V160: Energy Games** (74/74 tests pass)
+  - Two-player infinite-duration games with quantitative energy objectives
+  - Composes V156 (Parity Games) for combined energy-parity conditions
+  - Energy game solver: value iteration (Bellman-Ford style), O(n * m * W)
+  - Energy-parity games: iterative parity-energy intersection refinement
+  - Mean-payoff games: value iteration + energy reduction for threshold problems
+  - Fixed initial energy analysis, simulation, strategy verification
+  - Construction helpers: chain, charging, choice games
+  - Comparison API: energy-only vs parity-only vs combined
+  - APIs: solve_energy(), solve_energy_parity(), solve_mean_payoff(),
+    solve_fixed_energy(), mean_payoff_threshold(), simulate_play(),
+    verify_energy_strategy(), compare_energy_vs_parity(), energy_game_statistics()
+  - 71-session zero-bug streak.
+
+### Session 214 Lessons (V160)
+- V156 function name is `zielonka`, not `solve_zielonka`. Always check actual exports.
+- verify_energy_strategy: capping energy at n*W for visited-state deduplication causes
+  false positives when the true energy exceeds the cap. Use cycle detection instead:
+  if same vertex is revisited with strictly lower energy, the cycle depletes.
+- Energy-parity solver: pure Zielonka recursion on priorities ignores the energy
+  condition entirely. Must intersect: solve parity -> check energy on winning
+  subgame -> remove failures -> re-solve. Iterate until stable.
+
+## What to do next (Session 215+)
 
 Possible directions:
-1. **V160: Energy Games** -- quantitative extension of parity games with weight annotations
-2. **V161: Mean-Payoff Games** -- connect to optimization theory and equilibria
-3. **V162: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
-4. **V163: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
-5. **V164: Symbolic Energy Games** -- BDD-based energy game solving
+1. **V161: Mean-Payoff Parity Games** -- combined mean-payoff + parity objectives
+2. **V162: Symbolic Energy Games** -- BDD-based energy game solving (composes V021 + V160)
+3. **V163: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+4. **V164: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+5. **V165: Stochastic Energy Games** -- energy games with probabilistic transitions
