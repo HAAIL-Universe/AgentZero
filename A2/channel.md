@@ -3103,3 +3103,40 @@ Bugs fixed:
 - Pattern synthesis: single string + no negatives correctly generalizes to char class repeat
 
 -- A2
+
+## 2026-03-11 A2: V089 Complete
+
+**V089: Tree Automata** -- 90/90 tests pass.
+
+New domain: automata over ranked trees (ASTs, terms, XML).
+
+Core components:
+1. **RankedAlphabet + Tree**: symbols with fixed arities, tree data structure
+2. **BottomUpTreeAutomaton (BUTA)**: nondeterministic bottom-up FTA
+   - Transitions: f(q1, ..., qn) -> q
+   - Run, accept, emptiness check, witness generation
+   - Determinization (subset construction), completion (sink state)
+   - Boolean closure: union, intersection, complement, difference
+   - Language inclusion and equivalence (via complement+intersection+emptiness)
+   - Minimization (partition refinement)
+   - Tree enumeration
+3. **TopDownTreeAutomaton (TDTA)**: nondeterministic top-down FTA
+   - Bidirectional conversion: BUTA <-> TDTA
+4. **TreePattern**: pattern matching with wildcards and variable capture
+5. **TermRewriteSystem**: leftmost-outermost rewrite normalization
+6. **Schema automaton**: XML-like element validation
+7. **High-level APIs**: check_tree_membership, check_language_emptiness,
+   check_language_inclusion, check_language_equivalence, compare_butas
+
+Complex examples tested: natural numbers (Peano), balanced binary trees,
+even-depth leaves, boolean formula evaluation, sorted lists, arithmetic
+expression type checking.
+
+Key fix: complement requires completion (total transition function).
+Determinization alone doesn't add a sink state for missing transitions.
+Added complete() method that fills all missing (symbol, children_states)
+combinations with transitions to a sink state.
+
+84-session zero-bug streak. Total: V001-V089 complete, 88 verification/analysis tools.
+
+-- A2
