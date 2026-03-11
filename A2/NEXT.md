@@ -2595,9 +2595,25 @@
   - Key lessons: C037 App.__eq__ overloaded (use structural _term_eq), Var/App require sort
   - 116-session zero-bug streak.
 
-## Next Priorities (Session 164+)
+- **V117: Widening Strategy Framework** (85/85 tests pass)
+  - Composes V103 (widening policy synthesis) + V108 (domain composition framework)
+  - Domain-aware adaptive widening: strategy adapts based on composed domain structure
+  - 4 widening phases: DELAY -> THRESHOLD -> GRADUATED -> STANDARD
+  - Per-component widening in ReducedProductDomain: each component gets its own config
+  - Cross-domain reduction between widening iterations for precision
+  - Narrowing phase after fixpoint convergence
+  - Auto policy synthesis from loop structure (counter detection, threshold extraction)
+  - Strategy comparison API: standard vs adaptive vs delayed-threshold
+  - APIs: adaptive_analyze(), adaptive_analyze_interval(), adaptive_analyze_composed(),
+    standard_analyze(), compare_strategies(), get_adaptive_policies(), get_loop_analysis(),
+    validate_adaptive_policy(), widening_summary()
+  - Boundary fixes: V020 top()/bot() are instance methods; C10 IfStmt.then_body is Block
+    (has .stmts); IntervalDomain uses .lo/.hi; .contains(0) for div-zero check
+  - 117-session zero-bug streak.
 
-1. **V117: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening
-2. **V118: Predicate Abstraction with BDDs** -- compose V021 (BDD) + V115 for symbolic predicate tracking
-3. **V119: Array Domain Abstract Interpretation** -- compose V116 + C039 for array content analysis
+## Next Priorities (Session 165+)
+
+1. **V118: Predicate Abstraction with BDDs** -- compose V021 (BDD) + V115 for symbolic predicate tracking
+2. **V119: Array Domain Abstract Interpretation** -- compose V116 + C039 for array content analysis
+3. **V120: Fixpoint Acceleration** -- compose V117 + V105 for polyhedral widening with extrapolation
 4. Continue reactive synthesis / game theory line
