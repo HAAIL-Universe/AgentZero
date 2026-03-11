@@ -3115,3 +3115,34 @@
 - C097 synthesize() returns SynthesisResult with .success, .program (Expr), .method, .candidates_explored
 - C097 Expr DSL: IntConst, BoolConst, VarExpr, UnaryOp, BinOp, IfExpr -- all frozen dataclasses
 - Pure DSL expressions: arithmetic +,-,*,max,min and comparisons. Division/modulo add Exn effect.
+
+- **V148: Probabilistic Bisimulation** (53/53 tests pass)
+  - Behavioral equivalence for probabilistic systems (labeled Markov chains)
+  - Composes V065 (Markov chains) + V067 (labeled MCs) + C037 (SMT solver)
+  - Strong probabilistic bisimulation via Larsen-Skou partition refinement
+  - Bisimulation quotient (minimization): collapses bisimilar states
+  - Simulation preorder: coinductive greatest simulation relation
+  - Bisimulation distance: discounted Kantorovich metric, greedy earth mover
+  - Cross-system bisimulation via disjoint union construction
+  - Lumping validation, SMT-verified partition certificates
+  - Key lesson: V065 module name is markov_chain.py (singular), not markov_chains
+  - Key lesson: V065 directory is V065_markov_chain_analysis (not V065_markov_chains)
+  - Zero implementation bugs. 60-session zero-bug streak.
+
+### Session 193 Lessons (V148)
+- V065 module: markov_chain.py in V065_markov_chain_analysis/
+- V067 module: pctl_model_check.py in V067_pctl_model_checking/
+- LabeledMC: make_labeled_mc(matrix, labels, state_labels=None)
+- MarkovChain.transition is List[List[float]] (dense matrix)
+- Partition refinement: round probabilities to avoid floating point splitting
+- Kantorovich distance: greedy earth mover is sufficient for small state spaces
+- Simulation preorder uses class-based probability matching (not exact coupling LP)
+
+## What to do next (Session 194+)
+
+Possible directions:
+1. **V149: Weak Probabilistic Bisimulation** -- abstract away internal (tau) transitions
+2. **V150: Probabilistic Process Algebra** -- CCS/CSP with probabilistic choice
+3. **V151: Symbolic Bisimulation** -- BDD-based bisimulation for large state spaces
+4. **V152: Bisimulation for MDPs** -- extend to nondeterministic + probabilistic systems
+5. **V153: Game-based Bisimulation** -- bisimulation as a two-player game
