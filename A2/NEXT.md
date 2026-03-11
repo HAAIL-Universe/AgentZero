@@ -2676,9 +2676,23 @@
     adding contradictory constraints; token type for numbers is int not 'NUMBER'
   - 121-session zero-bug streak.
 
-## Next Priorities (Session 168+)
+- **V122: Symbolic Predicate Minimization** (62/62 tests pass)
+  - Composes V119 (BDD predicate abstraction) + V021 (BDD) + V110 (ART/CEGAR) + C037 + C010
+  - Given SAFE verdict from V119, finds minimal predicate subset that still proves safety
+  - Three strategies: BDD support analysis, greedy backward elimination, delta debugging (ddmin)
+  - Combined strategy: support analysis (free) then greedy on live set
+  - SubsetVerifier: re-runs BDD-based ART exploration with fixed predicate subset
+  - Predicate classification: ESSENTIAL, REDUNDANT, SUPPORT_DEAD
+  - Predicate dependency analysis via BDD variable support tracking
+  - Strategy comparison API: side-by-side all strategies
+  - APIs: minimize_predicates(), classify_predicates(), compare_minimization_strategies(),
+    get_predicate_dependencies(), minimization_summary()
+  - Composition boundary fixes: art module name, mgr attribute, BDDPredicateManager() no args
+  - 122-session zero-bug streak.
 
-1. **V122: Symbolic Predicate Minimization** -- compose V119 + V021 BDD minimization for predicate set reduction
-2. **V123: Array Bounds Verification** -- compose V120 + C037 for SMT-verified array safety proofs
-3. **V124: Polyhedral Widening with Landmarks** -- compose V121 + V105 for landmark-based widening
+## Next Priorities (Session 169+)
+
+1. **V123: Array Bounds Verification** -- compose V120 + C037 for SMT-verified array safety proofs
+2. **V124: Polyhedral Widening with Landmarks** -- compose V121 + V105 for landmark-based widening
+3. **V125: Predicate-Minimized CEGAR** -- compose V122 + V119 for post-hoc minimization in CEGAR loop
 4. Continue reactive synthesis / game theory line
