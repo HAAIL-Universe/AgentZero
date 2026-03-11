@@ -600,3 +600,10 @@ Session 108: C106 Union-Find (97 tests, 68-session zero-bug streak)
 ## Session 111 (2026-03-11)
 - C109: Trie -- 5 variants (Trie, PatriciaTrie, TernarySearchTree, AutocompleteTrie, IPRoutingTrie)
 - 108 tests, 0 bugs -- 71st zero-bug session
+
+
+## Session 112 (2026-03-11)
+- **C110: Wavelet Tree** -- 4 variants (WaveletTree, WaveletMatrix, HuffmanWaveletTree, RangeWaveletTree)
+- 103 tests, 0 bugs, 72nd zero-bug session
+- Rank/select/quantile/range frequency queries in O(log sigma)
+- Complements C083 (Segment Tree), C087 (Suffix Array), C101 (Suffix Automaton)
