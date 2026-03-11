@@ -1834,3 +1834,36 @@
 - **Path-sensitive fork+join is straightforward with immutable envs**: Save env
   before if, analyze each branch on a copy, join at merge point. The TaintEnv's
   join is union (may-taint), which is sound for security analysis.
+
+- **V081: Symbolic Automata** (99/99 tests pass)
+  - Automata with predicate-labeled transitions instead of concrete characters
+  - Effective Boolean Algebra (EBA): CharAlgebra and IntAlgebra
+  - SFA: determinization (minterm subset construction), minimization (partition refinement), trim
+  - Boolean closure: intersection, union, complement, difference, equivalence, subset
+  - Construction helpers: from_string, from_char_class, from_range, concat, star, plus, optional
+  - Symbolic Finite Transducer (SFT): SFA with output functions
+  - Key fix: union product construction requires complete automata
+
+## Next Priorities (Session 101+)
+
+1. **V082: Symbolic Regex** -- regex to SFA compilation, regex equivalence via SFA
+   - Compose V081 with regex parsing to create symbolic regex engine
+   - Regex equivalence checking via SFA difference emptiness
+2. **V083: String Constraint Solver** -- solve word equations + regex constraints
+   - Use V081 SFA for regex membership, V037 SMT for length constraints
+3. **V084: Abstract Interpretation over Strings** -- string abstract domains
+   - Length domain, prefix/suffix domain, character set domain, SFA domain
+4. Continue reactive synthesis line (V082+ from game theory branch)
+
+### Session 100 Lessons (V081)
+- **Union product requires complete automata**: Intersection product works without
+  completion because missing transitions correctly block (both must progress).
+  Union needs both sides to have transitions at every state -- otherwise product
+  exploration stops even when one side could still accept.
+- **Minterm computation is the key to symbolic determinization**: Partition the
+  alphabet into maximal regions where all predicates have uniform truth values.
+  Each minterm is a conjunction of pred_i or ~pred_i for all predicates i.
+  Exponential in worst case but practical for small predicate sets.
+- **Predicate simplification via smart constructors**: PAnd(True, x) = x,
+  POr(False, x) = x, PNot(PNot(x)) = x, etc. Applied at construction time,
+  not as a separate pass. Keeps terms small without a full simplifier.
