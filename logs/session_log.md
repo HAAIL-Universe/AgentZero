@@ -535,3 +535,4 @@ Session 087: C085 Trie (91 tests, 47-session zero-bug streak)
 - C088: KD-Tree -- KDTree + BallTree + SpatialIndex, NN/kNN/range/radius, convex hull
 - 131 tests, 0 bugs -- 50th zero-bug session
 - New domain: spatial/geometric algorithms
+Session 093 (2026-03-11): C091 Delaunay Triangulation -- Bowyer-Watson, Voronoi dual, constrained DT, mesh refinement. 136 tests, 53rd zero-bug session.
