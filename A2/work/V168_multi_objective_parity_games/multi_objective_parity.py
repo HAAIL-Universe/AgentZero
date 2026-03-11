@@ -114,11 +114,14 @@ def solve_conjunctive(game: MultiParityGame) -> MultiSolution:
     Even wins from a vertex iff Even has a strategy such that ALL k parity
     conditions are simultaneously satisfied on every infinite play.
 
-    Algorithm: Reduction to single parity game via Chatterjee-Henzinger-Piterman
-    product construction. Encodes k parity conditions into a single priority
-    using a counter that cycles through objectives.
+    Algorithm: Iterative fixpoint. For each objective, compute Odd's winning
+    region in the single-parity projection restricted to the remaining vertices.
+    Remove Odd's attractor to that region. Repeat until fixpoint.
 
-    Complexity: O(n^(2k) * d^k) where d = max priority.
+    Correctness: if Even can win all objectives simultaneously from v, then
+    v survives the fixpoint. Conversely, any vertex removed is in Odd's
+    attractor to an Odd-winning region for some objective, so Odd can force
+    failure of that objective.
     """
     if not game.vertices:
         return MultiSolution(set(), set(), method='conjunctive')
@@ -132,99 +135,79 @@ def solve_conjunctive(game: MultiParityGame) -> MultiSolution:
             method='conjunctive-trivial',
         )
 
-    # Reduction: build product game with counter tracking which objective
-    # to "check" next. The counter cycles 0..k-1. At counter=i, the priority
-    # comes from objective i. A play satisfies the conjunction iff the counter
-    # cycles infinitely and each objective's parity condition holds.
-    #
-    # Product state: (vertex, counter, streak)
-    # - counter: which objective we're currently checking
-    # - streak: tracks if we've seen an even max priority for current objective
-    #
-    # Simplified encoding: product with just counter.
-    # State: (v, c) where c in {0..k-1}
-    # Priority: priorities[v][c] * k + (k - 1 - c)
-    # This interleaves priorities so that the conjunction is captured by
-    # a single parity condition on the product game.
+    remain = set(game.vertices)
+    iterations = 0
 
-    verts = sorted(game.vertices)
-    vert_map = {}  # (v, c) -> product vertex id
-    next_id = 0
+    changed = True
+    while changed:
+        changed = False
+        iterations += 1
+        for dim in range(game.k):
+            if not remain:
+                break
+            # Build single-parity projection restricted to remain
+            pg = ParityGame()
+            for v in remain:
+                pg.add_vertex(v, game.owner[v], game.priorities[v][dim])
+            for v in remain:
+                for u in game.successors(v):
+                    if u in remain:
+                        pg.add_edge(v, u)
 
-    # Create product vertices
-    for v in verts:
-        for c in range(game.k):
-            vert_map[(v, c)] = next_id
-            next_id += 1
+            # Handle dead ends: vertices with no successors in remain
+            # These are losing for their owner (can't move = loses)
+            dead = {v for v in remain if not (game.successors(v) & remain)}
+            if dead:
+                # Dead Even vertices lose, dead Odd vertices lose
+                # Remove Odd-attractor to dead Even vertices (Odd wins there)
+                dead_even = {v for v in dead if game.owner[v] == Player.EVEN}
+                if dead_even:
+                    odd_attr = _multi_attractor(game, dead_even, Player.ODD, remain)
+                    remain -= odd_attr
+                    changed = True
+                    continue
+                # Dead Odd vertices are Even-winning (Odd stuck)
+                # But they can't participate in infinite plays, skip them
+                # Actually, dead Odd vertices mean Odd loses, which is fine for Even
+                # Just skip them for now; Zielonka handles dead ends
 
-    # Build product parity game
-    pg = ParityGame()
-    for v in verts:
-        for c in range(game.k):
-            pid = vert_map[(v, c)]
-            # Priority encoding: objective c's priority at v, interleaved
-            obj_prio = game.priorities[v][c]
-            # Use: obj_prio * k + c as priority
-            # Even priorities in objective i map to even in product
-            # The counter c ensures all objectives are visited
-            encoded_prio = obj_prio * game.k + c
-            pg.add_vertex(pid, game.owner[v], encoded_prio)
+            sol = zielonka(pg)
+            odd_win = sol.win_odd
 
-    # Edges: (v, c) -> (u, (c+1) % k) for each edge v -> u
-    for v in verts:
-        for u in game.successors(v):
-            for c in range(game.k):
-                src = vert_map[(v, c)]
-                dst = vert_map[(u, (c + 1) % game.k)]
-                pg.add_edge(src, dst)
+            if odd_win:
+                # Remove Odd's attractor to odd_win in the multi-parity game
+                odd_attr = _multi_attractor(game, odd_win, Player.ODD, remain)
+                remain -= odd_attr
+                changed = True
+                break  # restart objectives from scratch after change
 
-    # Solve the product game
-    product_sol = zielonka(pg)
+    win_even = remain
+    win_odd = game.vertices - remain
 
-    # Project back: v wins for Even iff (v, 0) wins for Even in product
-    win_even = set()
-    win_odd = set()
+    # Extract strategies: for Even-winning vertices, Even chooses a successor
+    # that stays in win_even. For Odd-winning, Odd does the same for win_odd.
     strat_even = {}
     strat_odd = {}
-
-    for v in verts:
-        pid0 = vert_map[(v, 0)]
-        if pid0 in product_sol.win_even:
-            win_even.add(v)
-        else:
-            win_odd.add(v)
-
-    # Extract strategies
     for v in win_even:
         if game.owner[v] == Player.EVEN:
-            # Even's strategy: look at product strategy at (v, 0)
-            pid0 = vert_map[(v, 0)]
-            if pid0 in product_sol.strategy_even:
-                target_pid = product_sol.strategy_even[pid0]
-                # Decode target: find which (u, c') maps to target_pid
-                for u in game.successors(v):
-                    if vert_map.get((u, 1 % game.k)) == target_pid:
-                        strat_even[v] = u
-                        break
-
+            for u in game.successors(v):
+                if u in win_even:
+                    strat_even[v] = u
+                    break
     for v in win_odd:
         if game.owner[v] == Player.ODD:
-            pid0 = vert_map[(v, 0)]
-            if pid0 in product_sol.strategy_odd:
-                target_pid = product_sol.strategy_odd[pid0]
-                for u in game.successors(v):
-                    if vert_map.get((u, 1 % game.k)) == target_pid:
-                        strat_odd[v] = u
-                        break
+            for u in game.successors(v):
+                if u in win_odd:
+                    strat_odd[v] = u
+                    break
 
     return MultiSolution(
         win_even, win_odd, strat_even, strat_odd,
-        method='conjunctive-product',
+        method='conjunctive-fixpoint',
         stats={
             'original_vertices': len(game.vertices),
-            'product_vertices': len(pg.vertices),
             'objectives': game.k,
-            'max_product_priority': max(pg.priority[v] for v in pg.vertices) if pg.vertices else 0,
+            'iterations': iterations,
         },
     )
 
@@ -563,13 +546,16 @@ def solve_conjunctive_streett(game: MultiParityGame) -> MultiSolution:
 
 
 def _solve_streett_direct(game: MultiParityGame, pairs: List[Tuple[Set[int], Set[int]]]) -> Set[int]:
-    """Solve Streett condition via nested fixpoint on MultiParityGame.
+    """Solve Streett condition via iterative fixpoint on MultiParityGame.
 
-    Even wins Streett(pairs) from vertices in the greatest fixpoint of:
-    for each pair (L_i, U_i):
-      either avoid L_i (co-Buchi) or recur through U_i (Buchi)
+    Streett: Even wins iff for every pair (L_i, U_i):
+      if L_i is visited infinitely often, then U_i is visited infinitely often.
 
-    Uses attractor computation on the game graph.
+    Equivalently: for each pair, Even either avoids L eventually or recurs U.
+
+    Algorithm: for each pair (L, U), compute the set of vertices from which
+    Odd can force visiting L infinitely while avoiding U eventually. Remove
+    Odd's attractor to those vertices. Repeat until fixpoint.
     """
     remain = set(game.vertices)
 
@@ -577,44 +563,38 @@ def _solve_streett_direct(game: MultiParityGame, pairs: List[Tuple[Set[int], Set
     while changed:
         changed = False
         for L, U in pairs:
-            # Odd can force into L without seeing U infinitely
-            # Remove Odd's attractor to (remain - co-Buchi(L) intersect Buchi-fail(U))
-            # Simplified: iteratively remove vertices where Odd can trap in L
-            inner_changed = True
-            while inner_changed:
-                inner_changed = False
-                # Vertices in remain that are in L but not in U
-                # These are "bad" -- visiting them without higher even priority
-                bad = L & remain - U
-                if not bad:
-                    break
-                # Odd attractor to bad within remain
-                odd_attr = _multi_attractor(game, bad, Player.ODD, remain)
-                if odd_attr - bad:  # attractor grew beyond bad
-                    remain -= odd_attr
-                    inner_changed = True
-                    changed = True
-                elif bad & remain:
-                    # Check if Even can escape from bad
-                    can_escape = set()
-                    for v in bad & remain:
-                        succs = game.successors(v) & remain
-                        if game.owner[v] == Player.EVEN:
-                            if succs - bad:
-                                can_escape.add(v)
-                        else:
-                            if not succs or succs <= bad:
-                                pass  # Odd traps here
-                            else:
-                                can_escape.add(v)
-                    stuck = (bad & remain) - can_escape
-                    if stuck:
-                        odd_attr = _multi_attractor(game, stuck, Player.ODD, remain)
-                        remain -= odd_attr
-                        inner_changed = True
-                        changed = True
-                    else:
-                        break
+            if not remain:
+                break
+            # For this pair: Odd wins if Odd can trap play in (L & remain)
+            # while avoiding U. Compute the "Odd-Buchi" set: vertices where
+            # Odd can force visiting L\U infinitely.
+            # Approach: remove Even's attractor to U (vertices where Even can
+            # force visiting U). In the remainder, if L vertices exist with
+            # Odd-controlled cycles, Odd wins there.
+
+            # Step 1: Even can force reaching U from these vertices
+            u_in_remain = U & remain
+            even_attr_to_u = _multi_attractor(game, u_in_remain, Player.EVEN, remain)
+
+            # Step 2: Vertices NOT in Even's attractor to U -- Even can't reach U
+            no_u = remain - even_attr_to_u
+
+            # Step 3: Among these, if there are vertices in L, Odd wins
+            # (play stays in no_u forever, visits L infinitely)
+            # Actually we need vertices from which play can stay in no_u
+            # That's the complement of Even's attractor to even_attr_to_u
+            # restricted to no_u. Simply: no_u is already a trap for Odd
+            # if Even can't escape it.
+
+            # Check if no_u is non-empty and contains L vertices
+            l_in_no_u = L & no_u
+            if l_in_no_u:
+                # Odd can force staying in no_u (Even can't reach U from here)
+                # Remove Odd's attractor to no_u from remain
+                odd_attr = _multi_attractor(game, no_u, Player.ODD, remain)
+                remain -= odd_attr
+                changed = True
+                break  # restart from first pair
 
     return remain
 

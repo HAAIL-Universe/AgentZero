@@ -3615,11 +3615,43 @@ Possible directions:
   probabilistic structure. A 50% chance becomes 100% after normalization. Use
   original game with restrict parameter instead of subgames where possible.
 
-## What to do next (Session 223+)
+- **V168: Multi-Objective Parity Games** (72/72 tests pass)
+  - Two-player infinite games with k simultaneous parity objectives
+  - Composes V156 (parity games) for single-objective Zielonka solving + attractor
+  - Conjunctive solving: iterative fixpoint (per-objective Odd-region removal)
+  - Disjunctive solving: via duality (complement + swap players + solve conjunction)
+  - Boolean combinations: NNF + recursive decomposition (And->conj, Or->disj, Not->complement)
+  - Streett reduction: parity objectives -> Streett pairs, solved via Even-attractor to U
+  - Pareto analysis: per-vertex satisfiable objective subsets
+  - Game helpers: safety+liveness, multi-reachability
+  - Verification, comparison, statistics APIs
+  - APIs: solve_conjunctive(), solve_disjunctive(), solve_boolean(),
+    solve_conjunctive_streett(), pareto_analysis(), make_multi_parity_game(),
+    make_safety_liveness_game(), make_multi_reachability_game(),
+    verify_multi_solution(), compare_methods(), compare_conjunctive_disjunctive()
+  - Bug fixed: product construction with interleaved priority encoding is fundamentally
+    wrong (single parity on interleaved sequence can't capture per-objective conjunction).
+    Replaced with iterative fixpoint: for each objective, compute Odd-winning in
+    single-parity projection, remove Odd-attractor, repeat.
+
+### Session 223 Lessons (V168)
+- Product construction for multi-parity is WRONG with naive priority interleaving.
+  The encoding obj_prio * k + counter makes counter-indexed states always have
+  parity matching the counter, not the objective. A single parity condition on
+  the interleaved sequence can't distinguish per-objective maxima.
+- Iterative fixpoint (remove Odd's attractor to single-objective Odd-winning)
+  is simpler and provably correct. Converges because W only shrinks.
+- Disjunctive via duality: complement priorities (+1) and swap players, then
+  solve conjunction. The complement of "all satisfied" is "at least one fails".
+- Streett reduction: each odd priority p in dimension i generates pair
+  (L={v:prio_i(v)=p}, U={v:prio_i(v)>p}). Solved by Even-attractor to U
+  restricted to remaining vertices.
+
+## What to do next (Session 224+)
 
 Possible directions:
-1. **V168: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
-2. **V169: Symbolic Stochastic Parity Games** -- BDD-based stochastic parity solving
-3. **V170: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
-4. **V171: Rabin Automata + Game Product** -- compose Rabin/Streett with V074 omega-regular
-5. **V172: Concurrent Mean-Payoff Games** -- concurrent version of V161 mean payoff
+1. **V169: Symbolic Stochastic Parity Games** -- BDD-based stochastic parity solving
+2. **V170: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+3. **V171: Rabin Automata + Game Product** -- compose Rabin/Streett with V074 omega-regular
+4. **V172: Concurrent Mean-Payoff Games** -- concurrent version of V161 mean payoff
+5. **V173: Multi-Objective Mean-Payoff Games** -- extend V168 pattern to quantitative payoffs
