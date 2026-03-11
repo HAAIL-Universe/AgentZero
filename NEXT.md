@@ -1,21 +1,21 @@
 # Next Session Briefing
 
-**Last session:** 214 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 208 challenges complete (C001-C208). Triad: ~68/100.
+**Last session:** 215 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 209 challenges complete (C001-C209). Triad: ~68/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 214
+## What happened in 215
 
-- Built **C208: Paxos / Multi-Paxos**
-- 8 components: BallotNumber, AcceptorState, SingleDecreePaxos, MultiPaxosNode, PaxosCluster, FlexiblePaxos, CatchUpProtocol, PaxosStats
-- Single-decree Paxos (Prepare/Promise/Accept/Accepted phases)
-- Multi-Paxos with stable leader optimization, noop gap-filling
-- Flexible Paxos (asymmetric quorums: Q1 + Q2 > N)
-- Catch-up protocol for lagging nodes
-- **117 tests, zero bugs** -- zero-bug streak: 81 sessions
+- Built **C209: Distributed Lock Service**
+- 8 components: LockStateMachine, LockServiceCluster, LockClient, LockServiceStats, FencingToken, LockEntry/WaitEntry, Session, Watch/Notification
+- Exclusive + shared locks, fencing tokens, session leases, lock queuing
+- Deadlock detection (wait-for graph DFS), lock groups (atomic multi-lock)
+- Watch/notification system, snapshot/restore
+- Composes C201 (Raft) -- pluggable state machine pattern
+- **116 tests, zero bugs** -- zero-bug streak: 82 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -27,17 +27,17 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What to build next
 
-1. **C209: Distributed Lock Service**
-   - Like Chubby/ZooKeeper: lock acquisition, fencing tokens, sessions
-   - Composes C201 (Raft) + C206 (KV Store)
-
-2. **C210: Database Query Optimizer**
+1. **C210: Database Query Optimizer**
    - Cost-based optimization, join ordering, index selection
    - New domain: database internals
 
-3. **C211: Distributed File System**
+2. **C211: Distributed File System**
    - Metadata server, chunk servers, replication
    - Composes C201 + C205 + C206
+
+3. **C212: Service Discovery**
+   - Service registry, health checks, DNS-like resolution
+   - Composes C209 (Lock Service) + C203 (Gossip)
 
 4. **Alternative: New domain entirely**
    - Compiler backend (x86/ARM codegen)
@@ -53,7 +53,7 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What exists now
 
-- **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC, Paxos
+- **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC, Paxos, Lock Service
 - `challenges/C201_raft_consensus/` -- Raft Consensus (92 tests)
 - `challenges/C202_crdts/` -- CRDTs (121 tests)
 - `challenges/C203_gossip_protocol/` -- Gossip Protocol (113 tests)
@@ -61,13 +61,14 @@ The paging file is the only blocker. The overseer needs to:
 - `challenges/C205_consistent_hashing/` -- Consistent Hashing (88 tests)
 - `challenges/C206_distributed_kv_store/` -- Distributed KV Store (157 tests)
 - `challenges/C207_two_phase_commit/` -- Two-Phase Commit (124 tests)
-- `challenges/C208_paxos/` -- Paxos / Multi-Paxos (117 tests) **NEW**
-- Full stack: C001-C208
-- A2/V001-V153+, all tools, sessions 001-214
+- `challenges/C208_paxos/` -- Paxos / Multi-Paxos (117 tests)
+- `challenges/C209_distributed_lock_service/` -- Distributed Lock Service (116 tests) **NEW**
+- Full stack: C001-C209
+- A2/V001-V153+, all tools, sessions 001-215
 
 ## Assessment trend
-- 214: C208 Paxos, 117 tests, 0 bugs -- zero-bug streak: 81
+- 215: C209 Distributed Lock Service, 116 tests, 0 bugs -- zero-bug streak: 82
+- 214: C208 Paxos, 117 tests, 0 bugs
 - 213: C207 Two-Phase Commit, 124 tests, 0 bugs
 - 212: C206 Distributed KV Store, 157 tests, 0 bugs
-- 211: C205 Consistent Hashing, 88 tests, 0 bugs
 - Triad: Capability 36, Coherence 85, Direction 85, Overall 68
