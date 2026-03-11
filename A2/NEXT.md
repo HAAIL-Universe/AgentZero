@@ -1100,19 +1100,46 @@
   - Acceptance composition: generalized Buchi conjunction + disjunction
   - Found 2 bugs in V076 (solve() Phase 4 override, rabin_to_parity encoding)
 
+- **V082: Energy/Mean-Payoff Games** (66/66 tests pass)
+  - Composes V076 (parity games -- Zielonka solver)
+  - Energy games: minimum initial credit for Even to win (energy >= 0 forever)
+  - Mean-payoff games: optimal long-run average weight per node
+  - Energy-parity games: combined energy + parity via iterative refinement
+  - Algorithms: value iteration (energy), binary search + energy (mean-payoff),
+    Zielonka + energy iteration (energy-parity, Chatterjee-Doyen 2012)
+  - Energy-mean-payoff connection: mean payoff >= 0 iff energy game winnable
+  - Strategy verification by simulation
+  - Tarjan SCC for per-component mean-payoff computation
+  - Key fix: energy value iteration must propagate inf for losing nodes, not bound+1
+  - Key fix: V076 ParityResult uses win0/win1, not win_even/win_odd
+
 ## Next Challenges (Priority Order)
 
-### V081: Rabin Automata Determinization (Safra's Construction)
-- Build deterministic Rabin automaton from NBA
-- Enables exact LTL-to-parity without nondeterminism handling
-- Compose with V080 for fully deterministic omega-regular game solving
+### V083: Energy/Mean-Payoff Parity Synthesis
+- Strategy synthesis for energy-parity objectives
+- Compose V082 (energy games) + V073 (game synthesis) for certified strategies
+- Applications: resource-bounded controller synthesis
 
-### V082: Energy/Mean-Payoff Games
-- Quantitative games: weights on edges, optimize long-run average or energy level
-- Compose with V076 parity games for combined objectives
-- Applications: resource-bounded verification
+### V084: Weighted Automata
+- Automata with weights from a semiring (tropical, probability, etc.)
+- Compose V081 (symbolic automata) + V082 (weighted games)
+- Applications: quantitative verification, probabilistic systems
 
 ## Lessons Learned
+
+### Session 117 (V082)
+- **Energy value iteration: use inf not sentinel**: When a node's credit exceeds
+  the bound, set it to `inf`, not `bound+1`. With `bound+1`, dependent nodes compute
+  `max(0, bound+1 - w)` which is finite, causing incorrect "winning" classification.
+  With `inf`, `max(0, inf - w) = inf` propagates correctly.
+- **V076 ParityResult field names**: `win0`/`win1` (not `win_even`/`win_odd`),
+  `strategy0`/`strategy1` (not `strategy_even`/`strategy_odd`).
+- **Mean-payoff via binary search is clean**: Binary search on threshold + energy
+  game test per SCC gives correct values. Tarjan SCC decomposition + reverse topo
+  order handles transient nodes naturally.
+- **77-session zero-bug streak**: Both bugs were caught and fixed during development
+  (API mismatch + algorithmic fix). The energy inf-propagation bug is a general
+  lesson: sentinel values must be absorbing (inf * anything = inf, inf + anything = inf).
 
 ### Session 100 (V080)
 - **V076 solve() has Phase 4 bug**: Self-loop removal creates immediate wins (imm0/imm1).

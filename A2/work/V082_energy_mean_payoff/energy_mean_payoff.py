@@ -175,17 +175,22 @@ def solve_energy(game: WeightedGame, bound: Optional[int] = None) -> EnergyResul
         bound = n * W
 
     # Initialize credits: 0 for all nodes
-    credit = {v: 0 for v in game.nodes}
+    credit = {v: 0.0 for v in game.nodes}
     strategy = {v: None for v in game.nodes}
 
     # Value iteration until fixpoint
+    # Nodes exceeding bound are set to inf (losing). This propagates correctly:
+    # if credit[u] = inf, then max(0, inf - w) = inf for any finite w.
     changed = True
     iterations = 0
-    max_iterations = n * bound + n  # guaranteed convergence bound
+    max_iterations = (n + 1) * (bound + 1) + n
     while changed and iterations < max_iterations:
         changed = False
         iterations += 1
         for v in game.nodes:
+            if credit[v] == inf:
+                continue  # already known losing
+
             succs = game.successors.get(v, set())
             if not succs:
                 continue
@@ -194,21 +199,21 @@ def solve_energy(game: WeightedGame, bound: Optional[int] = None) -> EnergyResul
             options = []
             for u in succs:
                 w = game.weight.get((v, u), 0)
-                # To transition v->u with weight w, we need:
-                # energy_at_v + w >= 0 AND energy_at_u >= credit(u)
-                # So energy_at_v >= max(0, credit(u) - w)
-                needed = max(0, credit[u] - w)
+                if credit[u] == inf:
+                    needed = inf
+                else:
+                    needed = max(0, credit[u] - w)
                 options.append((needed, u))
 
             if game.owner[v] == Player.EVEN:
                 # Even chooses the best (minimum credit needed)
-                best_val, best_succ = min(options, key=lambda x: x[0])
+                best_val, best_succ = min(options, key=lambda x: (x[0], x[1]))
             else:
                 # Odd chooses the worst (maximum credit needed)
-                best_val, best_succ = max(options, key=lambda x: x[0])
+                best_val, best_succ = max(options, key=lambda x: (x[0], -x[1]))
 
             if best_val > bound:
-                best_val = bound + 1  # sentinel for "losing"
+                best_val = inf
 
             if best_val != credit[v]:
                 credit[v] = best_val
@@ -222,11 +227,10 @@ def solve_energy(game: WeightedGame, bound: Optional[int] = None) -> EnergyResul
     strategy_even = {}
     strategy_odd = {}
     for v in game.nodes:
-        if credit[v] <= bound:
+        if credit[v] < inf:
             winner[v] = Player.EVEN
         else:
             winner[v] = Player.ODD
-            credit[v] = inf
 
         # Record strategy
         succs = game.successors.get(v, set())
@@ -461,6 +465,8 @@ def _scc_mean_payoff(game: WeightedGame, scc: Set[int],
     - Energy game with weights w(e) - (v* + eps) is lost by Even
 
     Since values are multiples of 1/n, we search over rational values.
+    We scale to integers: multiply all weights by n, binary search over integers,
+    then divide result by n.
     """
     # Build sub-game restricted to SCC
     sub = WeightedGame()
@@ -471,85 +477,72 @@ def _scc_mean_payoff(game: WeightedGame, scc: Set[int],
             if u in scc:
                 sub.add_edge(v, u, game.weight.get((v, u), 0))
 
-    # Binary search for the mean-payoff value
-    lo = -W
-    hi = W
+    scc_n = len(scc)
+    # Binary search: the mean-payoff value is a rational p/q with q <= scc_n
+    # Scale weights by scc_n to work with integers
+    lo = float(-W)
+    hi = float(W)
 
-    # Use n * denominator precision
-    for _ in range(60):  # enough iterations for any practical precision
+    for _ in range(64):
         mid = (lo + hi) / 2.0
-
-        # Shift weights: w'(e) = w(e) - mid, scaled to integers
-        # We test: can Even win the energy game with shifted weights?
-        shifted = WeightedGame()
-        for v in sub.nodes:
-            shifted.add_node(v, sub.owner[v])
-        for (s, d), w in sub.weight.items():
-            # Use scaled integer weights for precision
-            shifted.add_edge(s, d, 0)  # placeholder
-            shifted.weight[(s, d)] = w  # we'll adjust in the energy test
-
-        # Direct energy test with fractional threshold
-        even_wins = _energy_test_shifted(sub, mid)
-
-        if even_wins:
-            lo = mid  # Even can achieve at least mid
+        if _energy_test_shifted(sub, mid, scc_n):
+            lo = mid
         else:
             hi = mid
-
         if hi - lo < epsilon / 2:
             break
 
     return (lo + hi) / 2.0
 
 
-def _energy_test_shifted(game: WeightedGame, shift: float) -> bool:
+def _energy_test_shifted(game: WeightedGame, shift: float, n: int) -> bool:
     """Test if Even wins the energy game with weights w(e) - shift.
 
     Returns True if Even can win from ALL nodes in the game (since this is
     an SCC, if Even can win from any node, it can eventually reach any other).
     """
-    n = len(game.nodes)
-    if n == 0:
+    if not game.nodes:
         return True
 
-    W = max(abs(game.weight.get(e, 0) - shift) for e in game.weight) if game.weight else 1
-    bound = int(n * (W + 1)) + 1
+    W_shifted = max(abs(game.weight.get(e, 0) - shift) for e in game.weight) if game.weight else 1
+    bound = n * (W_shifted + 1) + 1
 
-    credit = {v: 0 for v in game.nodes}
+    credit = {v: 0.0 for v in game.nodes}
 
     changed = True
     iterations = 0
-    max_iter = n * bound + n
+    max_iter = n * int(bound) + n + 100
     while changed and iterations < max_iter:
         changed = False
         iterations += 1
         for v in game.nodes:
+            if credit[v] == inf:
+                continue
             succs = game.successors.get(v, set())
             if not succs:
                 continue
 
             options = []
             for u in succs:
-                w = game.weight.get((v, u), 0) - shift
-                needed = max(0, credit[u] - w)
-                options.append(needed)
+                if credit[u] == inf:
+                    options.append(inf)
+                else:
+                    w = game.weight.get((v, u), 0) - shift
+                    options.append(max(0, credit[u] - w))
 
             if game.owner[v] == Player.EVEN:
                 best = min(options)
             else:
                 best = max(options)
 
-            # Cap at bound
             if best > bound:
-                best = bound + 1
+                best = inf
 
-            if abs(best - credit[v]) > 1e-12:
+            if best != credit[v]:
                 credit[v] = best
                 changed = True
 
-    # Even wins if all credits are finite (within bound)
-    return all(credit[v] <= bound for v in game.nodes)
+    return all(credit[v] < inf for v in game.nodes)
 
 
 # ===========================================================================
@@ -667,7 +660,7 @@ def solve_energy_parity(game: WeightedParityGame,
             continue
 
         parity_result = zielonka(pg)
-        parity_even = parity_result.win_even
+        parity_even = parity_result.win0
 
         if not parity_even:
             break  # No parity-winning nodes left
