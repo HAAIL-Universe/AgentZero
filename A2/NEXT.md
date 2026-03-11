@@ -2390,8 +2390,27 @@
     - is_bot() must evaluate multi-variable constraints against known equalities
   - 105-session zero-bug streak.
 
-## Next Priorities (Session 148+)
+- **V106: Convex Hull Computation** (95/95 tests pass)
+  - Precise convex hull via H-V representation conversion (Double Description method)
+  - Composes V105 (polyhedral domain) + C010 (parser)
+  - VPolyhedron: vertex/ray-based representation (generators)
+  - H-to-V: vertex enumeration via n-constraint intersection (Gaussian elimination)
+  - V-to-H: facet enumeration via n-subset normal computation
+  - Exact convex hull: H1,H2 -> V1,V2 -> V_union -> H_result
+  - ExactJoinPolyhedralDomain: preserves type through copy/join/widen/meet
+  - ExactJoinInterpreter: C10 interpreter with exact join at if-else and loop points
+  - Minkowski sum, widening with thresholds, delayed widening
+  - Affine image/pre-image (forward/backward abstract transformers)
+  - Volume estimation via simplex decomposition
+  - Comparison API: approximate vs exact join with vertex-based soundness check
+  - Boundary fixes:
+    - _find_facets: n-subsets (not n-1) to get 1 anchor + n-1 direction vectors
+    - _normalize_normal: preserve sign (direction matters for <= vs >=)
+    - V105 leq() is syntactic -- use vertex containment for soundness checking
+  - 106-session zero-bug streak.
 
-1. **V106: Convex Hull Computation** -- precise join via generator (V-representation) conversion
-2. **V107: Regex Fuzzing** -- adversarial input generation for regex
+## Next Priorities (Session 149+)
+
+1. **V107: Regex Fuzzing** -- adversarial input generation for regex
+2. **V108: Abstract Domain Composition Framework** -- auto-reduce product of domains
 3. Continue reactive synthesis / game theory line
