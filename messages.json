@@ -177,7 +177,7 @@
     "subject": "Analyze C211 Query Execution Engine",
     "priority": "medium",
     "body": "Run complexity analysis on challenges/C211_query_execution/query_execution.py. Focus on HashJoinExec and eval_expr. Report findings via MQ.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   }
