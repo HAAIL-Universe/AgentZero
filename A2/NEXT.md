@@ -1177,17 +1177,30 @@
   - Key insight: partial transducers are total over their own domain.
     Domain extraction from input_automaton() exactly captures processable trees.
 
+- **V094: Pushdown Systems Verification** (90/90 tests pass)
+  - PDS data structures: control states + stack alphabet + rules (POP/SWAP/PUSH)
+  - P-Automaton: NFA-based regular config set representation
+  - Pre* (backward reachability) and Post* (forward reachability) via saturation
+  - Configuration reachability, safety checking, bounded reachability
+  - State space exploration with deadlock detection
+  - Invariant checking over all reachable configurations
+  - Recursive program modeling (call/return as push/pop)
+  - Example systems: counter, recursive factorial, mutual recursion, stack inspection
+  - Zero implementation bugs
+
 ## Next Challenges (Priority Order)
 
-### V091: Pushdown Systems
-- Context-free verification via pushdown automata + model checking
-- Compose V089 (tree automata) for tree-width bounded systems
-- Applications: call-stack-aware program verification
+### V095: Visibly Pushdown Automata
+- Subclass of PDA where push/pop is determined by input symbol
+- Closed under all boolean operations (unlike general PDA)
+- Compose V094 (pushdown systems) + V081 (symbolic automata)
+- Applications: XML validation, nested word languages
 
-### V092: Probabilistic Automata Equivalence
-- Compose V083 (probability semiring WFA) + V065 (Markov chains)
-- Language equivalence for probabilistic automata via Markov chain analysis
-- Applications: stochastic system equivalence checking
+### V096: Interprocedural Analysis via Pushdown Systems
+- Compose V094 (pushdown systems) + C039 (abstract interpreter)
+- IFDS/IDE framework: interprocedural finite distributive subset problems
+- Context-sensitive analysis using PDS reachability
+- Applications: precise dataflow analysis across function boundaries
 
 ## Lessons Learned
 
