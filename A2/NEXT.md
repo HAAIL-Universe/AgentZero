@@ -994,17 +994,45 @@
     state-level formula (NOT(P>=1[F NOT phi])), not a path formula. Use
     P<=0[F NOT phi] for safety properties instead.
 
-## Next Challenges (Priority Order)
+- **V073: Game-Theoretic Strategy Synthesis** (57/57 tests pass)
+  - Composes V070 (stochastic games) + V072 (game PCTL) + V065 (Markov chains) + C037 (SMT)
+  - Objective-driven synthesis: reachability, safety, PCTL, reward objectives
+  - Permissive strategies: all actions achieving optimal value
+  - Multi-objective synthesis: Pareto-optimal strategies via weight-space sampling
+  - Strategy verification: induce MC and verify objective achievement
+  - Strategy composition: combine strategies with priority ordering
+  - Assume-guarantee synthesis: compositional decomposition of objectives
+  - Strategy refinement: iterative improvement from any initial strategy
+  - Strategy comparison: evaluate alternatives side-by-side
+  - PCTL synthesis pipeline: full pipeline with induced MC export
+  - APIs: synthesize_reachability(), synthesize_safety(), synthesize_pctl(),
+    synthesize_permissive_reachability(), synthesize_permissive_safety(),
+    verify_strategy(), synthesize_multi_objective(), compose_strategies(),
+    assume_guarantee_synthesis(), refine_strategy(), compare_strategies(),
+    synthesize_from_pctl(), synthesize(), synthesis_summary()
 
-### V073: Game-Theoretic Synthesis
-- Strategy synthesis for stochastic games with temporal objectives
-- Compose V070 (games) + V023 (LTL) or V072 (game PCTL)
+## Next Challenges (Priority Order)
 
 ### V074: Omega-Regular Games
 - Extend V023 (LTL) to stochastic games
 - LTL objectives for two-player games with fairness
 
+### V075: Reactive Synthesis
+- GR(1) synthesis: given environment assumptions and system guarantees, synthesize controller
+- Compose V021 (BDD) + V070 (games) for fixpoint computation
+
 ## Lessons Learned
+
+### Session (V073)
+- **PCTL atoms use .label not .name**: PCTL class stores atom names in `label` field.
+- **Both actions can be optimal**: When two actions achieve the same value, refinement
+  won't switch. Tests must not assume a specific action choice.
+- **Adversarial play can block reachability**: If all P2 states have a "send back" action,
+  P2 can prevent P1 from ever reaching target (prob=0).
+- **min/max on filtered iterables**: Guard against empty iterables when filtering states
+  (e.g., all states are targets).
+- **52-session zero-bug streak**: Implementation correct on first run. All test failures
+  were test expectation errors.
 
 ### Session (V072)
 - **always() is state-level, not path-level**: The sugar `always(phi)` = `pnot(prob_geq(1.0, eventually(pnot(phi))))` produces a state formula. Passing it as a path formula to `prob_geq()` gives wrong results because the checker sees `P>=1[NOT(P>=1[F NOT phi])]` and processes the inner NOT as boolean negation on the path. For safety properties, use `P<=0[F NOT phi]` instead.
