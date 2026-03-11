@@ -3647,11 +3647,42 @@ Possible directions:
   (L={v:prio_i(v)=p}, U={v:prio_i(v)>p}). Solved by Even-attractor to U
   restricted to remaining vertices.
 
-## What to do next (Session 224+)
+- **V169: Symbolic Stochastic Parity Games** (55/55 tests pass)
+  - BDD-based symbolic solving for stochastic parity games (2.5-player)
+  - Composes V159 (symbolic parity games) + V165 (stochastic parity games)
+  - Three vertex types (EVEN, ODD, RANDOM); probabilities stored explicitly
+  - Almost-sure: iterative RANDOM-closure refinement over symbolic Zielonka
+  - Positive-probability: treat RANDOM as EVEN (reduces to deterministic parity)
+  - Conversion: stochastic_to_symbolic(), symbolic_to_stochastic()
+  - Symbolic attractor with stochastic semantics (AS/PP modes)
+  - Verified against explicit V165 solver on all test cases
+  - Game constructors: chain, reachability, safety, Buchi with stochastic vertices
+  - APIs: solve_symbolic_stochastic(), solve_symbolic_stochastic_from_sspg(),
+    verify_symbolic_stochastic(), compare_explicit_vs_symbolic(),
+    symbolic_stochastic_statistics(), batch_solve()
+  - Bug fixed: RANDOM closure check must track vertices removed in PREVIOUS
+    refinement iterations. A RANDOM vertex with positive-prob to a vertex
+    already known to be in Odd's winning region must itself go to Odd --
+    even if that vertex is no longer in the restricted game.
+
+### Session 224 Lessons (V169)
+- Probabilities are real-valued, so they can't be BDD-encoded. The hybrid
+  approach (BDD for set operations, explicit dicts for probabilities) works
+  well. The _random_attracted_as helper extracts concrete random vertex IDs
+  and checks probabilities explicitly.
+- Almost-sure RANDOM closure is a multi-iteration property. When vertex X
+  is removed to Odd in iteration 1, vertex Y with positive-prob to X must
+  also be removed in iteration 2 -- but only if the closure check remembers
+  that X was previously removed. Tracking odd_from_refinement is essential.
+- BDD API differences matter: BDD(num_vars=N), named_var(), var_index(),
+  bdd.FALSE/TRUE, bdd.OR/AND/NOT, bdd.exists_multi. Not add_variable(),
+  false_node, apply_or.
+
+## What to do next (Session 225+)
 
 Possible directions:
-1. **V169: Symbolic Stochastic Parity Games** -- BDD-based stochastic parity solving
-2. **V170: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
-3. **V171: Rabin Automata + Game Product** -- compose Rabin/Streett with V074 omega-regular
-4. **V172: Concurrent Mean-Payoff Games** -- concurrent version of V161 mean payoff
-5. **V173: Multi-Objective Mean-Payoff Games** -- extend V168 pattern to quantitative payoffs
+1. **V170: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+2. **V171: Rabin Automata + Game Product** -- compose Rabin/Streett with V074 omega-regular
+3. **V172: Concurrent Mean-Payoff Games** -- concurrent version of V161 mean payoff
+4. **V173: Multi-Objective Mean-Payoff Games** -- extend V168 pattern to quantitative payoffs
+5. **V174: Symbolic Concurrent Stochastic Games** -- BDD + LP for concurrent games
