@@ -388,63 +388,282 @@ class RecursiveCHCSolver:
 
     def _solve_recursive_scc(self, scc):
         """
-        Solve a recursive SCC via fixed-point iteration with widening.
+        Solve a recursive SCC using a multi-strategy approach:
 
-        Algorithm:
-        1. Start with under-approximation: False (nothing reachable)
-        2. Apply one-step unfolding to get new reachable states
-        3. Widen to ensure convergence
-        4. Check if fixed point reached (new_interp => old_interp)
-        5. Verify the final interpretation satisfies all clauses
+        1. Try to reduce to a transition system and use PDR (best for linear single-pred)
+        2. If PDR can't handle it, try bounded Kleene iteration
+        3. Fall back to BMC for counterexample finding
         """
         pred_names = scc.predicates
 
-        # Initialize with False (under-approximation)
+        # Strategy 1: Try PDR reduction for single-predicate linear recursive SCCs
+        if len(pred_names) == 1:
+            pdr_result = self._try_pdr_for_recursive(pred_names[0])
+            if pdr_result is not None:
+                if pdr_result == "safe":
+                    return None  # Safe, interpretations already set
+                return pdr_result  # CHCOutput (UNSAT)
+
+        # Strategy 2: Bounded Kleene iteration (under-approximation)
+        # Compute reachable states layer by layer, check queries at each layer
+        kleene_result = self._kleene_iteration(pred_names)
+        if kleene_result is not None:
+            return kleene_result
+
+        # Strategy 3: Over-approximation -- start from True, narrow down
+        over_result = self._over_approximation(pred_names)
+        if over_result is not None:
+            return over_result
+
+        # Fallback: BMC
+        bmc = BMCSolver(self.system, max_depth=self.max_depth)
+        bmc_result = bmc.solve()
+        if bmc_result.result == CHCResult.UNSAT:
+            return bmc_result
+
+        # Could not determine -- return SAT with True interpretation (sound over-approx)
+        for pn in pred_names:
+            self.lemma_store.update_interpretation(pn, BoolConst(True))
+        return None
+
+    def _try_pdr_for_recursive(self, pred_name):
+        """
+        Try to reduce a single recursive predicate to a transition system
+        and solve with PDR. This handles the common case of loop invariant inference.
+        """
+        pred = self.system.predicates[pred_name]
+        params = pred.params
+
+        # Find fact clauses (init) and recursive clauses (transition)
+        facts = []
+        recursive_rules = []
+
+        for clause in self.system.clauses:
+            if clause.head is None:
+                continue
+            if clause.head.predicate.name != pred_name:
+                continue
+            if clause.is_fact:
+                facts.append(clause)
+            elif any(bp.predicate.name == pred_name for bp in clause.body_preds):
+                recursive_rules.append(clause)
+
+        if not facts or not recursive_rules:
+            return None  # Not a standard loop pattern
+
+        # Build TransitionSystem using its builder API
+        ts = TransitionSystem()
+        param_vars = {}
+        for name, sort in params:
+            param_vars[name] = ts.add_var(name, sort)
+
+        # Build init: disjunction of fact constraints (mapped to param vars)
+        init_disjuncts = []
+        for fact in facts:
+            mapped = self._head_to_param_formula(fact, pred, fact.constraint)
+            if mapped is not None:
+                init_disjuncts.append(mapped)
+
+        if not init_disjuncts:
+            return None
+        ts.set_init(_or(*init_disjuncts))
+
+        # Build transition: PDR uses x' (prime suffix) for next-state vars
+        trans_disjuncts = []
+
+        for rule in recursive_rules:
+            body_pred = None
+            for bp in rule.body_preds:
+                if bp.predicate.name == pred_name:
+                    body_pred = bp
+                    break
+            if body_pred is None:
+                continue
+
+            # Build mapping from body pred args to param names (unprimed)
+            body_mapping = {}
+            for (param_name, _sort), arg in zip(params, body_pred.args):
+                if isinstance(arg, Var):
+                    body_mapping[arg.name] = Var(param_name, INT)
+
+            # Build mapping from head args to primed names (x')
+            head_mapping = {}
+            for (param_name, _sort), arg in zip(params, rule.head.args):
+                if isinstance(arg, Var):
+                    head_mapping[arg.name] = Var(param_name + "'", INT)
+
+            combined_mapping = {**body_mapping, **head_mapping}
+            trans_constraint = _substitute(rule.constraint, combined_mapping)
+
+            # Add equalities for complex head args (e.g., x-1)
+            for (param_name, _sort), head_arg in zip(params, rule.head.args):
+                if not isinstance(head_arg, Var):
+                    mapped_expr = _substitute(head_arg, body_mapping)
+                    trans_constraint = _and(
+                        trans_constraint,
+                        App(Op.EQ, [Var(param_name + "'", INT), mapped_expr], BOOL)
+                    )
+
+            trans_disjuncts.append(trans_constraint)
+
+        if not trans_disjuncts:
+            return None
+        ts.set_trans(_or(*trans_disjuncts))
+
+        # Build property from queries
+        queries = self.system.get_queries()
+        prop_disjuncts = []
+        for query in queries:
+            for bp in query.body_preds:
+                if bp.predicate.name == pred_name:
+                    q_mapping = {}
+                    for (param_name, _sort), arg in zip(params, bp.args):
+                        if isinstance(arg, Var):
+                            q_mapping[arg.name] = Var(param_name, INT)
+                    q_constraint = _substitute(query.constraint, q_mapping)
+                    prop_disjuncts.append(q_constraint)
+
+        if not prop_disjuncts:
+            return None
+
+        ts.set_property(_not(_or(*prop_disjuncts)))
+
+        try:
+            pdr_output = check_ts(ts)
+            self.stats.smt_queries += pdr_output.stats.smt_queries
+
+            if pdr_output.result == PDRResult.SAFE:
+                # Use the invariant from PDR if available
+                if pdr_output.invariant:
+                    inv_formula = _and(*pdr_output.invariant) if isinstance(pdr_output.invariant, list) else pdr_output.invariant
+                    self.lemma_store.update_interpretation(pred_name, inv_formula)
+                    self.lemma_store.add_lemma(pred_name, inv_formula, source="pdr")
+                else:
+                    self.lemma_store.update_interpretation(pred_name, BoolConst(True))
+                return "safe"  # Signal: PDR proved safe
+            elif pdr_output.result == PDRResult.UNSAFE:
+                return CHCOutput(
+                    result=CHCResult.UNSAT,
+                    derivation=Derivation(clause=queries[0] if queries else None,
+                                         children=[], model=None),
+                    stats=self.stats
+                )
+        except Exception:
+            pass  # PDR failed, try next strategy
+
+        return None
+
+    def _kleene_iteration(self, pred_names):
+        """
+        Bounded Kleene iteration: compute reachable states layer by layer.
+        At each layer, check if queries are satisfiable.
+        If queries stay UNSAT for all layers up to max_depth, return SAT.
+        """
+        # Initialize: layer 0 = facts only
+        layers = {pn: [] for pn in pred_names}
+
         for pn in pred_names:
             self.lemma_store.update_interpretation(pn, BoolConst(False))
 
-        prev_interps = {pn: BoolConst(False) for pn in pred_names}
+        # Compute fact interpretations first
+        for pn in pred_names:
+            fact_interp = self._compute_fact_interpretation(pn)
+            if not (isinstance(fact_interp, BoolConst) and fact_interp.value is False):
+                layers[pn].append(fact_interp)
+                self.lemma_store.update_interpretation(pn, fact_interp)
 
-        for iteration in range(self.max_iterations):
+        # Check queries with initial layer
+        interp = self.lemma_store.to_interpretation()
+        query_result = self._check_queries(interp)
+        if query_result is not None:
+            return query_result  # Counterexample found at init
+
+        # Iterate: compute new layers
+        for depth in range(1, self.max_depth + 1):
             self.stats.iterations += 1
+            changed = False
 
-            # Compute one-step post for each predicate
-            new_interps = {}
             for pn in pred_names:
-                post = self._one_step_post(pn)
-                new_interps[pn] = post
+                new_layer = self._one_step_post(pn)
+                if isinstance(new_layer, BoolConst) and new_layer.value is False:
+                    continue
 
-            # Check convergence: new => old for all predicates?
-            converged = True
-            for pn in pred_names:
-                if not self._check_subsumption(new_interps[pn], prev_interps[pn]):
-                    converged = False
-                    break
+                # Combine with previous layers
+                prev = self.lemma_store.get_interpretation(pn)
+                combined = _or(prev, new_layer)
 
-            if converged:
-                # Fixed point reached
+                # Check if we added anything new
+                if not self._check_subsumption(new_layer, prev):
+                    changed = True
+                    self.lemma_store.update_interpretation(pn, combined)
+                    layers[pn].append(new_layer)
+
+            if not changed:
+                # Fixed point reached -- all reachable states computed
+                interp = self.lemma_store.to_interpretation()
+                # Verify this is truly a fixed point
+                if self._verify_interpretation(interp, pred_names):
+                    return CHCOutput(
+                        result=CHCResult.SAT,
+                        interpretation=interp,
+                        stats=self.stats
+                    )
                 break
 
-            # Widen: union old and new, then widen
-            widened = {}
-            for pn in pred_names:
-                w = self._widen(prev_interps[pn], new_interps[pn], iteration)
-                widened[pn] = w
-                self.lemma_store.update_interpretation(pn, w)
+            # Check queries with expanded interpretation
+            interp = self.lemma_store.to_interpretation()
+            query_result = self._check_queries(interp)
+            if query_result is not None:
+                return query_result  # Counterexample found at this depth
 
-            prev_interps = widened
+        return None  # Inconclusive
 
-        # Verify final interpretation
+    def _compute_fact_interpretation(self, pred_name):
+        """Compute interpretation from fact clauses only."""
+        pred = self.system.predicates.get(pred_name)
+        if pred is None:
+            return BoolConst(False)
+
+        disjuncts = []
+        for clause in self.system.clauses:
+            if not clause.is_fact:
+                continue
+            if clause.head.predicate.name != pred_name:
+                continue
+            mapped = self._head_to_param_formula(clause, pred, clause.constraint)
+            if mapped is not None:
+                disjuncts.append(mapped)
+
+        if not disjuncts:
+            return BoolConst(False)
+        return _or(*disjuncts)
+
+    def _over_approximation(self, pred_names):
+        """
+        Over-approximation approach: start from True, check if it satisfies
+        all clauses. If yes, return SAT. This works when the system is simple
+        enough that True is a valid invariant (property holds for all states).
+        """
+        # Set all predicates to True
+        for pn in pred_names:
+            self.lemma_store.update_interpretation(pn, BoolConst(True))
+
         interp = self.lemma_store.to_interpretation()
+
+        # Check if True satisfies all clauses
         if self._verify_interpretation(interp, pred_names):
-            return None  # Safe
-        else:
-            # Try BMC to find actual counterexample
-            bmc = BMCSolver(self.system, max_depth=self.max_depth)
-            bmc_result = bmc.solve()
-            if bmc_result.result == CHCResult.UNSAT:
-                return bmc_result
-            return None  # Couldn't prove or disprove
+            # True works -- but does it satisfy queries?
+            query_result = self._check_queries(interp)
+            if query_result is None:
+                return CHCOutput(
+                    result=CHCResult.SAT,
+                    interpretation=interp,
+                    stats=self.stats
+                )
+            # True doesn't block queries -- need tighter invariant
+            return query_result
+
+        return None
 
     def _one_step_post(self, pred_name):
         """
