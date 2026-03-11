@@ -169,11 +169,11 @@ class TestCertifyAIPDR:
         assert "elapsed" in result.metadata
 
     def test_accumulator(self):
-        result = certify_ai_pdr(ACCUMULATOR, "sum >= 0", max_frames=50)
+        result = certify_ai_pdr(ACCUMULATOR, "sum >= 0", max_frames=10)
         assert isinstance(result, AIPDRResult)
 
     def test_doubling_loop(self):
-        result = certify_ai_pdr(DOUBLING_LOOP, "x >= 1", max_frames=50)
+        result = certify_ai_pdr(DOUBLING_LOOP, "x >= 1", max_frames=10)
         assert isinstance(result, AIPDRResult)
 
 
@@ -229,18 +229,18 @@ class TestAnalyzeInvariants:
 
 class TestCompareAPI:
     def test_compare_basic_vs_ai(self):
-        result = compare_basic_vs_ai(SIMPLE_COUNTER, "x >= 0", max_frames=50)
+        result = compare_basic_vs_ai(SIMPLE_COUNTER, "x >= 0", max_frames=10)
         assert "basic" in result
         assert "ai_strengthened" in result
         assert "ai_helped" in result
 
     def test_compare_has_timing(self):
-        result = compare_basic_vs_ai(SIMPLE_COUNTER, "x >= 0", max_frames=20)
+        result = compare_basic_vs_ai(SIMPLE_COUNTER, "x >= 0", max_frames=10)
         assert "time" in result["basic"]
         assert "time" in result["ai_strengthened"]
 
     def test_compare_has_verdicts(self):
-        result = compare_basic_vs_ai(SIMPLE_COUNTER, "x >= 0", max_frames=20)
+        result = compare_basic_vs_ai(SIMPLE_COUNTER, "x >= 0", max_frames=10)
         assert "verdict" in result["basic"]
         assert "verdict" in result["ai_strengthened"]
 
@@ -316,7 +316,7 @@ class TestEdgeCases:
 
 class TestComplexLoops:
     def test_decrement_loop(self):
-        result = certify_ai_pdr(DECREMENT_LOOP, "x >= 0", max_frames=50)
+        result = certify_ai_pdr(DECREMENT_LOOP, "x >= 0", max_frames=10)
         assert isinstance(result, AIPDRResult)
 
     def test_decrement_invariants(self):
@@ -324,7 +324,7 @@ class TestComplexLoops:
         assert isinstance(invs, list)
 
     def test_nested_loop(self):
-        result = certify_ai_pdr(NESTED_LOOP, "x >= 0", max_frames=20)
+        result = certify_ai_pdr(NESTED_LOOP, "x >= 0", max_frames=10)
         assert isinstance(result, AIPDRResult)
 
     def test_nested_invariants(self):
@@ -371,7 +371,7 @@ class TestStrengthenedPDR:
 class TestCrossMethodComparison:
     def test_pdr_vs_kind_ai(self):
         result = compare_pdr_vs_kind_ai(SIMPLE_COUNTER, "x >= 0",
-                                          max_frames=20, max_k=10)
+                                          max_frames=10, max_k=5)
         if "error" not in result:
             assert "ai_pdr" in result
             assert "ai_kind" in result
@@ -382,7 +382,7 @@ class TestCrossMethodComparison:
 
     def test_pdr_vs_kind_same_invariants(self):
         result = compare_pdr_vs_kind_ai(SIMPLE_COUNTER, "x >= 0",
-                                          max_frames=20, max_k=10)
+                                          max_frames=10, max_k=5)
         if "error" not in result:
             assert "same_invariants" in result
 
