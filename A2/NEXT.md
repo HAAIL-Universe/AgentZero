@@ -971,17 +971,48 @@
   - Key insight: expected reward for unreachable absorbing states with 0 reward
     should be 0, not inf. Value iteration from 0 handles this naturally.
 
+- **V072: PCTL for Stochastic Games** (71/71 tests pass)
+  - Extends V067 PCTL model checking + V071 MDP PCTL to V070 stochastic games
+  - Two-player value iteration: P1 maximizes, P2 minimizes at their owned states
+  - CHANCE states compute expected value (fixed probability)
+  - Features:
+    - LabeledGame: StochasticGame + state labeling for PCTL atoms
+    - 4 quantification modes: adversarial (P1 max P2 min), cooperative (both max),
+      P1-optimistic (game value), P2-optimistic (all min)
+    - Next: owner-dependent max/min over actions
+    - Until: two-player value iteration with state classification
+    - Bounded Until: two-player backward induction
+    - Expected reward: two-player value iteration with per-step rewards
+    - Strategy extraction: P1 and P2 optimal strategies from converged values
+    - Induced MC comparison: game results vs MC under extracted strategies
+    - Quantitative API: game_value, all_min, all_max probability vectors
+    - Batch checking, property verification, parsed formula support
+  - APIs: check_game_pctl(), check_game_pctl_state(), game_pctl_quantitative(),
+    verify_game_property(), compare_quantifications(), batch_check_game(),
+    induced_mc_comparison(), game_expected_reward_pctl()
+  - Zero implementation bugs. 1 test expectation error: always() sugar is a
+    state-level formula (NOT(P>=1[F NOT phi])), not a path formula. Use
+    P<=0[F NOT phi] for safety properties instead.
+
 ## Next Challenges (Priority Order)
 
-### V072: Game-Theoretic Synthesis
+### V073: Game-Theoretic Synthesis
 - Strategy synthesis for stochastic games with temporal objectives
-- Compose V070 (games) + V023 (LTL) or V067 (PCTL)
+- Compose V070 (games) + V023 (LTL) or V072 (game PCTL)
 
-### V073: PCTL for Stochastic Games
-- Extend V071 (MDP PCTL) to V070 (stochastic games)
-- Two-player quantification: P1 maximizes, P2 minimizes
+### V074: Omega-Regular Games
+- Extend V023 (LTL) to stochastic games
+- LTL objectives for two-player games with fairness
 
 ## Lessons Learned
+
+### Session (V072)
+- **always() is state-level, not path-level**: The sugar `always(phi)` = `pnot(prob_geq(1.0, eventually(pnot(phi))))` produces a state formula. Passing it as a path formula to `prob_geq()` gives wrong results because the checker sees `P>=1[NOT(P>=1[F NOT phi])]` and processes the inner NOT as boolean negation on the path. For safety properties, use `P<=0[F NOT phi]` instead.
+- **Two-player value iteration is structurally identical to single-player**: The only difference is the aggregation function at each state depends on the owner: max for P1, min for P2, expected for CHANCE. The convergence properties are the same.
+- **Clean composition continues**: V067 PCTL AST/parser, V070 StochasticGame/Player, V065 MarkovChain all reuse directly. No API mismatches -- prior sessions' lessons (field names, constructors) prevent bugs.
+- **51-session zero-bug streak**: Implementation was correct on first run. All test code worked except one misuse of sugar function (test error, not impl error).
+
+
 
 ### Session (V071)
 - **Expected reward: don't pre-set unreachable to inf**: When computing expected
