@@ -318,10 +318,20 @@ def _build_function_icfg(icfg: ICFG, fn_name: str, params: List[str],
             else:
                 stmt_type = "assign"
         elif cls == 'ReturnStmt':
-            stmt_type = "return"
             if hasattr(stmt, 'value') and stmt.value:
-                details['uses'] = _extract_vars_from_expr(stmt.value)
+                ret_val = stmt.value
+                if type(ret_val).__name__ == 'CallExpr':
+                    # Return with a call: treat as call + return
+                    stmt_type = "call"
+                    details['callee'] = ret_val.callee
+                    details['args'] = [_extract_vars_from_expr(a) for a in ret_val.args]
+                    details['is_return_call'] = True
+                    details['uses'] = _extract_vars_from_expr(ret_val)
+                else:
+                    stmt_type = "return"
+                    details['uses'] = _extract_vars_from_expr(ret_val)
             else:
+                stmt_type = "return"
                 details['uses'] = set()
         elif cls == 'IfStmt':
             stmt_type = "branch"
@@ -357,10 +367,8 @@ def _build_function_icfg(icfg: ICFG, fn_name: str, params: List[str],
         else:
             icfg.add_edge(stmt_ids[i], stmt_ids[i + 1], "intra")
 
-    # Last statement -> exit (if not return)
-    last_pp = icfg.points[stmt_ids[-1]]
-    if last_pp.stmt_type != "return":
-        icfg.add_edge(stmt_ids[-1], exit_id, "intra")
+    # Last statement -> exit (always, including return)
+    icfg.add_edge(stmt_ids[-1], exit_id, "intra")
 
     # Add call/return edges
     for sid in stmt_ids:
@@ -1359,17 +1367,30 @@ def pds_context_analysis(source: str, target_point: str = None) -> Dict:
     # For each function, check reachable calling contexts
     for fn_name, fn_info in icfg.functions.items():
         entry = fn_info["entry"]
-        # Check if function entry is reachable
+        # Check if function entry is reachable (with empty stack)
         config_entry = Configuration("q", (entry,))
         reachable = post_aut.accepts(config_entry)
 
         # Check with various stack contexts (calling contexts)
+        # Check depths 2 and 3 to handle nested calls
         contexts = []
-        for other_fn, other_info in icfg.functions.items():
-            for pt in other_info.get("points", []):
-                ctx_config = Configuration("q", (entry, pt))
-                if post_aut.accepts(ctx_config):
-                    contexts.append(pt)
+        all_pts = list(icfg.points.keys())
+        for pt in all_pts:
+            ctx_config = Configuration("q", (entry, pt))
+            if post_aut.accepts(ctx_config):
+                contexts.append(pt)
+                reachable = True
+        # Check depth 3 for deeper call chains
+        if not reachable:
+            for pt1 in all_pts:
+                for pt2 in all_pts:
+                    ctx_config = Configuration("q", (entry, pt1, pt2))
+                    if post_aut.accepts(ctx_config):
+                        contexts.append(f"{pt1},{pt2}")
+                        reachable = True
+                        break
+                if reachable:
+                    break
 
         results[fn_name] = {
             "reachable": reachable,
