@@ -49,7 +49,7 @@ def make_tropical_wfa(states, initial, final, transitions):
     for s in states:
         iw = initial.get(s, sr.zero())
         fw = final.get(s, sr.zero())
-        wfa.add_state(s, initial_weight=iw, final_weight=fw)
+        wfa.add_state(s, initial=iw, final=fw)
     for src, label, dst, w in transitions:
         wfa.add_transition(src, label, dst, w)
     return wfa
@@ -62,7 +62,7 @@ def make_probability_wfa(states, initial, final, transitions):
     for s in states:
         iw = initial.get(s, sr.zero())
         fw = final.get(s, sr.zero())
-        wfa.add_state(s, initial_weight=iw, final_weight=fw)
+        wfa.add_state(s, initial=iw, final=fw)
     for src, label, dst, w in transitions:
         wfa.add_transition(src, label, dst, w)
     return wfa
@@ -75,7 +75,7 @@ def make_counting_wfa(states, initial, final, transitions):
     for s in states:
         iw = initial.get(s, sr.zero())
         fw = final.get(s, sr.zero())
-        wfa.add_state(s, initial_weight=iw, final_weight=fw)
+        wfa.add_state(s, initial=iw, final=fw)
     for src, label, dst, w in transitions:
         wfa.add_transition(src, label, dst, w)
     return wfa
@@ -190,18 +190,21 @@ class TestBoundedInclusionTropical:
         assert result.included
 
     def test_empty_language(self):
-        """Empty WFA is included in anything."""
+        """WFA with no final states: weight is inf (tropical zero) for all words.
+        inf is NOT <= finite, so not included. This is correct for tropical."""
         sr = TropicalSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0)
-        # No final states
+        a.add_state(0, initial=0.0)
+        # No final states -> all words have weight inf
 
         b = make_tropical_wfa(
             [0, 1], {0: 0.0}, {1: 0.0},
             [(0, 'a', 1, 1.0)]
         )
         result = bounded_inclusion_check(a, b, max_length=3)
-        assert result.included
+        # inf > 1.0, so not included. But empty string: a has inf, b has inf -> ok.
+        # "a": a has inf, b has 1.0 -> inf > 1.0 -> not included
+        assert not result.included
 
     def test_loop_wfa(self):
         """WFA with loops."""
@@ -300,9 +303,9 @@ class TestBoundedEquivalence:
         """Two empty WFAs are equivalent."""
         sr = TropicalSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0)
+        a.add_state(0, initial=0.0)
         b = WFA(sr)
-        b.add_state(0, initial_weight=0.0)
+        b.add_state(0, initial=0.0)
         result = bounded_equivalence_check(a, b, max_length=3)
         assert result.equivalent
 
@@ -358,9 +361,9 @@ class TestWeightedBisimulation:
         """Different final weights break bisimulation."""
         sr = TropicalSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0, final_weight=1.0)
+        a.add_state(0, initial=0.0, final=1.0)
         b = WFA(sr)
-        b.add_state(0, initial_weight=0.0, final_weight=2.0)
+        b.add_state(0, initial=0.0, final=2.0)
 
         result = weighted_bisimulation(a, b)
         assert not result.bisimilar
@@ -896,19 +899,20 @@ class TestEdgeCases:
         """WFA with one state that is both initial and final."""
         sr = TropicalSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0, final_weight=0.0)
+        a.add_state(0, initial=0.0, final=0.0)
 
         b = WFA(sr)
-        b.add_state(0, initial_weight=0.0, final_weight=0.0)
+        b.add_state(0, initial=0.0, final=0.0)
 
         result = check_inclusion(a, b, max_length=2)
         assert result.included
 
     def test_no_accepting_paths(self):
-        """WFA with no accepting paths (no final states)."""
+        """WFA with no final states: weight is inf for all words.
+        inf > finite, so not included in tropical."""
         sr = TropicalSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0)
+        a.add_state(0, initial=0.0)
         a.add_state(1)
         a.add_transition(0, 'a', 1, 1.0)
 
@@ -917,7 +921,8 @@ class TestEdgeCases:
             [(0, 'a', 1, 5.0)]
         )
         result = check_inclusion(a, b, max_length=3)
-        assert result.included
+        # A("a") = inf (no final state), B("a") = 5.0. inf > 5.0, not included.
+        assert not result.included
 
     def test_self_loop_wfa(self):
         """WFA with self-loop."""
@@ -966,9 +971,9 @@ class TestEdgeCases:
         """WFAs with no transitions (only empty string)."""
         sr = TropicalSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0, final_weight=2.0)
+        a.add_state(0, initial=0.0, final=2.0)
         b = WFA(sr)
-        b.add_state(0, initial_weight=0.0, final_weight=5.0)
+        b.add_state(0, initial=0.0, final=5.0)
         result = check_inclusion(a, b, max_length=3)
         assert result.included
 
@@ -981,13 +986,13 @@ class TestMaxPlusSemiring:
     def test_maxplus_inclusion(self):
         sr = MaxPlusSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0, final_weight=0.0)
-        a.add_state(1, final_weight=0.0)
+        a.add_state(0, initial=0.0, final=0.0)
+        a.add_state(1, final=0.0)
         a.add_transition(0, 'a', 1, 3.0)
 
         b = WFA(sr)
-        b.add_state(0, initial_weight=0.0, final_weight=0.0)
-        b.add_state(1, final_weight=0.0)
+        b.add_state(0, initial=0.0, final=0.0)
+        b.add_state(1, final=0.0)
         b.add_transition(0, 'a', 1, 5.0)
 
         result = check_inclusion(a, b, max_length=3)
@@ -996,13 +1001,13 @@ class TestMaxPlusSemiring:
     def test_maxplus_not_included(self):
         sr = MaxPlusSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0, final_weight=0.0)
-        a.add_state(1, final_weight=0.0)
+        a.add_state(0, initial=0.0, final=0.0)
+        a.add_state(1, final=0.0)
         a.add_transition(0, 'a', 1, 8.0)
 
         b = WFA(sr)
-        b.add_state(0, initial_weight=0.0, final_weight=0.0)
-        b.add_state(1, final_weight=0.0)
+        b.add_state(0, initial=0.0, final=0.0)
+        b.add_state(1, final=0.0)
         b.add_transition(0, 'a', 1, 2.0)
 
         result = check_inclusion(a, b, max_length=3)
@@ -1017,13 +1022,13 @@ class TestViterbiSemiring:
     def test_viterbi_inclusion(self):
         sr = ViterbiSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=1.0, final_weight=1.0)
-        a.add_state(1, final_weight=1.0)
+        a.add_state(0, initial=1.0, final=1.0)
+        a.add_state(1, final=1.0)
         a.add_transition(0, 'a', 1, 0.3)
 
         b = WFA(sr)
-        b.add_state(0, initial_weight=1.0, final_weight=1.0)
-        b.add_state(1, final_weight=1.0)
+        b.add_state(0, initial=1.0, final=1.0)
+        b.add_state(1, final=1.0)
         b.add_transition(0, 'a', 1, 0.7)
 
         result = check_inclusion(a, b, max_length=3)
@@ -1032,13 +1037,13 @@ class TestViterbiSemiring:
     def test_viterbi_equivalence(self):
         sr = ViterbiSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=1.0, final_weight=1.0)
-        a.add_state(1, final_weight=1.0)
+        a.add_state(0, initial=1.0, final=1.0)
+        a.add_state(1, final=1.0)
         a.add_transition(0, 'a', 1, 0.5)
 
         b = WFA(sr)
-        b.add_state(0, initial_weight=1.0, final_weight=1.0)
-        b.add_state(1, final_weight=1.0)
+        b.add_state(0, initial=1.0, final=1.0)
+        b.add_state(1, final=1.0)
         b.add_transition(0, 'a', 1, 0.5)
 
         result = check_equivalence(a, b, max_length=3)
@@ -1112,7 +1117,7 @@ class TestAlphabetUtilities:
     def test_get_alphabet_empty(self):
         sr = TropicalSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=0.0, final_weight=0.0)
+        a.add_state(0, initial=0.0, final=0.0)
         alpha = _get_alphabet(a)
         assert alpha == []
 
@@ -1127,14 +1132,14 @@ class TestBooleanSemiring:
         sr = BooleanSemiring()
         # A accepts "a"
         a = WFA(sr)
-        a.add_state(0, initial_weight=True, final_weight=False)
-        a.add_state(1, final_weight=True)
+        a.add_state(0, initial=True, final=False)
+        a.add_state(1, final=True)
         a.add_transition(0, 'a', 1, True)
 
         # B accepts "a" and "b"
         b = WFA(sr)
-        b.add_state(0, initial_weight=True, final_weight=False)
-        b.add_state(1, final_weight=True)
+        b.add_state(0, initial=True, final=False)
+        b.add_state(1, final=True)
         b.add_transition(0, 'a', 1, True)
         b.add_transition(0, 'b', 1, True)
 
@@ -1145,14 +1150,14 @@ class TestBooleanSemiring:
         """A accepts "b" which B doesn't."""
         sr = BooleanSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=True, final_weight=False)
-        a.add_state(1, final_weight=True)
+        a.add_state(0, initial=True, final=False)
+        a.add_state(1, final=True)
         a.add_transition(0, 'a', 1, True)
         a.add_transition(0, 'b', 1, True)
 
         b = WFA(sr)
-        b.add_state(0, initial_weight=True, final_weight=False)
-        b.add_state(1, final_weight=True)
+        b.add_state(0, initial=True, final=False)
+        b.add_state(1, final=True)
         b.add_transition(0, 'a', 1, True)
 
         result = check_inclusion(a, b, max_length=3)
@@ -1204,13 +1209,13 @@ class TestMinMaxSemiring:
     def test_minmax_inclusion(self):
         sr = MinMaxSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=sr.one(), final_weight=sr.one())
-        a.add_state(1, final_weight=sr.one())
+        a.add_state(0, initial=sr.one(), final=sr.one())
+        a.add_state(1, final=sr.one())
         a.add_transition(0, 'a', 1, 3.0)
 
         b = WFA(sr)
-        b.add_state(0, initial_weight=sr.one(), final_weight=sr.one())
-        b.add_state(1, final_weight=sr.one())
+        b.add_state(0, initial=sr.one(), final=sr.one())
+        b.add_state(1, final=sr.one())
         b.add_transition(0, 'a', 1, 5.0)
 
         result = check_inclusion(a, b, max_length=3)
@@ -1219,13 +1224,13 @@ class TestMinMaxSemiring:
     def test_minmax_not_included(self):
         sr = MinMaxSemiring()
         a = WFA(sr)
-        a.add_state(0, initial_weight=sr.one(), final_weight=sr.one())
-        a.add_state(1, final_weight=sr.one())
+        a.add_state(0, initial=sr.one(), final=sr.one())
+        a.add_state(1, final=sr.one())
         a.add_transition(0, 'a', 1, 8.0)
 
         b = WFA(sr)
-        b.add_state(0, initial_weight=sr.one(), final_weight=sr.one())
-        b.add_state(1, final_weight=sr.one())
+        b.add_state(0, initial=sr.one(), final=sr.one())
+        b.add_state(1, final=sr.one())
         b.add_transition(0, 'a', 1, 2.0)
 
         result = check_inclusion(a, b, max_length=3)
