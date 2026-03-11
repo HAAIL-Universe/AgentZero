@@ -273,15 +273,11 @@ def _reduce_rabin(arena: GameArena, acc: AcceptanceCondition) -> ParityGame:
     """Rabin -> parity via Muller conversion + LAR.
 
     V076's rabin_to_parity has a bug with non-pair nodes. We use the
-    correct approach: convert Rabin to Muller table, then use LAR.
+    correct approach: convert Rabin to Muller table over ALL arena nodes,
+    then use LAR.
     A set S is Rabin-accepting iff exists pair (L_i, U_i): S & L_i = {} and S & U_i != {}.
     """
-    relevant = set()
-    for fin, inf in acc.rabin_pairs:
-        relevant.update(fin)
-        relevant.update(inf)
-
-    if not relevant:
+    if not acc.rabin_pairs:
         # No pairs -> no acceptance -> Odd wins
         pg = ParityGame()
         for n in arena.nodes:
@@ -291,12 +287,12 @@ def _reduce_rabin(arena: GameArena, acc: AcceptanceCondition) -> ParityGame:
                 pg.add_edge(n, s)
         return pg
 
-    # Build Muller table from Rabin pairs
+    # Build Muller table from Rabin pairs over ALL arena nodes
     from itertools import combinations
-    relevant_list = sorted(relevant)
+    all_nodes_list = sorted(arena.nodes)
     muller_table = set()
-    for r in range(len(relevant_list) + 1):
-        for subset in combinations(relevant_list, r):
+    for r in range(len(all_nodes_list) + 1):
+        for subset in combinations(all_nodes_list, r):
             s = frozenset(subset)
             for fin, inf in acc.rabin_pairs:
                 if not (s & fin) and (s & inf):
@@ -324,12 +320,12 @@ def _reduce_muller(arena: GameArena, acc: AcceptanceCondition) -> ParityGame:
 
     For efficiency, we only track nodes that appear in the Muller table.
     """
-    # Collect all nodes mentioned in the Muller table
-    relevant = set()
-    for s in acc.muller_table:
-        relevant.update(s)
+    # ALL arena nodes must be tracked in the LAR, not just those
+    # in the Muller table. Otherwise we can't distinguish e.g. {1,2}
+    # (accepting) from {0,1,2} (not accepting).
+    relevant = set(arena.nodes)
 
-    # If no relevant nodes, Even wins if empty set is accepting
+    # If no nodes at all, Even wins if empty set is accepting
     if not relevant:
         pg = ParityGame()
         trivial_win = frozenset() in acc.muller_table
@@ -521,23 +517,27 @@ def ltl_to_parity_game(arena: GameArena, formula: LTL,
 
     Pipeline: LTL -> NNF -> GBA -> NBA -> product arena -> Buchi parity game
 
+    Approach: Build NBA for the formula directly. Product game uses Buchi
+    acceptance (Even wins iff accepting states visited infinitely).
+    NBA nondeterminism is resolved via intermediate Even-owned choice nodes,
+    ensuring Even can exploit nondeterminism at Odd-owned arena states.
+
     Args:
         arena: Game arena with node labels (atomic propositions)
         formula: LTL formula that Player Even wants to satisfy
         initial_state: Initial arena state
 
     Returns:
-        (parity_game, state_map, initial_product_state)
+        (parity_game, state_map, initial_product_states)
         state_map: product_state -> (arena_node, nba_state)
     """
-    # LTL -> NBA
-    neg_formula = nnf(Not(formula))
-    gba = ltl_to_gba(neg_formula)
+    # LTL -> NBA for the formula (not negation)
+    formula_nnf = nnf(formula)
+    gba = ltl_to_gba(formula_nnf)
     nba = gba_to_nba(gba)
 
     # Build product arena x NBA
     # Product state: (arena_node, nba_state)
-    # NBA structure: initial is a set, transitions is Dict[state, List[(Label, dst)]]
     state_map = {}  # product_id -> (arena_node, nba_state)
     inv_map = {}    # (arena_node, nba_state) -> product_id
     next_id = 0
@@ -552,7 +552,6 @@ def ltl_to_parity_game(arena: GameArena, formula: LTL,
         return inv_map[key]
 
     # BFS to explore reachable product states
-    # nba.initial is a set of initial states
     initial_prods = set()
     queue = []
     visited = set()
@@ -571,10 +570,8 @@ def ltl_to_parity_game(arena: GameArena, formula: LTL,
         a_node, aut_state = state_map[pid]
         prod_successors[pid] = set()
 
-        # For each arena successor
         for a_succ in arena.successors.get(a_node, set()):
             succ_props = arena.labels.get(a_succ, set())
-            # NBA transitions: nba.transitions[aut_state] = [(Label, dst), ...]
             for label, aut_succ in nba.transitions.get(aut_state, []):
                 if not _label_match(label, succ_props):
                     continue
@@ -584,35 +581,82 @@ def ltl_to_parity_game(arena: GameArena, formula: LTL,
                     visited.add(succ_pid)
                     queue.append(succ_pid)
 
-    # Mark accepting product states (nba accepting)
+    # Mark accepting product states
     for pid in visited:
         _, aut_state = state_map[pid]
         if aut_state in nba.accepting:
             prod_accepting.add(pid)
 
-    # Build parity game from product
-    # This is a Buchi game for the NEGATION of the formula
-    # So Player Odd wants to accept (satisfy negation), Player Even wants to avoid
-    # We need to flip: make it a co-Buchi game for Even
-    # Actually: NBA accepts NOT(formula). Accepting infinitely -> Odd wins.
-    # So: rejecting states = accepting states of NBA(NOT(formula))
-    # Player Even wins if rejecting states visited finitely -> co-Buchi for Even
+    # Build parity game with Buchi acceptance for the formula
+    # Accepting states: priority 2 (even) -- Even wants to visit infinitely
+    # Non-accepting states: priority 1 (odd)
+    #
+    # NBA nondeterminism: at Odd-owned states, we add intermediate
+    # Even-owned choice nodes so Even resolves the NBA nondeterminism.
+
     pg = ParityGame()
+
+    # Add Odd-sink for dead ends (no matching NBA transition -> formula cannot be satisfied)
+    odd_sink_id = next_id
+    next_id += 1
+    pg.add_node(odd_sink_id, PGPlayer.ODD, 1)
+    pg.add_edge(odd_sink_id, odd_sink_id)
+
+    # For Even-owned states: all successors directly (Even resolves both
+    # arena and NBA choices, which is correct for Buchi acceptance)
+    # For Odd-owned states: group by arena successor, add Even-owned
+    # intermediate nodes for NBA choice within each arena move
+
     for pid in visited:
         a_node, _ = state_map[pid]
-        owner = _arena_owner_to_pg(arena.owner[a_node])
-        # co-Buchi: rejecting (NBA accepting) get priority 1, others get priority 0
-        priority = 1 if pid in prod_accepting else 0
-        pg.add_node(pid, owner, priority)
+        priority = 2 if pid in prod_accepting else 1
+        a_owner = arena.owner[a_node]
 
-    for pid in visited:
-        for spid in prod_successors.get(pid, set()):
-            pg.add_edge(pid, spid)
+        if a_owner == 0:  # Even owns this arena state
+            pg.add_node(pid, PGPlayer.EVEN, priority)
+        else:  # Odd owns this arena state
+            pg.add_node(pid, PGPlayer.ODD, priority)
 
-    # Ensure all nodes have successors (add self-loops for deadlocks)
+    # Add edges with NBA nondeterminism handling
     for pid in visited:
-        if not pg.successors.get(pid):
-            pg.add_edge(pid, pid)
+        a_node, aut_state = state_map[pid]
+        a_owner = arena.owner[a_node]
+        succs = prod_successors.get(pid, set())
+
+        if not succs:
+            pg.add_edge(pid, odd_sink_id)
+            continue
+
+        if a_owner == 0:
+            # Even-owned: Even controls all choices, just add all edges
+            for spid in succs:
+                pg.add_edge(pid, spid)
+        else:
+            # Odd-owned: Odd picks arena successor, Even picks NBA transition
+            # Group successors by arena successor
+            arena_groups = {}
+            for spid in succs:
+                a_succ, _ = state_map[spid]
+                arena_groups.setdefault(a_succ, []).append(spid)
+
+            if len(arena_groups) <= 1:
+                # Only one arena successor: no real Odd choice, add all
+                for spid in succs:
+                    pg.add_edge(pid, spid)
+            else:
+                # Multiple arena successors: add Even-owned intermediate nodes
+                for a_succ, nba_succs in arena_groups.items():
+                    if len(nba_succs) == 1:
+                        # Single NBA successor: direct edge
+                        pg.add_edge(pid, nba_succs[0])
+                    else:
+                        # Multiple NBA successors: intermediate Even-owned node
+                        choice_id = next_id
+                        next_id += 1
+                        pg.add_node(choice_id, PGPlayer.EVEN, 1)  # Neutral priority
+                        pg.add_edge(pid, choice_id)
+                        for spid in nba_succs:
+                            pg.add_edge(choice_id, spid)
 
     return pg, state_map, initial_prods
 
