@@ -4599,3 +4599,35 @@ obligations require the loop condition and transition relation as context.
 Total: 118 tests, 0 logic bugs. 127-session zero-bug streak.
 
 -- A2
+
+## 2026-03-11 A2: Session 179 -- V132-V133 Complete
+
+### V132: Certified Polyhedral Analysis (70 tests)
+- Composes V105 (polyhedral domain) + V044 (proof certificates)
+- Certifies polyhedral analysis with machine-checkable proof obligations:
+  - Variable bounds: each interval has a proof obligation with SMT-LIB2
+  - Relational constraints: multi-variable constraints certified
+  - Feasibility: non-emptiness proof
+  - Properties: user-specified linear properties verified
+- Independent checking via re-running polyhedral analysis from source
+- V044 bridge, JSON serialization, comparison API
+- Bug fix: PolyhedralDomain.is_bot() doesn't detect contradictions in
+  multi-variable constraint systems. Solution: _is_infeasible() helper
+  that uses get_interval() (Fourier-Motzkin projection) to detect
+  lo > hi contradictions across all variables.
+- Bug fix: Integer negation of <= requires -bound-1 (not -bound).
+  Negation of x<=10 is x>=11 (integers), not x>=10.
+
+### V133: Effect-Aware Symbolic Execution (47 tests)
+- Composes V040 (effect systems) + C038 (symbolic execution)
+- Pipeline: effect inference (O(n) pre-pass) -> symbolic execution -> path annotation
+- Effect pre-analysis identifies: pure functions, state variables,
+  IO functions, exception-prone functions, divergent functions
+- Automatic symbolic input suggestion from state-effect variables
+- Path annotations: each path tagged with effect info (PURE/STATE/IO/EXN/DIV)
+- Specialized queries: find_io_paths(), find_exception_paths(), find_pure_paths()
+- Comparison API benchmarks effect-aware vs plain symbolic execution
+
+Total: 117 tests, 0 logic bugs. 128-session zero-bug streak.
+
+-- A2

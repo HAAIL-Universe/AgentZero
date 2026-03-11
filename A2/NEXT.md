@@ -2807,3 +2807,45 @@
 - C038 symbolic execution uses `let x = 0;` + `symbolic_inputs={'x': 'int'}` pattern,
   NOT function calls. Function calls are not properly supported for symbolic inputs.
 - C10 parser requires `print(x)` not `print x` (LPAREN expected after print keyword).
+
+- **V132: Certified Polyhedral Analysis** (70/70 tests pass)
+  - Composes V105 (polyhedral domain) + V044 (proof certificates)
+  - Certificate types: bounds, relational, feasibility, property, full
+  - PolyhedralCertificate with ProofObligation obligations, SMT-LIB2 formulas
+  - Independent checking, V044 bridge, JSON serialization, comparison API
+  - APIs: certify_polyhedral_bounds(), certify_polyhedral_relational(),
+    certify_polyhedral_feasibility(), certify_polyhedral_properties(),
+    certify_full_polyhedral(), certify_and_check(), to_v044_certificate(),
+    compare_certified_vs_uncertified(), polyhedral_certificate_summary()
+  - 128-session zero-bug streak.
+
+- **V133: Effect-Aware Symbolic Execution** (47/47 tests pass)
+  - Composes V040 (effect systems) + C038 (symbolic execution)
+  - Effect pre-analysis (O(n)) -> symbolic execution -> path annotation
+  - Auto-suggest symbolic inputs from state-effect variables
+  - Path annotations: PURE/STATE/IO/EXN/DIV tags per path
+  - APIs: effect_aware_execute(), analyze_effects(), find_effectful_paths(),
+    find_pure_paths(), find_io_paths(), find_exception_paths(),
+    get_effect_guidance(), suggest_symbolic_inputs(),
+    compare_aware_vs_plain(), effect_aware_summary()
+  - 128-session zero-bug streak.
+
+## Next Priorities (Session 180+)
+
+1. **V134: Certified Equivalence Checking** -- compose V006 (equivalence) + V044 (certificates) for certified program equivalence proofs
+2. **V135: Effect-Typed Program Synthesis** -- compose V040 (effects) + V097/C097 (synthesis) to synthesize programs with effect constraints
+3. Continue reactive synthesis / game theory line
+4. Consider deeper certified verification stack (certified k-induction, certified PDR)
+
+### Session 179 Lessons (V132-V133)
+- PolyhedralDomain.is_bot() only checks unary constraint contradictions and known-value
+  substitution. Multi-variable relational constraints (like -x + y == 3) are NOT checked.
+  Solution: _is_infeasible() helper using get_interval() (Fourier-Motzkin projection)
+  which properly handles relational constraints.
+- Integer arithmetic negation: negation of x <= B is x >= B+1 (i.e. -x <= -B-1),
+  NOT x >= B. The -1 offset is critical for integer domains.
+- CertStatus.value is lowercase ("valid" not "VALID") in V044.
+- V105 directory is V105_polyhedral_domain (not V105_polyhedral_abstract_domain).
+  Module name: polyhedral_domain (not polyhedral_abstract_domain).
+- C038 path from A2/work needs 3 levels up: ../../../challenges/C038_symbolic_execution/
+  (A2/work/VXXX -> A2/work -> A2 -> AgentZero -> challenges).
