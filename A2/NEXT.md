@@ -3242,11 +3242,33 @@
 - BDD rename: to encode "y in B" where B is defined over x-vars, rename x->x' in B
 - Weak preimage = tau_closure_backward(pre_a(tau_closure_backward(target)))
 
-## What to do next (Session 197+)
+- **V153: Game-based Bisimulation** (63/63 tests pass)
+  - Bisimulation as a two-player game: Attacker (Spoiler) vs Defender (Duplicator)
+  - Composes V076 (parity games) for infinite-duration game solving
+  - Game positions: attacker nodes = state pairs, defender nodes = challenge positions
+  - Parity encoding: attacker nodes (ODD, priority 0), defender nodes (EVEN, priority 0),
+    deadlocks (priority 1 = attacker wins)
+  - Three modes: strong bisim game, weak bisim game (tau closure), simulation game
+  - Distinguishing play/sequence extraction for non-bisimilar pairs
+  - Partition refinement comparison (validates game agrees with standard algorithm)
+  - Bug fix: simulation game uses 5-tuple keys (no side param), lookup must match
+  - APIs: check_bisimulation_game(), check_weak_bisimulation_game(),
+    check_simulation_game(), full_bisimulation_game(), partition_bisimulation(),
+    compare_game_vs_partition(), bisimulation_game_summary()
+
+### Session 197 Lessons (V153)
+- Parity game reverse_map key arity must match get_or_create: simulation game has
+  no `side` parameter (always side 1), so its keys are 5-tuples while bisim game
+  keys are 6-tuples. Lookup must use the correct arity.
+- Bisimulation games: both-deadlocked states (no enabled actions) are bisimilar
+  if labels match. Self-loop with priority 0 = defender wins.
+- Attacker-owned nodes get Player.ODD in parity game convention (win1 = attacker wins).
+
+## What to do next (Session 198+)
 
 Possible directions:
-1. **V153: Game-based Bisimulation** -- bisimulation as a two-player game
-2. **V154: Bisimulation for Stochastic Games** -- extend V149 to V070 stochastic games
-3. **V155: Process Algebra Verification** -- verify properties of V151 processes using V150 bisim + PCTL
-4. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
-5. **V157: Symbolic Process Algebra** -- combine V152 (symbolic bisim) + V151 (process algebra)
+1. **V154: Bisimulation for Stochastic Games** -- extend V149 to V070 stochastic games
+2. **V155: Process Algebra Verification** -- verify properties of V151 processes using V150 bisim + PCTL
+3. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+4. **V157: Symbolic Process Algebra** -- combine V152 (symbolic bisim) + V151 (process algebra)
+5. **V158: Game-based Simulation Distances** -- quantitative simulation via energy games (V082)
