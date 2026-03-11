@@ -270,7 +270,7 @@ class MinimizedCEGAR:
                 )
 
             # Check feasibility of error paths
-            found_real = False
+            pre_refine_count = cegar.mgr.num_predicates
             for enode in error_nodes:
                 path = cegar._extract_path(enode)
                 feasible, model = cegar._check_feasibility(path)
@@ -289,7 +289,7 @@ class MinimizedCEGAR:
                         minimization_mode=mode.value,
                         minimization_iterations=self.minimization_iterations,
                         online_prunings=prune_count,
-                        counterexample=[(n.id, n.cfg_node.node_type.name) for n in path],
+                        counterexample=[(n.id, n.cfg_node.type.name) for n in path],
                         counterexample_inputs=model,
                         cegar_time_ms=cegar_time,
                         minimization_time_ms=min_time_accum,
@@ -299,9 +299,11 @@ class MinimizedCEGAR:
                 cegar._refine(path)
 
             # Online minimization: prune predicates periodically
-            if iteration % interval == 0 and cegar.mgr.num_predicates > 1:
+            # Only prune from pre-refinement predicates (newly added ones
+            # aren't in transition BDDs yet and would appear falsely dead)
+            if iteration % interval == 0 and pre_refine_count > 1:
                 min_start = time.time()
-                pruned = self._online_prune(cegar)
+                pruned = self._online_prune(cegar, pre_refine_count)
                 min_time_accum += (time.time() - min_start) * 1000
                 if pruned > 0:
                     prune_count += 1
@@ -325,17 +327,25 @@ class MinimizedCEGAR:
             minimization_time_ms=min_time_accum,
         )
 
-    def _online_prune(self, cegar: BDDCEGAR) -> int:
+    def _online_prune(self, cegar: BDDCEGAR, max_idx: int = -1) -> int:
         """Prune dead predicates from the CEGAR's predicate manager in-place.
 
         Uses BDD support analysis: predicates whose BDD variables don't appear
         in any transition BDD are dead and can be removed.
+
+        Args:
+            max_idx: Only consider predicates with index < max_idx for pruning.
+                     Predicates at or above this index are newly added and kept.
+                     If -1, consider all predicates.
 
         Returns number of predicates pruned.
         """
         mgr = cegar.mgr
         if mgr.num_predicates <= 1:
             return 0
+
+        if max_idx < 0:
+            max_idx = mgr.num_predicates
 
         # Collect all BDD variable indices appearing in transition BDDs
         live_vars = set()
@@ -349,16 +359,17 @@ class MinimizedCEGAR:
             if 0 <= pred_idx < mgr.num_predicates:
                 live_preds.add(pred_idx)
 
-        # Find dead predicates
-        all_preds = set(range(mgr.num_predicates))
-        dead_preds = all_preds - live_preds
+        # Find dead predicates (only among pre-refinement set)
+        candidate_preds = set(range(min(max_idx, mgr.num_predicates)))
+        dead_preds = candidate_preds - live_preds
 
         if not dead_preds:
             return 0
 
-        # Rebuild predicate manager with only live predicates
+        # Rebuild predicate manager: keep live candidates + all new predicates
+        keep_indices = (live_preds & candidate_preds) | set(range(max_idx, mgr.num_predicates))
         live_pred_list = [(mgr.predicates[i][0], mgr.predicates[i][1])
-                         for i in sorted(live_preds)]
+                         for i in sorted(keep_indices)]
 
         new_mgr = BDDPredicateManager()
         for term, desc in live_pred_list:
@@ -380,10 +391,10 @@ class MinimizedCEGAR:
 
         if node.var is not None:
             support.add(node.var)
-            if node.low is not None:
-                self._collect_bdd_support(node.low, support, visited)
-            if node.high is not None:
-                self._collect_bdd_support(node.high, support, visited)
+            if node.lo is not None:
+                self._collect_bdd_support(node.lo, support, visited)
+            if node.hi is not None:
+                self._collect_bdd_support(node.hi, support, visited)
 
     def _minimize_predicates(self, mgr: BDDPredicateManager) -> MinimizationResult:
         """Run predicate minimization using V122's SubsetVerifier."""
