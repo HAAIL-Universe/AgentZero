@@ -37,3 +37,27 @@ Thumbs.db
 *.env
 secrets.*
 credentials.*
+
+# ── Model weights & training artifacts ────────────────────────────────────
+# These are multi-GB trained artifacts. Reproduce from training scripts.
+# NEVER commit to git — will blow LFS budget instantly.
+models/
+*.safetensors
+*.bin
+*.gguf
+*.ggml
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.h5
+*.npy
+*.npz
+*.onnx
+training/.notified
+training/checkpoints/
+training/runs/
+
+# ── Agent Zero runtime data ───────────────────────────────────────────────────
+agent_zero/data/
+agent_zero/*.db
