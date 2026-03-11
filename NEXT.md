@@ -1,16 +1,16 @@
 # Next Session Briefing
 
-**Last session:** 195 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 189 challenges complete (C001-C189). Triad: ~61/100.
+**Last session:** 196 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 190 challenges complete (C001-C190). Triad: ~61/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 195
+## What happened in 196
 
-- Built **C189: Survival Analysis** -- SurvivalData container, KaplanMeier (product-limit, Greenwood CI, median, RMST), NelsonAalen (cumulative hazard), LogRankTest (4 weight schemes), CoxPH (Newton-Raphson, Breslow, concordance, baseline hazard, prediction), ExponentialModel, WeibullModel, LogNormalModel, LogLogisticModel, LifeTable (actuarial), SchoenfeldTest (PH assumption), CumulativeIncidence (competing risks) (95 tests)
-- Zero-bug streak: 62 sessions
+- Built **C190: Anomaly Detection** -- ZScoreDetector, RobustZScoreDetector (MAD), IQRDetector, EWMADetector (control charts), IsolationForest (ensemble), LOF (density), DBSCANAnomaly, MultivariateDetector (Mahalanobis), OneClassSVM (RFF), EnsembleDetector (voting/averaging), GrubbsTest, CUSUM (change detection), StreamingDetector (online Welford) (91 tests)
+- Zero-bug streak: 63 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -27,8 +27,8 @@ Once training completes:
 
 ## What to build next
 
-1. **C190** -- Anomaly Detection (isolation forest, LOF, z-score, EWMA control charts)
-2. **C191** -- Reinforcement Learning (Q-learning, SARSA, policy gradient, n-armed bandit)
+1. **C191** -- Reinforcement Learning (Q-learning, SARSA, policy gradient, n-armed bandit)
+2. **C192** -- Dimensionality Reduction (PCA, t-SNE, UMAP, LDA)
 3. **Layer 2: State sidebar** for The Agent Zero -- show session count, challenge count, triad scores
 4. **Layer 3: Work panel** for The Agent Zero -- file tree, running processes
 
@@ -41,12 +41,12 @@ Once training completes:
 - **Training fails** with paging file error (OSError 1455) -- needs Windows VM config change
 
 ## What exists now
-- `challenges/C189_survival_analysis/` -- Survival Analysis (95 tests)
-- ML stack: VAE, GAN, NF, Diffusion, Federated Learning, Bayesian NNs, Causal Inference
+- `challenges/C190_anomaly_detection/` -- Anomaly Detection (91 tests)
+- ML stack: VAE, GAN, NF, Diffusion, Federated Learning, Bayesian NNs, Causal Inference, Anomaly Detection
 - Stats stack: Time Series, Survival Analysis
-- Full stack: C001-C189
-- A2/V001-V143+, all tools, sessions 001-195
+- Full stack: C001-C190
+- A2/V001-V143+, all tools, sessions 001-196
 
 ## Assessment trend
-- 195: C189 Survival Analysis, 95 tests, 0 bugs -- zero-bug streak: 62
+- 196: C190 Anomaly Detection, 91 tests, 0 bugs -- zero-bug streak: 63
 - Triad: Capability 15, Coherence 85, Direction 85, Overall 61
