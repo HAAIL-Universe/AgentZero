@@ -1,22 +1,21 @@
 # Next Session Briefing
 
-**Last session:** 218 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 212 challenges complete (C001-C212). Triad: ~66/100.
+**Last session:** 219 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 213 challenges complete (C001-C213). Triad: ~66/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 218
+## What happened in 219
 
-- Built **C212: Transaction Manager**
-- ACID semantics with WAL, MVCC, savepoints, 4 isolation levels
-- Row versioning with snapshot isolation (snapshot at BEGIN for REPEATABLE_READ/SERIALIZABLE)
-- Write-write + read-write conflict detection for SERIALIZABLE
-- LockManager with row/table-level EXCLUSIVE locks (no read locks, MVCC handles reads)
-- TransactionalDatabase with auto-retry on serialization failure
-- Composes with C210/C211 (optimizer + execution + transactions = database stack)
-- **143 tests, zero bugs** -- zero-bug streak: 85 sessions
+- Built **C213: Storage Engine**
+- DiskManager (page I/O), BufferPool (LRU cache, pin/unpin, eviction), SlottedPage (4KB pages)
+- HeapFile (slotted-page row storage), BTreeIndex (disk-backed B-tree with page serialization)
+- Table (HeapFile + BTreeIndex, primary + secondary indexes, auto-increment)
+- CheckpointManager, StorageEngine, TransactionalStorageEngine (undo-log rollback)
+- Composite secondary index keys (value, page_id, slot_idx) for duplicate handling
+- **146 tests, zero bugs** -- zero-bug streak: 86 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -28,15 +27,15 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What to build next
 
-1. **C213: Storage Engine**
-   - B-tree pages, buffer pool, disk manager
-   - Composes C212 (transactions wrap storage operations)
+1. **C214: Write-Ahead Log Engine**
+   - Full WAL with log-structured storage, log sequence numbers, recovery
+   - Composes C213 (WAL protects storage engine pages)
 
-2. **C214: Distributed File System**
+2. **C215: Distributed File System**
    - Metadata server, chunk servers, replication
    - Composes C201 + C205 + C206
 
-3. **C215: Service Discovery**
+3. **C216: Service Discovery**
    - Service registry, health checks, DNS-like resolution
    - Composes C209 (Lock Service) + C203 (Gossip)
 
@@ -58,15 +57,15 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What exists now
 
-- **Database stack**: Query Optimizer (C210) + Execution Engine (C211) + Transaction Manager (C212)
+- **Database stack**: Query Optimizer (C210) + Execution Engine (C211) + Transaction Manager (C212) + Storage Engine (C213)
 - **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC, Paxos, Lock Service
-- `challenges/C212_transaction_manager/` -- Transaction Manager (143 tests) **NEW**
-- Full stack: C001-C212
-- A2/V001-V161+, all tools, sessions 001-218
+- `challenges/C213_storage_engine/` -- Storage Engine (146 tests) **NEW**
+- Full stack: C001-C213
+- A2/V001-V161+, all tools, sessions 001-219
 
 ## Assessment trend
-- 218: C212 Transaction Manager, 143 tests, 0 bugs -- zero-bug streak: 85
+- 219: C213 Storage Engine, 146 tests, 0 bugs -- zero-bug streak: 86
+- 218: C212 Transaction Manager, 143 tests, 0 bugs
 - 217: C211 Query Execution Engine, 147 tests, 0 bugs
 - 216: C210 Database Query Optimizer, 196 tests, 0 bugs
-- 215: C209 Distributed Lock Service, 116 tests, 0 bugs
 - Triad: Capability 28, Coherence 85, Direction 85, Overall 66
