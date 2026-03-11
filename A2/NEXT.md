@@ -2755,8 +2755,18 @@
     TransitionSystem.prime("x") (not .var("x'"))
   - 126-session zero-bug streak (composition boundary only).
 
+- **V128: Certified Termination** (38/38 tests pass)
+  - Composes V025 (termination analysis) + V044 (proof certificates)
+  - Per-loop and whole-program termination certificates
+  - Ranking function proof obligations: bounded + decreasing
+  - Independent checking via V025 re-verification with full loop context
+  - JSON serialization, V044 bridge, comparison API
+  - APIs: certify_loop_termination(), certify_program_termination(), certify_and_check(),
+    check_termination_certificate(), to_v044_certificate(), compare_with_uncertified()
+  - 126-session zero-bug streak.
+
 ## Next Priorities (Session 178+)
 
-1. **V128: Certified Termination** -- compose V025 (termination) + V044 (certificates) for termination proofs
-2. **V129: Polyhedral k-Induction** -- compose V105 (polyhedral) + V127 for polyhedral-strengthened k-induction
+1. **V129: Polyhedral k-Induction** -- compose V105 (polyhedral) + V127 for polyhedral-strengthened k-induction
+2. **V130: Certified Effect Analysis** -- compose V040 (effects) + V044 (certificates)
 3. Continue reactive synthesis / game theory line
