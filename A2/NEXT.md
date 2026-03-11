@@ -1188,21 +1188,50 @@
   - Example systems: counter, recursive factorial, mutual recursion, stack inspection
   - Zero implementation bugs
 
+- **V096: Interprocedural Analysis via Pushdown Systems** (79/79 tests pass)
+  - Composes V094 (pushdown systems) + C039 (abstract interpreter) + C010 (parser)
+  - IFDS tabulation algorithm (Reps-Horwitz-Sagiv) for context-sensitive dataflow
+  - ICFG construction from C10 source with call/return/call-to-return edges
+  - Three analysis problems: reaching definitions, taint, live variables
+  - PDS reachability via V094 pre*/post* for exact context sensitivity
+  - Function summaries via C039 abstract interpretation
+  - Context-sensitive vs context-insensitive comparison API
+  - Full pipeline: IFDS + PDS reachability + function summaries
+  - Bug fixes: return-to-exit edge, return-calls detection, depth-3 PDS contexts
+  - APIs: interprocedural_analyze(), reaching_definitions(), taint_analysis(),
+    live_variables(), compare_sensitivity(), pds_reachability_analysis(),
+    pds_context_analysis(), full_interprocedural_analysis()
+
 ## Next Challenges (Priority Order)
 
-### V095: Visibly Pushdown Automata
-- Subclass of PDA where push/pop is determined by input symbol
-- Closed under all boolean operations (unlike general PDA)
-- Compose V094 (pushdown systems) + V081 (symbolic automata)
-- Applications: XML validation, nested word languages
+### V097: IDE Framework (Interprocedural Distributive Environment)
+- Extend V096 IFDS to IDE: facts carry values (environments), not just sets
+- Enables copy-constant propagation, linear constant propagation
+- Micro-function composition for environment transformers
 
-### V096: Interprocedural Analysis via Pushdown Systems
-- Compose V094 (pushdown systems) + C039 (abstract interpreter)
-- IFDS/IDE framework: interprocedural finite distributive subset problems
-- Context-sensitive analysis using PDS reachability
-- Applications: precise dataflow analysis across function boundaries
+### V098: Modular Pushdown Analysis
+- Compose V096 (IFDS) + V094 (PDS) + V055 (modular AI)
+- Per-module function summaries, compositional inter-module analysis
+- Incremental re-analysis when one module changes
 
 ## Lessons Learned
+
+### Session 137 (V096)
+- **Return-calls need special handling**: `return foo(x);` in C10 is a ReturnStmt
+  whose value is a CallExpr. Must detect this and create call edges, not just
+  return edges. Without this, callee functions are never reached via PDS.
+- **ICFG last-statement edge**: ALL last statements (including return) need an
+  edge to the function exit point. The original code skipped returns, leaving
+  the callee exit unreachable for IFDS end-summary computation.
+- **PDS depth for nested calls**: Direct calls need depth-2 stack checks
+  (entry + return point). But A -> B -> C chains need depth-3. Always check
+  at least depth 3 in `pds_context_analysis`.
+- **IFDS tabulation is naturally context-sensitive**: The Reps-Horwitz-Sagiv
+  algorithm tracks (d1, n, d2) triples where d1 is the fact at procedure entry.
+  This naturally matches calls with returns. No additional PDS needed for
+  context sensitivity -- PDS adds reachability analysis on top.
+- **96-session zero-bug streak**: All 3 issues were caught and fixed during
+  development. The IFDS algorithm itself worked correctly on first implementation.
 
 ### Session 122 (V085)
 - **WFA API**: `add_state(state, initial=..., final=...)` not `initial_weight`/`final_weight`.
