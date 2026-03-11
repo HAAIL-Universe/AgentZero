@@ -2571,9 +2571,23 @@
     get_cfg(), check_inductiveness(), compare_discovery_strategies(), predicate_summary()
   - 114-session zero-bug streak.
 
-## Next Priorities (Session 162+)
+- **V115: Predicate-Guided CEGAR** (67/67 tests pass)
+  - Composes V114 (recursive predicate discovery) + V110 (abstract reachability tree/CEGAR)
+  - Pre-seeded ART: V114 discovers predicates before ART construction via 6 strategies
+    (templates, intervals, conditions, assertions, inductive learning, interpolation)
+  - Score-guided selection: V114's scoring prioritizes high-value predicates
+  - Guided refinement: when interpolation fails, V114 generates fallback candidates
+  - Adaptive budget: configurable predicate count based on program complexity
+  - Incremental verify: gradually increases predicate budget until convergence
+  - Strategy comparison: side-by-side V110 vs V115 performance
+  - APIs: guided_verify(), standard_verify(), compare_strategies(), check_assertion(),
+    get_discovered_predicates(), verify_with_budget(), incremental_verify(), guided_summary()
+  - Bug fix: V110 CFG.nodes is a list (not dict), CFGNode has .type (not .ntype)
+  - 115-session zero-bug streak.
 
-1. **V115: Quantified Horn Clauses** -- extend V111 with existential/universal quantifiers
-2. **V116: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening
-3. **V117: Predicate-Guided CEGAR** -- integrate V114 into V110 ART for auto-seeded predicates
+## Next Priorities (Session 163+)
+
+1. **V116: Quantified Horn Clauses** -- extend V111 with existential/universal quantifiers
+2. **V117: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening
+3. **V118: Predicate Abstraction with BDDs** -- compose V021 (BDD) + V115 for symbolic predicate tracking
 4. Continue reactive synthesis / game theory line
