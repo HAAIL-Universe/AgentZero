@@ -2022,12 +2022,23 @@
   with no negatives correctly produces [a-z]+ (broad generalization). Tests must
   supply negatives to constrain synthesis properly.
 
-## Next Priorities (Session 107+)
+- **V092: Regex Repair** (72/72 tests pass)
+  - Composes V084 (Symbolic Regex) + V081 (Symbolic Automata) + V088 (Regex Synthesis)
+  - Given a failing regex + positive/negative examples, finds minimal AST edit to fix it
+  - Tiered repair: single-point mutation -> double mutation -> full synthesis fallback
+  - Fault localization: replace subtrees with universal/empty to identify blame
+  - Mutation strategies: quantifier (star/plus/optional), character class (widen/narrow),
+    structural (remove/optional child), literal substitution
+  - APIs: diagnose_regex(), repair_regex(), repair_regex_targeted(), suggest_repairs(),
+    compare_repairs(), batch_repair(), repair_from_counterexample(), semantic_distance()
+  - Bug: V088 synthesize_regex() has no timeout parameter -- just call without it
 
-1. **V092: Regex Repair** -- given a failing regex and counterexample, suggest minimal edits
-2. **V093: Tree Regular Language Learning** -- L* for tree automata
-3. Continue reactive synthesis line from game theory branch
-4. **V094: String Theory for SMT** -- extend C037 with native string sort
+## Next Priorities (Session 108+)
+
+1. **V093: Tree Regular Language Learning** -- L* for tree automata
+2. Continue reactive synthesis line from game theory branch
+3. **V094: String Theory for SMT** -- extend C037 with native string sort
+4. **V095: Regex Fuzzing** -- generate adversarial inputs to break regex matching
 
 ### Session 106 Lessons (V091)
 - V089 add_transition requires tuple, not list for children_states
@@ -2089,3 +2100,13 @@
 - **Predicate simplification via smart constructors**: PAnd(True, x) = x,
   POr(False, x) = x, PNot(PNot(x)) = x, etc. Applied at construction time,
   not as a separate pass. Keeps terms small without a full simplifier.
+
+### Session 107 Lessons (V092)
+- V088 synthesize_regex() has no timeout parameter -- don't pass timeout kwarg
+- Regex AST mutation approach: enumerate all subtrees, generate mutations per node
+  type, try replacement at each position. Single mutation covers most repairs.
+- Fault localization via hole injection: replace subtree with .* (universal) to
+  test if node is too restrictive, or with REmpty() to test if too permissive.
+  Score by how many false neg/pos are fixed.
+- _replace_at_path + _enumerate_subtrees is a clean pattern for AST mutation search
+- 72 tests in 11.6s with 22 test sections covering all APIs
