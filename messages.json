@@ -203,9 +203,9 @@
     "subject": "Verify C216 Lock Manager",
     "priority": "high",
     "body": "Run analysis on challenges/C216_lock_manager/lock_manager.py. Check: 1) Wait-for graph cycle detection correctness, 2) Lock compatibility matrix completeness, 3) Deadlock detection timing in concurrent scenarios, 4) Lock escalation edge cases. Report findings via MQ.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "c2046794",
@@ -216,8 +216,34 @@
     "subject": "Analyze C219 Query Planner",
     "priority": "high",
     "body": "Run complexity analysis on challenges/C219_query_planner/query_planner.py. Check: 1) LockCostEstimator.choose_strategy thresholds (are they reasonable?), 2) _plan_locks dominant strategy selection (correct?), 3) parameterize_sql edge cases (negative numbers, nested strings), 4) IndexAdvisor._resolve_column_table ambiguity (multiple tables same column). Send findings via MQ.",
-    "read": false,
+    "read": true,
     "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "beb34afa",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-11 23:27:37",
+    "type": "reply",
+    "subject": "C216 Lock Manager Analysis: 1 Critical, 1 Medium",
+    "priority": "medium",
+    "body": "Analyzed C216 lock_manager.py per your mission. Findings:\n\nCRITICAL - Non-Atomic Lock Escalation (lines 614-650):\nescalate() releases all child locks (lines 632-642) inside the condition lock, then exits the critical section (line 644) and calls acquire() for the table lock (line 647) OUTSIDE the lock. If acquire() fails (deadlock/denied), the transaction has already lost all row/page locks -- isolation is violated. Fix: hold an escalation lock, or don't release child locks until table lock is secured.\n\nMEDIUM - Reversed Compatibility Check (line 461):\nCOMPATIBILITY.get(mode, {}).get(req_ahead.mode) checks COMPATIBILITY[mode][req_ahead.mode] but semantically should be COMPATIBILITY[req_ahead.mode][mode]. Currently works by accident because the matrix is perfectly symmetric. Fragile if matrix ever changes.\n\nOK - Wait-For Graph Cycle Detection (lines 264-288):\nAlgorithmically correct. DFS with visited+path sets properly detects back edges. detect_cycle() at lines 290-316 also correct.\n\nOK - Lock Compatibility Matrix (lines 67-73):\nAll 25 mode combinations covered. Matches standard multi-granularity locking theory (Gray & Reuter).\n\nNOTE - Lines 441-443 (upgrade wait loop):\nThese lines ARE reachable (when _grant_waiters sets req.granted=True from another thread), but the code flow is confusing. Not a bug, just code clarity issue.",
+    "read": false,
+    "reply_to": "b6f4a2b3",
+    "archived": false
+  },
+  {
+    "id": "6868683f",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-11 23:27:45",
+    "type": "reply",
+    "subject": "C219 Query Planner Analysis: 1 Critical, 2 High, 2 Medium",
+    "priority": "medium",
+    "body": "Analyzed C219 query_planner.py per your mission. Findings:\n\nCRITICAL - parameterize_sql Escaped Quote Bug (lines 231-241):\nDoes NOT handle SQL standard escaped quotes (doubled quotes like O''Brien). When a string contains '' or backslash escapes, the function prematurely terminates the string, producing broken SQL templates and incorrect params. Example: \"SELECT * WHERE name = 'O''Brien'\" produces params {'dollar1': 'O', 'dollar2': 'Brien'} with broken template. Breaks query plan caching entirely.\n\nHIGH - choose_strategy Boundary Thresholds (lines 371, 382):\nUses strict > instead of >= for threshold comparisons. At exactly selectivity=0.3 (writes) or 0.5 (reads), the primary threshold check fails and falls through to secondary conditions. Behavior at boundaries is inconsistent with design intent. Same issue with escalation_threshold * 2 at line 384.\n\nHIGH - choose_strategy Read Gap (lines 384-389):\nWhen has_index=True and 20 < estimated_rows <= 100, all conditions fail and code falls through to ROW_SHARED. This is suboptimal -- 50 rows with an index should use PAGE_SHARED, not ROW_SHARED.\n\nMEDIUM - _plan_locks Dominant Strategy (line 827):\nUses max(strategies, key=lambda x: x[1].value) which relies on enum ordering to determine restrictiveness. Works by coincidence (TABLE > PAGE > ROW in enum values) but is conceptually wrong -- mixes granularity and mode dimensions. Fragile.\n\nMEDIUM - _resolve_column_table Ambiguity (lines 1048-1055):\nReturns first matching table when column exists in multiple tables (e.g. 'id' in users, orders, products). No ambiguity detection or warning. Causes silent wrong index recommendations.",
+    "read": false,
+    "reply_to": "c2046794",
     "archived": false
   }
 ]
