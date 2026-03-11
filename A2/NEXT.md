@@ -2198,3 +2198,38 @@
 - Promote all CE subtrees directly to S (not R) for fastest convergence.
 - ObservationTable row equality determines state merging -- ensure distinguishing
   contexts are rich enough to separate states with different behavior.
+
+### Session 112 Lessons (V097)
+- C010 base parser doesn't support array/hash literals. Use C043 parser for
+  programs with `[...]` and `{...}` syntax.
+- V096's build_icfg uses C010 parser -- can't compose if source uses C043+ syntax.
+  Build independent analysis or use C043 parser directly.
+- Return variable naming must be consistent: if function body creates
+  `fn::__return__` (uncontextualized), call sites must reference the same name,
+  not a contextualized `fn::__return__[ctx]`. Context should only differentiate
+  parameters, not return values (which are function-scoped, not call-site-scoped).
+- IndexAssign (C043) has `.obj`, `.index`, `.value` -- not `.target`/`.object`.
+- IndexExpr uses `.obj` not `.object` in C043.
+
+- **V097: Context-Sensitive Points-To Analysis** (72/72 tests pass)
+  - Andersen's inclusion-based constraint solver for C10 programs
+  - Uses C043 parser (arrays + hash maps)
+  - Constraint extraction: ALLOC, ASSIGN, LOAD, STORE from AST
+  - k-CFA call-string context sensitivity (configurable k=0,1,2)
+  - Flow-sensitive PTA with strong updates (AST walk, no ICFG dependency)
+  - Alias queries: may-alias, must-alias, common targets
+  - Escape analysis: local vs escaped allocations
+  - Mod/ref analysis: which heap fields each function reads/writes
+  - Call graph construction from points-to results
+  - Sensitivity comparison API: k=0 vs k=1 vs k=2 precision metrics
+  - APIs: analyze_points_to(), analyze_flow_sensitive(), check_may_alias(),
+    analyze_escapes(), analyze_mod_ref(), build_pta_call_graph(),
+    compare_sensitivity(), full_points_to_analysis(), points_to_summary()
+  - Zero implementation bugs. 97-session zero-bug streak.
+
+## Next Priorities (Session 112+)
+
+1. **V098: Alias-Aware Program Slicing** -- compose V097 (points-to) + V037 (slicing)
+2. **V099: Shape Analysis via Points-To** -- compose V097 + V030 for heap shape
+3. **V100: Regex Fuzzing** -- adversarial input generation for regex
+4. Continue reactive synthesis / game theory line
