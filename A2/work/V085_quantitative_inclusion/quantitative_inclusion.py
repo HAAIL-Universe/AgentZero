@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V083_weighted_
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', 'challenges', 'C037_smt_solver'))
 
 from weighted_automata import (
-    Semiring, WFA, WFATransition,
+    Semiring, WFA,
     BooleanSemiring, TropicalSemiring, MaxPlusSemiring,
     ProbabilitySemiring, CountingSemiring, ViterbiSemiring,
     MinMaxSemiring, LogSemiring, make_semiring,
@@ -201,8 +201,8 @@ def _get_alphabet(wfa: WFA) -> List[str]:
     """Extract alphabet from WFA transitions."""
     alpha = set()
     for state in wfa.states:
-        for trans in wfa.transitions.get(state, []):
-            alpha.add(trans.label)
+        for label, dst, weight in wfa.transitions.get(state, []):
+            alpha.add(label)
     return sorted(alpha)
 
 
@@ -328,28 +328,27 @@ def build_product_wfa(a: WFA, b: WFA) -> WFA:
             if sr.is_zero(iwb):
                 continue
             ps = get_state(sa, sb)
-            product.initial_weights[ps] = sr.one()
+            product.initial_weight[ps] = sr.one()
 
     # Build transitions
     for sa in a.states:
         a_trans = a.transitions.get(sa, [])
-        for ta in a_trans:
+        for a_label, a_dst, a_w in a_trans:
             for sb in b.states:
                 b_trans = b.transitions.get(sb, [])
-                for tb in b_trans:
-                    if ta.label == tb.label:
+                for b_label, b_dst, b_w in b_trans:
+                    if a_label == b_label:
                         src = get_state(sa, sb)
-                        dst = get_state(ta.dst, tb.dst)
-                        # Product weight
-                        pw = sr.times(ta.weight, tb.weight)
-                        product.add_transition(src, ta.label, dst, pw)
+                        dst = get_state(a_dst, b_dst)
+                        pw = sr.times(a_w, b_w)
+                        product.add_transition(src, a_label, dst, pw)
 
     # Final weights
     for (sa, sb), ps in state_map.items():
         fwa = a.get_final_weight(sa)
         fwb = b.get_final_weight(sb)
         if not sr.is_zero(fwa) or not sr.is_zero(fwb):
-            product.final_weights[ps] = sr.times(fwa, fwb)
+            product.final_weight[ps] = sr.times(fwa, fwb)
 
     return product, state_map
 
@@ -397,12 +396,12 @@ def weighted_bisimulation(a: WFA, b: WFA, max_iter: int = 100) -> BisimulationRe
     trans = defaultdict(lambda: defaultdict(list))
 
     for sa in a_states:
-        for t in a.transitions.get(sa, []):
-            trans[a_map[sa]][t.label].append((a_map[t.dst], t.weight))
+        for label, dst, weight in a.transitions.get(sa, []):
+            trans[a_map[sa]][label].append((a_map[dst], weight))
 
     for sb in b_states:
-        for t in b.transitions.get(sb, []):
-            trans[b_map[sb]][t.label].append((b_map[t.dst], t.weight))
+        for label, dst, weight in b.transitions.get(sb, []):
+            trans[b_map[sb]][label].append((b_map[dst], weight))
 
     # Initial partition: group by final weight
     final_weight = {}
@@ -589,12 +588,12 @@ def _encode_tropical_wfa_smt(solver: SMTSolver, wfa: WFA, prefix: str,
             # For each source state and transition
             incoming = []
             for src_s in states:
-                for trans in wfa.transitions.get(src_s, []):
-                    if trans.dst == dst_s:
-                        sym_idx = alpha_map.get(trans.label, -1)
+                for t_label, t_dst, t_weight in wfa.transitions.get(src_s, []):
+                    if t_dst == dst_s:
+                        sym_idx = alpha_map.get(t_label, -1)
                         if sym_idx < 0:
                             continue
-                        w = int(trans.weight) if not math.isinf(trans.weight) else 999999
+                        w = int(t_weight) if not math.isinf(t_weight) else 999999
                         # If word_vars[t] == sym_idx, then incoming cost is d[t][src_s] + w
                         incoming.append((src_s, sym_idx, w))
 
@@ -690,11 +689,11 @@ def _weighted_forward_simulation(a: WFA, b: WFA) -> Tuple[bool, Optional[str]]:
     b_trans = defaultdict(lambda: defaultdict(list))
 
     for s in a_states:
-        for t in a.transitions.get(s, []):
-            a_trans[s][t.label].append((t.dst, t.weight))
+        for label, dst, weight in a.transitions.get(s, []):
+            a_trans[s][label].append((dst, weight))
     for s in b_states:
-        for t in b.transitions.get(s, []):
-            b_trans[s][t.label].append((t.dst, t.weight))
+        for label, dst, weight in b.transitions.get(s, []):
+            b_trans[s][label].append((dst, weight))
 
     # Initialize with initial state pairs
     initial_pairs = set()

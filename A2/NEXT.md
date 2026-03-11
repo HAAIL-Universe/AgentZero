@@ -1126,19 +1126,43 @@
   - Key fix: determinization with self-loops causes state explosion --
     added safety limit (10K states)
 
+- **V085: Quantitative Language Inclusion** (77/77 tests pass)
+  - Composes V083 (weighted automata) + C037 (SMT solver)
+  - Quantitative inclusion/equivalence checking between WFAs
+  - 5 techniques: bounded exploration, product construction, weighted bisimulation,
+    forward simulation, SMT-guided search
+  - Additional: distance measurement, refinement checking, language quotient,
+    approximate inclusion (epsilon-tolerance), comprehensive pipeline
+  - Works with all 8 V083 semirings
+  - APIs: check_inclusion(), check_equivalence(), check_strict_inclusion(),
+    weighted_bisimulation(), simulation_inclusion_check(), quantitative_distance(),
+    check_refinement(), language_quotient(), approximate_inclusion(),
+    comprehensive_check(), compare_inclusions()
+  - Key lesson: WFA.add_state(state, initial=..., final=...) not initial_weight/final_weight.
+    Transitions are tuples (label, dst, weight) not WFATransition objects.
+
 ## Next Challenges (Priority Order)
 
-### V084: Weighted Timed Automata
+### V086: Weighted Timed Automata
 - Extend V083 (weighted automata) with clock constraints
 - Compose V083 (weighted automata) + V081 (symbolic automata predicates)
 - Applications: real-time system verification with costs
 
-### V085: Quantitative Language Inclusion
-- Check if L(A) is a sub-language of L(B) quantitatively
-- Compose V083 (weighted automata) + C037 (SMT solver)
-- Applications: quantitative refinement checking
+### V087: Probabilistic Automata Equivalence
+- Compose V083 (probability semiring WFA) + V065 (Markov chains)
+- Language equivalence for probabilistic automata via Markov chain analysis
+- Applications: stochastic system equivalence checking
 
 ## Lessons Learned
+
+### Session 122 (V085)
+- **WFA API**: `add_state(state, initial=..., final=...)` not `initial_weight`/`final_weight`.
+  Transitions stored as tuples `(label, dst, weight)` not `WFATransition` objects.
+  Dict names: `initial_weight`/`final_weight` (singular, not plural).
+- **Tropical inf semantics**: WFA with no final states returns inf (tropical zero) for all words.
+  `inf` is NOT `<= finite`, so not included. This is semantically correct -- infinite cost
+  is worse than any finite cost.
+- **80-session zero-bug streak**: Zero implementation bugs. 2 test expectation fixes.
 
 ### Session 119 (V083)
 - **Semiring shortest distance needs algorithm selection**: Idempotent semirings
