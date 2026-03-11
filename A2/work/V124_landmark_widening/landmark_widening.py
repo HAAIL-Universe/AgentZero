@@ -385,10 +385,25 @@ def _has_nested_loops(stmts) -> bool:
     return False
 
 
+def _flatten_body(body) -> list:
+    """Flatten a Block or list body into a flat statement list."""
+    if isinstance(body, Block):
+        return body.stmts
+    if isinstance(body, list):
+        result = []
+        for s in body:
+            if isinstance(s, Block):
+                result.extend(s.stmts)
+            else:
+                result.append(s)
+        return result
+    return [body]
+
+
 def build_loop_profile(while_stmt: WhileStmt, env: PolyhedralDomain,
                        pre_stmts: List = None) -> LoopProfile:
     """Build a complete structural profile of a loop from its AST and environment."""
-    body = while_stmt.body if isinstance(while_stmt.body, list) else [while_stmt.body]
+    body = _flatten_body(while_stmt.body)
 
     # Collect structural info
     modified_vars = _collect_modified_vars(body)

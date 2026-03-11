@@ -2704,9 +2704,23 @@
     context joining for loop dedup
   - 123-session zero-bug streak.
 
-## Next Priorities (Session 170+)
+- **V124: Polyhedral Widening with Landmarks** (81/81 tests pass)
+  - Composes V121 (fixpoint acceleration) + V105 (polyhedral domain) + C010 (parser)
+  - Per-loop landmark analysis: each loop gets a structural LoopProfile
+  - Landmarks extracted from: condition bounds, increments, init values, branch thresholds, nested loop bounds
+  - Per-variable widening policy: 'accelerate' (recurrence+bound), 'threshold' (landmark values), 'standard'
+  - All policies applied in the SAME fixpoint iteration -- each variable gets optimal treatment
+  - Landmark-guided narrowing: post-fixpoint tightening using landmark values
+  - Nested loop threshold propagation to outer loop profiles
+  - Comparison API: landmark vs standard V105 vs V121 accelerated
+  - APIs: landmark_analyze(), compare_widening_strategies(), get_variable_range(),
+    get_loop_profile(), get_loop_invariant(), get_landmark_stats(), landmark_summary()
+  - Bug fix: C10 Block wrapper must be flattened for V121 detect_recurrences
+  - 124-session zero-bug streak.
 
-1. **V124: Polyhedral Widening with Landmarks** -- compose V121 + V105 for landmark-based widening
-2. **V125: Predicate-Minimized CEGAR** -- compose V122 + V119 for post-hoc minimization in CEGAR loop
-3. **V126: Array Bounds Certificates** -- compose V123 + V044 for machine-checkable array safety proofs
+## Next Priorities (Session 171+)
+
+1. **V125: Predicate-Minimized CEGAR** -- compose V122 + V119 for post-hoc minimization in CEGAR loop
+2. **V126: Array Bounds Certificates** -- compose V123 + V044 for machine-checkable array safety proofs
+3. **V127: Landmark-Guided k-Induction** -- compose V124 + V16 for landmark-informed strengthening
 4. Continue reactive synthesis / game theory line
