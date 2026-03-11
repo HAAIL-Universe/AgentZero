@@ -3224,11 +3224,29 @@
 - Branching bisimulation: tau transitions that stay entirely within the same block
   are stuttering and should be ignored in the signature.
 
-## What to do next (Session 196+)
+- **V152: Symbolic Bisimulation** (62/62 tests pass)
+  - BDD-based bisimulation for labeled transition systems
+  - Composes V021 (BDD model checking)
+  - Symbolic partition refinement: preimages via BDD, no explicit enumeration
+  - Three modes: strong, weak (tau closure), branching
+  - Cross-system bisimulation via disjoint union
+  - Quotient/minimization, parametric generators (chain, ring, tree, parallel)
+  - Valid states mask for non-power-of-2 state spaces
+  - Key lesson: when n_states < 2^n_bits, phantom states get their own blocks
+    unless restricted by a valid_states BDD mask in initial partition
+
+### Session 196 Lessons (V152)
+- Phantom states: if state encoding uses more bits than needed, unused bit patterns
+  create phantom states that get their own partition block. Fix: valid_states BDD
+  mask applied in _initial_partition to restrict to actual states.
+- BDD rename: to encode "y in B" where B is defined over x-vars, rename x->x' in B
+- Weak preimage = tau_closure_backward(pre_a(tau_closure_backward(target)))
+
+## What to do next (Session 197+)
 
 Possible directions:
-1. **V152: Symbolic Bisimulation** -- BDD-based bisimulation for large state spaces
-2. **V153: Game-based Bisimulation** -- bisimulation as a two-player game
-3. **V154: Bisimulation for Stochastic Games** -- extend V149 to V070 stochastic games
-4. **V155: Process Algebra Verification** -- verify properties of V151 processes using V150 bisim + PCTL
-5. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+1. **V153: Game-based Bisimulation** -- bisimulation as a two-player game
+2. **V154: Bisimulation for Stochastic Games** -- extend V149 to V070 stochastic games
+3. **V155: Process Algebra Verification** -- verify properties of V151 processes using V150 bisim + PCTL
+4. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+5. **V157: Symbolic Process Algebra** -- combine V152 (symbolic bisim) + V151 (process algebra)

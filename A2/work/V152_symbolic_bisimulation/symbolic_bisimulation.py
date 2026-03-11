@@ -35,6 +35,7 @@ class SymbolicTS:
     trans: Dict[str, BDDNode]      # action -> transition relation BDD T_a(x, x')
     labels: Dict[str, BDDNode]     # proposition -> BDD of states satisfying it
     n_state_bits: int              # Number of bits per state encoding
+    valid_states: Optional[BDDNode] = None  # BDD of valid states (for non-power-of-2)
 
 
 @dataclass
@@ -65,7 +66,8 @@ def make_symbolic_ts(state_var_names: List[str],
                      actions: List[str],
                      transitions: Dict[str, List[Tuple[int, int]]],
                      state_labels: Dict[int, Set[str]],
-                     propositions: Optional[List[str]] = None) -> SymbolicTS:
+                     propositions: Optional[List[str]] = None,
+                     n_actual_states: Optional[int] = None) -> SymbolicTS:
     """
     Build a SymbolicTS from an explicit description.
 
@@ -75,6 +77,7 @@ def make_symbolic_ts(state_var_names: List[str],
         transitions: action -> list of (src, dst) pairs
         state_labels: state_id -> set of proposition names
         propositions: list of all proposition names (auto-detected if None)
+        n_actual_states: actual number of valid states (if < 2^n_bits)
     """
     n_bits = len(state_var_names)
     n_states = 1 << n_bits
@@ -127,6 +130,14 @@ def make_symbolic_ts(state_var_names: List[str],
                 states_with_prop = bdd.OR(states_with_prop, state_bdd(sid))
         label_bdds[prop] = states_with_prop
 
+    # Build valid states BDD (for non-power-of-2 state counts)
+    valid = None
+    actual = n_actual_states if n_actual_states is not None else n_states
+    if actual < n_states:
+        valid = bdd.FALSE
+        for sid in range(actual):
+            valid = bdd.OR(valid, state_bdd(sid))
+
     return SymbolicTS(
         bdd=bdd,
         state_vars=[bdd.var_index(n) for n in state_var_names],
@@ -135,6 +146,7 @@ def make_symbolic_ts(state_var_names: List[str],
         trans=trans_bdds,
         labels=label_bdds,
         n_state_bits=n_bits,
+        valid_states=valid,
     )
 
 
@@ -154,6 +166,7 @@ def make_symbolic_ts_from_kripke(n_states: int,
         transitions={"tau": transitions},
         state_labels=state_labels,
         propositions=propositions,
+        n_actual_states=n_states,
     )
 
 
@@ -182,6 +195,7 @@ def make_symbolic_ts_from_lts(n_states: int,
         transitions=trans_dict,
         state_labels=state_labels,
         propositions=propositions,
+        n_actual_states=n_states,
     )
 
 
@@ -253,13 +267,15 @@ def _initial_partition(ts: SymbolicTS) -> List[BDDNode]:
     """
     Compute initial partition based on state labels.
     States with the same set of labels go in the same block.
+    Restricts to valid states if not all bit patterns are used.
     """
     bdd = ts.bdd
+    valid = ts.valid_states if ts.valid_states is not None else bdd.TRUE
     props = sorted(ts.labels.keys())
 
     if not props:
-        # No labels -- everything in one block
-        return [bdd.TRUE]
+        # No labels -- everything in one block (restricted to valid)
+        return [valid]
 
     # Build signature BDDs: for each combination of label truth values
     # Group states by their label signature
@@ -270,7 +286,7 @@ def _initial_partition(ts: SymbolicTS) -> List[BDDNode]:
     for mask in range(1 << n_props):
         sig = tuple((mask >> i) & 1 for i in range(n_props))
         # Build BDD: conjunction of (prop_i if sig[i] else NOT prop_i)
-        block = bdd.TRUE
+        block = valid
         for i, prop in enumerate(props):
             if sig[i]:
                 block = bdd.AND(block, ts.labels[prop])
@@ -973,7 +989,8 @@ def make_chain(n: int, labeled: bool = True) -> SymbolicTS:
     else:
         for i in range(n):
             labels[i] = set()
-    return make_symbolic_ts(var_names, ["a"], transitions, labels)
+    return make_symbolic_ts(var_names, ["a"], transitions, labels,
+                           n_actual_states=n)
 
 
 def make_ring(n: int) -> SymbolicTS:
@@ -982,7 +999,8 @@ def make_ring(n: int) -> SymbolicTS:
     var_names = [f"s{i}" for i in range(n_bits)]
     transitions = {"a": [(i, (i + 1) % n) for i in range(n)]}
     labels = {i: set() for i in range(n)}
-    return make_symbolic_ts(var_names, ["a"], transitions, labels)
+    return make_symbolic_ts(var_names, ["a"], transitions, labels,
+                           n_actual_states=n)
 
 
 def make_binary_tree(depth: int) -> SymbolicTS:
@@ -1006,7 +1024,8 @@ def make_binary_tree(depth: int) -> SymbolicTS:
         else:
             labels[i] = {"internal"}
 
-    return make_symbolic_ts(var_names, ["left", "right"], transitions, labels)
+    return make_symbolic_ts(var_names, ["left", "right"], transitions, labels,
+                           n_actual_states=n_states)
 
 
 def make_parallel_composition(n_components: int,
