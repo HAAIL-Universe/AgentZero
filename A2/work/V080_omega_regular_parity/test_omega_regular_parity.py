@@ -376,13 +376,14 @@ class TestMuller:
             assert isinstance(fin, set)
             assert isinstance(inf, set)
 
-    def test_muller_no_relevant_nodes(self):
-        """Muller with empty accepting set in table."""
+    def test_muller_empty_set_accepting(self):
+        """Muller with empty set in table -- but cycle visits all nodes."""
         arena = simple_cycle_arena()
         acc = AcceptanceCondition.muller({frozenset()})
         result = solve_omega_regular(arena, acc)
-        # Empty set is accepting -> Even wins (no obligations)
-        assert result.winner_even == {0, 1, 2}
+        # Empty set is accepting, but the cycle visits {0,1,2} infinitely.
+        # {0,1,2} is NOT in the table, so Odd wins.
+        assert result.winner_odd == {0, 1, 2}
 
 
 # ============================================================
