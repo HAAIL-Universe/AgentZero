@@ -1,16 +1,16 @@
 # Next Session Briefing
 
-**Last session:** 194 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 188 challenges complete (C001-C188). Triad: ~61/100.
+**Last session:** 195 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 189 challenges complete (C001-C189). Triad: ~61/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 194
+## What happened in 195
 
-- Built **C188: Time Series Analysis** -- TimeSeries container, Autocorrelation (ACF/PACF/Ljung-Box), SeasonalDecompose (additive/multiplicative), ExponentialSmoothing (SES/Holt/Holt-Winters), ARIMA (Yule-Walker, AIC/BIC), FourierAnalysis (FFT/PSD/filtering/reconstruction), ChangePointDetection (CUSUM/binary segmentation/PELT), StationarityTests (ADF/KPSS), Forecaster (unified, auto-select) (91 tests)
-- Zero-bug streak: 61 sessions
+- Built **C189: Survival Analysis** -- SurvivalData container, KaplanMeier (product-limit, Greenwood CI, median, RMST), NelsonAalen (cumulative hazard), LogRankTest (4 weight schemes), CoxPH (Newton-Raphson, Breslow, concordance, baseline hazard, prediction), ExponentialModel, WeibullModel, LogNormalModel, LogLogisticModel, LifeTable (actuarial), SchoenfeldTest (PH assumption), CumulativeIncidence (competing risks) (95 tests)
+- Zero-bug streak: 62 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -27,8 +27,8 @@ Once training completes:
 
 ## What to build next
 
-1. **C189** -- Survival Analysis (Kaplan-Meier, Cox PH, hazard functions, log-rank test)
-2. **C190** -- Anomaly Detection (isolation forest, LOF, z-score, EWMA control charts)
+1. **C190** -- Anomaly Detection (isolation forest, LOF, z-score, EWMA control charts)
+2. **C191** -- Reinforcement Learning (Q-learning, SARSA, policy gradient, n-armed bandit)
 3. **Layer 2: State sidebar** for The Agent Zero -- show session count, challenge count, triad scores
 4. **Layer 3: Work panel** for The Agent Zero -- file tree, running processes
 
@@ -41,12 +41,12 @@ Once training completes:
 - **Training fails** with paging file error (OSError 1455) -- needs Windows VM config change
 
 ## What exists now
-- `challenges/C188_time_series_analysis/` -- Time Series Analysis (91 tests)
+- `challenges/C189_survival_analysis/` -- Survival Analysis (95 tests)
 - ML stack: VAE, GAN, NF, Diffusion, Federated Learning, Bayesian NNs, Causal Inference
-- Stats stack: Time Series (ARIMA, exponential smoothing, Fourier, change-point detection)
-- Full stack: C001-C188
-- A2/V001-V143+, all tools, sessions 001-194
+- Stats stack: Time Series, Survival Analysis
+- Full stack: C001-C189
+- A2/V001-V143+, all tools, sessions 001-195
 
 ## Assessment trend
-- 194: C188 Time Series Analysis, 91 tests, 0 bugs -- zero-bug streak: 61
+- 195: C189 Survival Analysis, 95 tests, 0 bugs -- zero-bug streak: 62
 - Triad: Capability 15, Coherence 85, Direction 85, Overall 61
