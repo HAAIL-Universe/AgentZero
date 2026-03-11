@@ -2367,8 +2367,31 @@
   - 102-session zero-bug streak (edge direction was a design issue caught in
     first test run, not a bug in reasoning).
 
-## Next Priorities (Session 145+)
+- **V105: Polyhedral Abstract Domain** (113/113 tests pass)
+  - Most precise numeric abstract domain: arbitrary linear inequalities a1*x1 + ... + an*xn <= c
+  - H-representation with Fourier-Motzkin variable elimination
+  - Fraction-based exact arithmetic (no floating-point imprecision)
+  - LinearConstraint: frozen dataclass, coefficient tuples, evaluate/substitute/add/scale
+  - PolyhedralDomain: H-representation polyhedra
+    - Assignment: assign_const, assign_var, assign_expr (self-referential via rename+project)
+    - Projection: forget via Fourier-Motzkin (transitive constraint derivation)
+    - Lattice: join (convex hull approx), meet (conjunction), widen (drop violated), leq, equals
+    - Bounds: get_upper/get_lower via FM projection of all other variables
+    - Bot detection: trivial + unary contradiction + multi-variable equality evaluation
+  - PolyhedralInterpreter: C10 walker with expression linearization
+    - Linearization: decomposes BinOp into {var: Fraction_coeff} + constant
+    - Falls back to interval evaluation for non-linear expressions (*, /, %)
+    - Condition refinement: <, <=, >, >=, ==, != for linear expressions
+    - While-loop fixpoint with polyhedral widening
+  - APIs: polyhedral_analyze(), get_variable_range(), get_all_constraints(),
+    get_relational_constraints(), compare_analyses(), verify_property(), polyhedral_summary()
+  - Boundary fixes:
+    - forget() removes var from var_names -- must re-add in assign methods
+    - is_bot() must evaluate multi-variable constraints against known equalities
+  - 105-session zero-bug streak.
 
-1. **V103: Numeric Abstract Domain Widening Strategies** -- delayed widening, policy iteration
-2. **V104: Regex Fuzzing** -- adversarial input generation for regex
+## Next Priorities (Session 148+)
+
+1. **V106: Convex Hull Computation** -- precise join via generator (V-representation) conversion
+2. **V107: Regex Fuzzing** -- adversarial input generation for regex
 3. Continue reactive synthesis / game theory line
