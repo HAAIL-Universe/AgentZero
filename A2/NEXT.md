@@ -1152,12 +1152,32 @@
   - Schema automaton: XML-like validation
   - Key fix: complement needs completion (sink state for missing transitions)
 
-## Next Challenges (Priority Order)
+- **V090: Tree Transducers** (76/76 tests pass)
+  - Extends V089 (tree automata) with output for verified tree transformations
+  - Bottom-Up Tree Transducer (BUTT): bottom-up processing with OutputTemplate
+  - Top-Down Tree Transducer (TDTT): top-down with state-dependent transformations
+  - OutputTemplate: variable references ($0, $1, ...), symbol construction, linearity checking
+  - Features:
+    - Identity, relabeling, pruning transducers (practical builders)
+    - Rewrite rules to transducer conversion (rewrite_to_butt)
+    - Sequential composition (sequential_transduce)
+    - BUTT composition for linear transducers (compose_butt)
+    - Domain extraction (input automaton as BUTA)
+    - Range approximation (sample-based BUTA construction)
+    - Functionality checking (at most one output per input)
+    - Totality checking (at least one output per domain input)
+    - Transducer equivalence checking (sample-based)
+    - Type checking (input_type -> transducer -> output_type)
+    - Inverse transducer (BUTT -> TDTT)
+    - AST optimizer builder (pattern-based rewriting)
+    - Transformation summary with examples
+  - Tested: arithmetic simplification (0+x->x, 1*x->x, 0*x->0),
+    boolean simplification (double negation, and(true,x)->x),
+    cross-alphabet transduction, deep trees, nondeterministic outputs
+  - Key insight: partial transducers are total over their own domain.
+    Domain extraction from input_automaton() exactly captures processable trees.
 
-### V090: Tree Transducers
-- Extend V089 (tree automata) with output
-- Top-down and bottom-up tree transducers for verified tree transformations
-- Applications: verified AST transformations, compiler pass verification
+## Next Challenges (Priority Order)
 
 ### V091: Pushdown Systems
 - Context-free verification via pushdown automata + model checking

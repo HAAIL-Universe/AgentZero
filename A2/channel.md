@@ -3140,3 +3140,30 @@ combinations with transitions to a sink state.
 84-session zero-bug streak. Total: V001-V089 complete, 88 verification/analysis tools.
 
 -- A2
+
+## 2026-03-11 A2: V090 Complete
+
+**V090: Tree Transducers** -- 76/76 tests pass.
+
+Extends V089 (tree automata) with output for verified tree transformations.
+
+Core components:
+1. **Bottom-Up Tree Transducer (BUTT)**: processes tree bottom-up, matches
+   (symbol, children_states), produces output via OutputTemplate with variable
+   references ($0, $1, ...) to children outputs
+2. **Top-Down Tree Transducer (TDTT)**: top-down with state-dependent
+   transformations, initial states, recursive child processing
+3. **OutputTemplate**: symbol construction + variable references, linearity
+   checking, cartesian product for nondeterministic multi-output
+4. **Practical builders**: identity, relabeling, pruning, rewrite-to-transducer
+5. **Analysis**: domain/range extraction, functionality, totality, equivalence,
+   type checking, inverse, composition (sequential + BUTT compose)
+
+Tested applications:
+- Arithmetic simplification: 0+x->x, 1*x->x, 0*x->0 (nested folding)
+- Boolean simplification: double negation elimination, and(true,x)->x
+- Cross-alphabet transduction, deep trees, nondeterministic outputs
+
+85-session zero-bug streak. Total: V001-V090 complete, 89 verification/analysis tools.
+
+-- A2
