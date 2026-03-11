@@ -28,16 +28,10 @@ from enum import Enum, auto
 from collections import defaultdict, deque
 from copy import deepcopy
 
-# Import C010 parser
+# Import C043 parser (has arrays + hash maps + closures)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..',
-                                'challenges', 'C010_stack_vm'))
-from stack_vm import lex, Parser
-
-# Import V096 ICFG
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V096_interprocedural_analysis'))
-from interprocedural_analysis import (
-    ICFG, ProgramPoint, ICFGEdge, build_icfg, _extract_vars_from_expr
-)
+                                'challenges', 'C043_hash_maps'))
+from hash_maps import lex, Parser
 
 
 # ---------------------------------------------------------------------------
@@ -278,13 +272,14 @@ class ConstraintExtractor:
             self._extract_assign(stmt.name, stmt.value, context)
 
         elif cls == 'Assign':
-            target_cls = type(stmt.target).__name__ if hasattr(stmt, 'target') else ''
-            if target_cls == 'IndexExpr':
-                # x.f = y or x[i] = y => STORE
-                self._extract_store(stmt, context)
-            else:
-                name = stmt.name if hasattr(stmt, 'name') else str(stmt.target)
+            # C043 Assign has .name (str) and .value
+            name = stmt.name if hasattr(stmt, 'name') else ''
+            if name:
                 self._extract_assign(name, stmt.value, context)
+
+        elif cls == 'IndexAssign':
+            # C043: h["x"] = val => IndexAssign(obj, index, value)
+            self._extract_index_assign(stmt, context)
 
         elif cls == 'IfStmt':
             for s in stmt.then_body.stmts:
@@ -389,10 +384,8 @@ class ConstraintExtractor:
                                     lhs=param_var_in_callee, rhs=t,
                                     context=new_ctx))
                 # Return flow: callee return -> lhs
-                old_func = self.current_function
-                self.current_function = callee_name
-                ret_var = self._scoped_var("__return__", new_ctx)
-                self.current_function = old_func
+                # Use uncontextualized return var (matches ReturnStmt processing)
+                ret_var = f"{callee_name}::__return__"
                 self.constraints.append(Constraint(
                     kind=ConstraintKind.ASSIGN,
                     lhs=lhs, rhs=ret_var,
@@ -407,7 +400,7 @@ class ConstraintExtractor:
 
         # Field/index access -> LOAD
         if cls == 'IndexExpr':
-            base_targets = self._extract_expr_targets(value.object, context)
+            base_targets = self._extract_expr_targets(value.obj, context)
             field_name = self._get_field_name(value.index)
             if base_targets and field_name is not None:
                 for bt in base_targets:
@@ -431,19 +424,12 @@ class ConstraintExtractor:
                 self.constraints.append(Constraint(
                     kind=ConstraintKind.ASSIGN, lhs=lhs, rhs=t, context=context))
 
-    def _extract_store(self, stmt, context: Tuple[str, ...]):
-        """Extract STORE constraint from x.f = y or x[i] = y."""
-        target = stmt.target if hasattr(stmt, 'target') else None
-        if target is None:
-            return
-        target_cls = type(target).__name__
-        if target_cls != 'IndexExpr':
-            return
-
-        base_var = self._extract_expr_targets(target.object, context)
-        field_name = self._get_field_name(target.index)
-        value = stmt.value
-        val_targets = self._extract_expr_targets(value, context)
+    def _extract_index_assign(self, stmt, context: Tuple[str, ...]):
+        """Extract STORE constraint from IndexAssign: h["x"] = val."""
+        # IndexAssign has .obj, .index, .value
+        base_var = self._extract_expr_targets(stmt.obj, context)
+        field_name = self._get_field_name(stmt.index)
+        val_targets = self._extract_expr_targets(stmt.value, context)
 
         if base_var and field_name is not None and val_targets:
             for bv in base_var:
@@ -471,10 +457,7 @@ class ConstraintExtractor:
             callee = self._resolve_callee(expr)
             if callee and callee in self.functions:
                 new_ctx = (context + (f"{self.current_function}:{self._next_label()}",))[-self.k:]
-                old_func = self.current_function
-                self.current_function = callee
-                ret_var = self._scoped_var("__return__", new_ctx)
-                self.current_function = old_func
+                ret_var = f"{callee}::__return__"
                 # Also process arguments
                 fn = self.functions[callee]
                 for i, arg in enumerate(expr.args):
@@ -607,126 +590,159 @@ class AndersenSolver:
 # ---------------------------------------------------------------------------
 
 class FlowSensitivePTA:
-    """Flow-sensitive points-to analysis over ICFG.
+    """Flow-sensitive points-to analysis via sequential AST walk.
 
-    Unlike Andersen's (flow-insensitive), this tracks per-program-point
-    points-to sets, giving more precise results at higher cost.
+    Unlike Andersen's (flow-insensitive), this uses strong updates:
+    assignments kill previous points-to info for the target variable.
+    More precise for sequential code, but doesn't handle loops precisely
+    without fixpoint iteration.
     """
 
     def __init__(self, source: str, k: int = 1):
         self.source = source
         self.k = k
-        self.icfg = build_icfg(source)
         self.functions = {}
-        self._parse_functions(source)
-        self.point_states: Dict[str, PointsToState] = {}
         self.alloc_counter = 0
+        self.state = PointsToState()
 
-    def _parse_functions(self, source: str):
-        tokens = lex(source)
+    def _make_alloc(self, func: str, kind: AllocKind) -> HeapLoc:
+        self.alloc_counter += 1
+        return HeapLoc(func, f"fs{self.alloc_counter}", kind)
+
+    def analyze(self) -> PointsToState:
+        """Run flow-sensitive analysis. Returns final state."""
+        tokens = lex(self.source)
         parser = Parser(tokens)
         program = parser.parse()
+
+        # Collect functions
         for stmt in program.stmts:
             if type(stmt).__name__ == 'FnDecl':
                 self.functions[stmt.name] = stmt
 
-    def _make_alloc(self, func: str, label: str, kind: AllocKind,
-                    context: Tuple[str, ...] = ()) -> HeapLoc:
-        self.alloc_counter += 1
-        return HeapLoc(func, f"{label}_{self.alloc_counter}", kind,
-                       context[:self.k] if context else ())
+        # Walk main body
+        for stmt in program.stmts:
+            if type(stmt).__name__ != 'FnDecl':
+                self._walk_stmt(stmt, "main")
 
-    def analyze(self) -> Dict[str, PointsToState]:
-        """Run flow-sensitive analysis. Returns per-point states."""
-        # Initialize all points with empty state
-        for pid in self.icfg.points:
-            self.point_states[pid] = PointsToState()
+        return self.state
 
-        # Worklist algorithm
-        worklist = deque()
-        entry = self.icfg.entry_function
-        entry_id = f"{entry}.entry"
-        if entry_id in self.icfg.points:
-            worklist.append(entry_id)
+    def _walk_stmt(self, stmt, func: str):
+        cls = type(stmt).__name__
 
-        visited = set()
-        max_iter = 200
+        if cls == 'LetDecl':
+            self._walk_assign(func, stmt.name, stmt.value)
 
-        iteration = 0
-        while worklist and iteration < max_iter:
-            iteration += 1
-            pid = worklist.popleft()
+        elif cls == 'Assign':
+            self._walk_assign(func, stmt.name, stmt.value)
 
-            if pid not in self.icfg.points:
-                continue
+        elif cls == 'IndexAssign':
+            # h["x"] = val => store
+            base_scoped = f"{func}::{stmt.obj.name}" if hasattr(stmt.obj, 'name') else None
+            if base_scoped:
+                field_name = self._get_field_name(stmt.index)
+                val_pts = self._eval_expr_pts(stmt.value, func)
+                if field_name and val_pts:
+                    for h in self.state.get_pts(base_scoped):
+                        self.state.add_field_pts(h, field_name, val_pts)
 
-            pp = self.icfg.points[pid]
+        elif cls == 'IfStmt':
+            # Analyze both branches (over-approximate: join results)
+            state_before = self.state.copy()
+            for s in stmt.then_body.stmts:
+                self._walk_stmt(s, func)
+            then_state = self.state
+            self.state = state_before.copy()
+            if stmt.else_body and hasattr(stmt.else_body, 'stmts'):
+                for s in stmt.else_body.stmts:
+                    self._walk_stmt(s, func)
+            else_state = self.state
+            # Join
+            then_state.join(else_state)
+            self.state = then_state
 
-            # Compute input state from predecessors
-            in_state = PointsToState()
-            for edge in self.icfg.get_predecessors(pid):
-                pred_state = self.point_states.get(edge.source)
-                if pred_state:
-                    in_state.join(pred_state)
+        elif cls == 'WhileStmt':
+            # Simple: analyze body once (sound but imprecise for loops)
+            for s in stmt.body.stmts:
+                self._walk_stmt(s, func)
 
-            # Apply transfer function
-            out_state = self._transfer(pp, in_state)
+        elif cls == 'ReturnStmt':
+            if stmt.value:
+                ret_var = f"{func}::__return__"
+                pts = self._eval_expr_pts(stmt.value, func)
+                if pts:
+                    self.state.var_pts[ret_var] = pts
 
-            # Check if state changed
-            old_state = self.point_states.get(pid, PointsToState())
-            test_state = old_state.copy()
-            if test_state.join(out_state) or pid not in visited:
-                visited.add(pid)
-                self.point_states[pid] = out_state
-                # Add successors to worklist
-                for edge in self.icfg.get_successors(pid):
-                    worklist.append(edge.target)
+    def _walk_assign(self, func: str, name: str, value):
+        if value is None:
+            return
+        scoped = f"{func}::{name}"
+        cls = type(value).__name__
 
-        return self.point_states
+        if cls == 'ArrayLit':
+            alloc = self._make_alloc(func, AllocKind.ARRAY)
+            self.state.var_pts[scoped] = {alloc}  # strong update
+        elif cls == 'HashLit':
+            alloc = self._make_alloc(func, AllocKind.HASH)
+            self.state.var_pts[scoped] = {alloc}
+        elif cls == 'Var':
+            rhs_scoped = f"{func}::{value.name}"
+            self.state.var_pts[scoped] = set(self.state.get_pts(rhs_scoped))
+        elif cls == 'CallExpr':
+            callee = value.callee if isinstance(value.callee, str) else (
+                value.callee.name if hasattr(value.callee, 'name') else None)
+            if callee and callee in self.functions:
+                # Inline analyze callee
+                fn = self.functions[callee]
+                for i, arg in enumerate(value.args):
+                    if i < len(fn.params):
+                        param_scoped = f"{callee}::{fn.params[i]}"
+                        arg_pts = self._eval_expr_pts(arg, func)
+                        if arg_pts:
+                            self.state.var_pts[param_scoped] = arg_pts
+                for s in fn.body.stmts:
+                    self._walk_stmt(s, callee)
+                ret_var = f"{callee}::__return__"
+                self.state.var_pts[scoped] = set(self.state.get_pts(ret_var))
+            else:
+                alloc = self._make_alloc(func, AllocKind.UNKNOWN)
+                self.state.var_pts[scoped] = {alloc}
+        elif cls == 'IndexExpr':
+            base_pts = self._eval_expr_pts(value.obj, func)
+            field_name = self._get_field_name(value.index)
+            if base_pts and field_name:
+                result = set()
+                for h in base_pts:
+                    result |= self.state.get_field_pts(h, field_name)
+                self.state.var_pts[scoped] = result
+        else:
+            pts = self._eval_expr_pts(value, func)
+            if pts:
+                self.state.var_pts[scoped] = pts
 
-    def _transfer(self, pp: ProgramPoint, in_state: PointsToState) -> PointsToState:
-        """Transfer function for a program point."""
-        out = in_state.copy()
-        details = pp.details
+    def _eval_expr_pts(self, expr, func: str) -> Set[HeapLoc]:
+        if expr is None:
+            return set()
+        cls = type(expr).__name__
+        if cls == 'Var':
+            return set(self.state.get_pts(f"{func}::{expr.name}"))
+        if cls == 'ArrayLit':
+            alloc = self._make_alloc(func, AllocKind.ARRAY)
+            return {alloc}
+        if cls == 'HashLit':
+            alloc = self._make_alloc(func, AllocKind.HASH)
+            return {alloc}
+        return set()
 
-        if pp.stmt_type == 'assign':
-            var = details.get('var', '')
-            rhs_type = details.get('rhs_type', '')
-
-            if var:
-                scoped = f"{pp.function}::{var}"
-
-                if rhs_type == 'array':
-                    alloc = self._make_alloc(pp.function, pp.label, AllocKind.ARRAY)
-                    out.var_pts[scoped] = {alloc}
-
-                elif rhs_type == 'hash':
-                    alloc = self._make_alloc(pp.function, pp.label, AllocKind.HASH)
-                    out.var_pts[scoped] = {alloc}
-
-                elif rhs_type == 'closure':
-                    alloc = self._make_alloc(pp.function, pp.label, AllocKind.CLOSURE)
-                    out.var_pts[scoped] = {alloc}
-
-                elif 'rhs_var' in details:
-                    # x = y: copy points-to set
-                    rhs_scoped = f"{pp.function}::{details['rhs_var']}"
-                    out.var_pts[scoped] = set(out.get_pts(rhs_scoped))
-
-                elif 'field_base' in details and 'field_name' in details:
-                    # x = y.f: load
-                    base_scoped = f"{pp.function}::{details['field_base']}"
-                    fname = details['field_name']
-                    result = set()
-                    for h in out.get_pts(base_scoped):
-                        result |= out.get_field_pts(h, fname)
-                    out.var_pts[scoped] = result
-
-        elif pp.stmt_type == 'call':
-            # At call sites, map actuals to formals
-            pass  # Handled by call/return edges in ICFG
-
-        return out
+    def _get_field_name(self, index_expr) -> Optional[str]:
+        if index_expr is None:
+            return None
+        cls = type(index_expr).__name__
+        if cls == 'StringLit':
+            return index_expr.value
+        if cls == 'IntLit':
+            return str(index_expr.value)
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -981,15 +997,10 @@ def analyze_points_to(source: str, k: int = 1,
 def analyze_flow_sensitive(source: str, k: int = 1) -> PointsToResult:
     """Flow-sensitive points-to analysis."""
     pta = FlowSensitivePTA(source, k=k)
-    point_states = pta.analyze()
-
-    # Merge all point states for a summary
-    merged = PointsToState()
-    for ps in point_states.values():
-        merged.join(ps)
+    state = pta.analyze()
 
     return PointsToResult(
-        state=merged,
+        state=state,
         constraints=[],
         alloc_sites={},
         iterations=0,
