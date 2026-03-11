@@ -1047,17 +1047,44 @@
     simulate_strategy(), extract_counterstrategy(), extract_mealy_machine(),
     verify_controller(), check_realizability(), explicit_to_gr1(), compare_synthesis_approaches()
 
-## Next Challenges (Priority Order)
+- **V076: Parity Games** (98/98 tests pass)
+  - Three solving algorithms: Zielonka, Small Progress Measures, McNaughton
+  - ParityGame data structure, attractor computation
+  - Priority compression, self-loop removal optimizations
+  - Buchi/co-Buchi/Rabin/Streett to parity conversions
+  - Strategy verification, random game generation, algorithm comparison
+  - All three algorithms cross-validated across 50+ random games
+  - Key fix: SPM tuple ordering must be most-significant-first for correct comparison
+  - Key fix: Buchi encoding: accepting nodes need HIGHEST even priority (2, not 0)
+  - Key fix: SPM TOP must use n+1, not d+2
+  - Key fix: SPM measures must be monotonically non-decreasing
 
-### V076: Parity Games
-- Parity game solving (Zielonka's recursive algorithm)
-- Compose V074 (omega-regular) for general omega-regular objectives via parity reduction
+## Next Challenges (Priority Order)
 
 ### V077: LTL Synthesis via GR(1) Reduction
 - Reduce LTL specifications to GR(1) (for the GR(1)-realizable fragment)
 - Compose V075 (GR(1) synthesis) + V023 (LTL model checking)
 
+### V078: Parity Game Reductions for Omega-Regular Games
+- Compose V076 (parity games) + V074 (omega-regular) for general omega-regular objectives
+- Convert Muller/Rabin/Streett acceptance to parity, solve with Zielonka
+
 ## Lessons Learned
+
+### Session 098 (V076)
+- **SPM tuple ordering is critical**: Position d//2 is most significant, position 0
+  is least. Python tuple comparison is left-to-right. Must store tuples in reverse
+  order (most significant at index 0) for correct lexicographic comparison.
+- **Buchi-to-parity encoding**: Accepting nodes need the HIGHEST even priority (2),
+  not the lowest (0). Otherwise, in a cycle containing both accepting and non-accepting
+  nodes, the non-accepting odd priority dominates.
+- **SPM TOP must use n+1, not d+2**: The TOP sentinel must be larger than ANY valid
+  measure component. With d+2, some valid measures exceeded TOP.
+- **SPM monotonicity**: Only apply updates when new > old. Even-owned nodes minimize,
+  which could produce values smaller than the current measure. Without monotonicity,
+  the iteration oscillates instead of converging to the fixpoint.
+- **56-session zero-bug streak**: All 4 bugs were caught and fixed during development.
+  Cross-validation across 3 algorithms was the key quality mechanism.
 
 ### Session (V075)
 - **Three-nested fixpoint needs attractor closure**: The standard Bloem et al. GR(1)
