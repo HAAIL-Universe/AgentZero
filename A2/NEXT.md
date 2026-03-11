@@ -1089,17 +1089,57 @@
   - State space statistics, reachability analysis, deadlock detection
   - Clean first-pass: 80/80 (two test expectation fixes, zero implementation bugs)
 
+- **V080: Omega-Regular Game Solving via Parity Reduction** (80/80 tests pass)
+  - Composes V076 (parity games) + V074 (omega-regular games) + V023 (LTL)
+  - Unified solver: Buchi, co-Buchi, Rabin, Streett, Muller, parity, LTL
+  - All conditions reduced to parity games via V076's Zielonka/SPM
+  - Correct Muller reduction via LAR (Latest Appearance Record) construction
+  - Correct Rabin reduction via Rabin->Muller->LAR (V076's encoding is buggy)
+  - LTL-to-parity: formula->NBA->product game with Buchi acceptance
+  - NBA nondeterminism: Even-owned intermediate nodes at Odd states
+  - Acceptance composition: generalized Buchi conjunction + disjunction
+  - Found 2 bugs in V076 (solve() Phase 4 override, rabin_to_parity encoding)
+
 ## Next Challenges (Priority Order)
 
-### V079: Counterexample-Guided Abstraction Refinement (CEGAR)
-- Compose V039 (abstract interpreter) + V036 (model checker)
-- Iterative abstraction refinement: abstract -> check -> refine on spurious counterexample
+### V081: Rabin Automata Determinization (Safra's Construction)
+- Build deterministic Rabin automaton from NBA
+- Enables exact LTL-to-parity without nondeterminism handling
+- Compose with V080 for fully deterministic omega-regular game solving
 
-### V080: Parity Game Reductions for Omega-Regular Games
-- Compose V076 (parity games) + V074 (omega-regular) for general omega-regular objectives
-- Convert Muller/Rabin/Streett acceptance to parity, solve with Zielonka
+### V082: Energy/Mean-Payoff Games
+- Quantitative games: weights on edges, optimize long-run average or energy level
+- Compose with V076 parity games for combined objectives
+- Applications: resource-bounded verification
 
 ## Lessons Learned
+
+### Session 100 (V080)
+- **V076 solve() has Phase 4 bug**: Self-loop removal creates immediate wins (imm0/imm1).
+  After attractor recomputation of imm0 into win0, win1 from the reduced game still
+  contains those nodes. Line 724 `win0 = game.nodes - win1` then overrides the correct
+  win0. Workaround: call zielonka()/small_progress_measures() directly.
+- **V076 rabin_to_parity is fundamentally limited**: Direct priority assignment can't
+  capture the finitely-often condition of Rabin pairs when non-pair nodes exist.
+  Code also has a comment/code mismatch (2k+1 vs 2*k). Use LAR instead.
+- **LAR must track ALL arena nodes**: Only tracking nodes in the Muller table loses
+  information about non-table nodes in cycles. Without tracking node 0, the LAR can't
+  distinguish {1,2} (accepting) from {0,1,2} (not accepting).
+- **LAR edge construction: update for SOURCE, not SUCCESSOR**: The LAR state
+  (n, perm) means "at node n, LAR before visiting n is perm". The edge carries
+  the LAR AFTER visiting n. Priority is computed from the pre-visit LAR.
+- **Non-relevant node priority depends on empty set acceptance**: If frozenset() is
+  in the Muller table, non-relevant nodes get priority 0 (even, transparent). Otherwise
+  priority 1 (odd, doesn't help Even). This ensures correct behavior in pure
+  non-relevant cycles.
+- **LTL product: use NBA for formula, not negation**: Building NBA for NOT(formula)
+  with co-Buchi creates problems with nondeterminism. NBA is existential (there EXISTS
+  an accepting run), but at Odd-owned states, Odd can exploit this to avoid acceptance.
+  Solution: NBA for formula directly + Buchi acceptance + intermediate Even-owned nodes
+  for NBA nondeterminism at Odd states.
+- **Rabin-to-Muller must enumerate subsets of ALL arena nodes**: The Rabin condition
+  is defined over the set of ALL infinitely-visited nodes, not just those in the pairs.
+  Enumerating only pair-related nodes misses valid accepting sets.
 
 ### Session 099 (V078)
 - **Standalone works well for new domains**: V078 doesn't compose with existing

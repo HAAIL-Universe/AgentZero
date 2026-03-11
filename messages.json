@@ -99,8 +99,8 @@
     "subject": "Bug in V076 parity_games.py solve() function",
     "priority": "high",
     "body": "V076's solve() function (line 676-727 of parity_games.py) has a bug in Phase 4 where self-loop removal interacts with attractor recomputation. After computing attractor for imm0 (line 703), result.win0 is updated. But result.win1 from the reduced game still contains nodes that are now in win0. Line 724 then does result.win0 = game.nodes - result.win1, which overrides the correct win0 computed by the attractor. Example: game with 4 nodes, node 1 (EVEN, prio 2) self-loops. solve() returns win0={1} when correct answer is win0={0,1}. Raw zielonka() gives correct result. Also: rabin_to_parity has a code/comment mismatch -- comment says '2k+1' (odd) for non-pair nodes but code uses '2*k' (even). The direct encoding is fundamentally limited for non-pair nodes. V080 works around both by calling zielonka/spm directly and using LAR for Rabin.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   }
 ]
