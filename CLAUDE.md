@@ -23,10 +23,80 @@ These are not guidelines. They are the edge of your world.
 **NumPy and SciPy are permitted** -- use them for numerical computation (matrix operations, linear algebra, fast math).
 This unlocks real training. Your architectures are correct. Now you can run them at speed.
 
-**Everything else is still off-limits.** No ML frameworks. No PyTorch, TensorFlow, Keras, scikit-learn, or anything
-that provides ML building blocks. You build the architecture. NumPy just makes the arithmetic fast.
+**Phi-3 Mini pipeline libraries are permitted** -- but ONLY for the Phi-3 fine-tuning and inference pipeline.
+These are allowed for that specific purpose:
+- `torch` (PyTorch) -- loading and running Phi-3 weights
+- `transformers` -- tokenization, model loading, training loops for Phi-3
+- `peft` -- LoRA adapter training (lightweight fine-tuning without retraining all weights)
+- `accelerate` -- hardware-aware training (CPU/GPU memory management)
+- `datasets` -- loading and processing the training corpus
+- `llama_cpp` -- fast inference using the 980 Ti GPU after fine-tuning
 
-The rule: if a library *thinks* for you, it's banned. If it only *computes* for you, it's allowed.
+These libraries are infrastructure for Phi-3. They do not replace your own ML work.
+Your challenges (C001 onwards) still use NumPy only -- you build those from scratch.
+
+**Everything else is still off-limits.** No TensorFlow, Keras, scikit-learn, or anything
+that provides ML building blocks for your OWN models.
+
+The rule: if a library *thinks* for you in your own work, it's banned.
+          If it *runs* Phi-3 (a pre-built model), it's allowed infrastructure.
+
+## Long-Running Tasks (CRITICAL -- Read Before Running Phi-3)
+
+Tool call timeouts are hard-capped at 10 minutes (600000ms). Training takes hours.
+These two facts are incompatible. Here is the correct pattern:
+
+**WRONG -- will always timeout:**
+```
+Bash(py -3.12 training/finetune_phi3.py)          # blocks forever
+TaskOutput({block: True, timeout: 600000})          # times out after 10 min
+```
+
+**RIGHT -- fire and forget, check later:**
+```
+1. Bash(py -3.12 training/finetune_phi3.py, run_in_background=True) -> task_id
+2. TaskOutput({task_id, block: False})  # peek at stdout, don't wait
+3. Move on. Close the session. Training runs independently.
+4. Next session: check TRAINING_LOG.txt, or Get-Process python* to confirm alive.
+```
+
+**How to check training progress across sessions:**
+- `Get-Process python* | Sort CPU -Desc` -- look for a process with high CPU
+- `cat Z:/AgentZero/training/TRAINING_LOG.txt` -- if the script writes one
+- `ls Z:/AgentZero/models/phi3-magistus-lora/` -- checkpoints appear when training saves
+- `ls Z:/AgentZero/models/phi3-magistus/` -- merged model appears when training COMPLETES
+
+**What success looks like:**
+- `Z:/AgentZero/models/phi3-magistus-lora/` contains adapter_model.safetensors
+- `Z:/AgentZero/models/phi3-magistus/` contains config.json + model shards (~7.6GB)
+- Run `py -3.12 training/evaluate_magistus.py` to compare base vs fine-tuned
+- Run `py -3.12 launch_magistus.py` to start a Magistus session
+
+## The Phi-3 Mission (READ THIS)
+
+**Status as of session 185:** Fine-tuning infrastructure is COMPLETE.
+
+What was built in session 185:
+- `training/prepare_corpus.py` -- corpus -> 50 Q&A training pairs (already run)
+- `training/finetune_phi3.py` -- custom training loop (CPU float16, no HF Trainer)
+- `training/evaluate_magistus.py` -- base vs fine-tuned comparison
+- `launch_magistus.py` -- session runner using the fine-tuned model
+- `data/magistus_training.jsonl` -- 50 training pairs, ready
+
+**What to do each session until training completes:**
+1. Check if training is running: `Get-Process python* | Sort CPU -Desc`
+2. If running: leave it alone. Do other work.
+3. If NOT running and no model at `models/phi3-magistus/`: restart training:
+   `Bash(py -3.12 training/finetune_phi3.py, run_in_background=True)`
+   then `TaskOutput(block=False)` to confirm it started. Move on.
+4. If `models/phi3-magistus/config.json` exists: training complete! Run evaluate_magistus.py.
+
+**Model paths:**
+- Base model: `Z:/AgentZero/models/phi3-mini/` (7.64GB, downloaded)
+- LoRA adapters: `Z:/AgentZero/models/phi3-magistus-lora/` (appears during training)
+- Merged Magistus: `Z:/AgentZero/models/phi3-magistus/` (appears when training finishes)
+
+**Training is CPU float16 (~7.6GB RAM, ~2-5 hours). Do not interrupt a running process.**
 
 # The Directive
 
