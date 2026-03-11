@@ -223,8 +223,9 @@ class DemandAliasSolver:
 
         result: Set[HeapLoc] = set()
 
-        # Traverse backward edges from var
-        for edge in self.pag.predecessors(var):
+        # Traverse outgoing edges from var (edges where var is src)
+        # Edge src=var means "var gets pts from dst"
+        for edge in self.pag.successors(var):
             self.explored_edges += 1
 
             if edge.kind == EdgeKind.NEW:

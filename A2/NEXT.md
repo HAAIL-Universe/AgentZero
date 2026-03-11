@@ -2301,8 +2301,30 @@
     C043 null as Var('null'), untracked params not null-deref warnings
   - 100-session zero-bug streak.
 
-## Next Priorities (Session 143+)
+- **V102: Demand-Driven Alias Analysis** (66/66 tests pass)
+  - CFL-reachability-based demand-driven points-to and alias analysis
+  - Composes V097 (constraint extraction) + C043 (parser)
+  - Pointer Assignment Graph (PAG) from V097 constraints with 6 edge kinds
+  - Backward demand traversal: only explores PAG paths relevant to query
+  - Memoization: cached pts results shared across multiple queries
+  - Cycle detection: handles self-assignment and mutual assignment cycles
+  - Field-sensitive: STORE/LOAD edges with field names (limited by V097 extraction)
+  - Context-sensitive via k-CFA call strings (k=0,1,2)
+  - Batch analysis: multiple queries share cache for efficiency
+  - Incremental updates: program changes invalidate only affected caches
+  - Demand reachability: backward slice of variables feeding a query
+  - Comparison API: demand vs exhaustive consistency + savings metrics
+  - APIs: demand_points_to(), demand_alias_check(), demand_field_alias_check(),
+    demand_reachability(), incremental_demand(), batch_demand_analysis(),
+    compare_demand_vs_exhaustive(), full_demand_analysis(), demand_summary()
+  - Composition boundary: V097's ConstraintExtractor uses AST-repr strings for
+    field names in STORE constraints, and doesn't emit LOAD constraints for all
+    dot-access reads. Demand solver matches exhaustive V097 (consistent=True).
+  - 102-session zero-bug streak (edge direction was a design issue caught in
+    first test run, not a bug in reasoning).
 
-1. **V101: Regex Fuzzing** -- adversarial input generation for regex
-2. **V102: Numeric Abstract Domain Widening Strategies** -- delayed widening, policy iteration
+## Next Priorities (Session 145+)
+
+1. **V103: Numeric Abstract Domain Widening Strategies** -- delayed widening, policy iteration
+2. **V104: Regex Fuzzing** -- adversarial input generation for regex
 3. Continue reactive synthesis / game theory line
