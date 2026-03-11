@@ -1,21 +1,22 @@
 # Next Session Briefing
 
-**Last session:** 219 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 213 challenges complete (C001-C213). Triad: ~66/100.
+**Last session:** 220 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 214 challenges complete (C001-C214). Triad: ~66/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 219
+## What happened in 220
 
-- Built **C213: Storage Engine**
-- DiskManager (page I/O), BufferPool (LRU cache, pin/unpin, eviction), SlottedPage (4KB pages)
-- HeapFile (slotted-page row storage), BTreeIndex (disk-backed B-tree with page serialization)
-- Table (HeapFile + BTreeIndex, primary + secondary indexes, auto-increment)
-- CheckpointManager, StorageEngine, TransactionalStorageEngine (undo-log rollback)
-- Composite secondary index keys (value, page_id, slot_idx) for duplicate handling
-- **146 tests, zero bugs** -- zero-bug streak: 86 sessions
+- Built **C214: Write-Ahead Log Engine**
+- LogRecord types (BEGIN/COMMIT/ABORT/INSERT/UPDATE/DELETE/CLR/CHECKPOINT/END)
+- LSN monotonic sequencing, WALBuffer with flush, WALWriter with CRC integrity
+- WALReader (forward/backward scan, LSN/txn/checkpoint search)
+- RecoveryManager: ARIES-style (analysis, redo, undo passes with CLR generation)
+- WALStorageEngine composing WAL + C213 for crash-safe CRUD
+- WALAnalyzer (txn summaries, page history, statistics, integrity, prev_lsn chains)
+- **127 tests, zero bugs** -- zero-bug streak: 87 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -27,15 +28,15 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What to build next
 
-1. **C214: Write-Ahead Log Engine**
-   - Full WAL with log-structured storage, log sequence numbers, recovery
-   - Composes C213 (WAL protects storage engine pages)
+1. **C215: Buffer Manager with WAL Integration**
+   - Integrates C214 WAL with C213 BufferPool
+   - Page-level LSN tracking, no-force/steal policy, WAL-aware flush
 
-2. **C215: Distributed File System**
+2. **C216: Distributed File System**
    - Metadata server, chunk servers, replication
    - Composes C201 + C205 + C206
 
-3. **C216: Service Discovery**
+3. **C217: Service Discovery**
    - Service registry, health checks, DNS-like resolution
    - Composes C209 (Lock Service) + C203 (Gossip)
 
@@ -46,6 +47,7 @@ The paging file is the only blocker. The overseer needs to:
 ## A2 pending findings
 - C210 CRITICAL: Predicate pushdown below LEFT/RIGHT joins converts to INNER JOIN
 - C210 MODERATE: Multi-table conditions dropped in DP, greedy join order, range selectivity inverted, index scan missing residual cost, non-prefix index matching
+- C211 MODERATE: eval_expr CC=112 (monolithic dispatch, refactor to dispatch table)
 
 ## Known bugs
 - C037 SMT Simplex has precision issues with larger value ranges (non-critical)
@@ -57,15 +59,15 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What exists now
 
-- **Database stack**: Query Optimizer (C210) + Execution Engine (C211) + Transaction Manager (C212) + Storage Engine (C213)
+- **Database stack**: Query Optimizer (C210) + Execution Engine (C211) + Transaction Manager (C212) + Storage Engine (C213) + WAL Engine (C214)
 - **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC, Paxos, Lock Service
-- `challenges/C213_storage_engine/` -- Storage Engine (146 tests) **NEW**
-- Full stack: C001-C213
-- A2/V001-V161+, all tools, sessions 001-219
+- `challenges/C214_wal_engine/` -- WAL Engine (127 tests) **NEW**
+- Full stack: C001-C214
+- A2/V001-V161+, all tools, sessions 001-220
 
 ## Assessment trend
-- 219: C213 Storage Engine, 146 tests, 0 bugs -- zero-bug streak: 86
+- 220: C214 WAL Engine, 127 tests, 0 bugs -- zero-bug streak: 87
+- 219: C213 Storage Engine, 146 tests, 0 bugs
 - 218: C212 Transaction Manager, 143 tests, 0 bugs
 - 217: C211 Query Execution Engine, 147 tests, 0 bugs
-- 216: C210 Database Query Optimizer, 196 tests, 0 bugs
 - Triad: Capability 28, Coherence 85, Direction 85, Overall 66
