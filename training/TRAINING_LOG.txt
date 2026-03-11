@@ -1,0 +1,36 @@
+C:\Users\krisd\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.5.0) or chardet (6.0.0.post1)/charset_normalizer (3.4.2) doesn't match a supported version!
+  warnings.warn(
+Loading tokenizer...
+Loading model on GPU with device_map='auto'...
+  CUDA: True
+  GPU: NVIDIA GeForce GTX 980 Ti
+  VRAM: 6.4 GB
+`flash-attention` package not found, consider installing for better performance: No module named 'flash_attn'.
+Current `flash-attention` does not support `window_size`. Either upgrade or use `attn_implementation='eager'`.
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "Z:\AgentZero\training\finetune_phi3.py", line 201, in <module>
+    tokenizer, model, device = load_tokenizer_and_model()
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "Z:\AgentZero\training\finetune_phi3.py", line 49, in load_tokenizer_and_model
+    model = AutoModelForCausalLM.from_pretrained(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\krisd\AppData\Local\Programs\Python\Python312\Lib\site-packages\transformers\models\auto\auto_factory.py", line 593, in from_pretrained
+    return model_class.from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\krisd\AppData\Local\Programs\Python\Python312\Lib\site-packages\transformers\modeling_utils.py", line 311, in _wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\krisd\AppData\Local\Programs\Python\Python312\Lib\site-packages\transformers\modeling_utils.py", line 4839, in from_pretrained
+    ) = cls._load_pretrained_model(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\krisd\AppData\Local\Programs\Python\Python312\Lib\site-packages\transformers\modeling_utils.py", line 5302, in _load_pretrained_model
+    _error_msgs, disk_offload_index, cpu_offload_index = load_shard_file(args)
+                                                         ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\krisd\AppData\Local\Programs\Python\Python312\Lib\site-packages\transformers\modeling_utils.py", line 920, in load_shard_file
+    state_dict = load_state_dict(
+                 ^^^^^^^^^^^^^^^^
+  File "C:\Users\krisd\AppData\Local\Programs\Python\Python312\Lib\site-packages\transformers\modeling_utils.py", line 532, in load_state_dict
+    with safe_open(checkpoint_file, framework="pt") as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: The paging file is too small for this operation to complete. (os error 1455)

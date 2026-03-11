@@ -1,0 +1,50 @@
+# === Agent Configuration ===
+agents_enabled:
+  - temporal_lobe
+  - prefrontal_cortex
+  - default_mode_network
+  - anterior_cingulate
+  - goal_management.goal_tracker
+  - reflective_self_monitor
+
+# === System Modules ===
+voice_output: true
+debug_mode: true
+web_search_enabled: true
+reflective_self_monitor_enabled: true
+log_prompts: true
+
+# === Reasoning & Evolution (Phase 4–6) ===
+thought_evolution_logging: true
+
+# === Experimental Features (Phase 9+) ===
+fine_tune_logging: true
+min_confidence_threshold: 0.85
+
+reinforcement_learning_enabled: true
+reinforcement_log_threshold: 0.7
+
+# === Ethics & Safety Layers ===
+grounding_layer_enabled: true
+consent_protocols_enabled: true
+transparency_layer_enabled: true
+transparency_default_verbosity: "normal"
+policy_engine_enabled: true
+policy_reflection_threshold: 0.85
+
+# ✅ REQUIRED for launch validation
+manifesto_enabled: true
+consent_enabled: true
+limiter_enabled: false
+transparency_enabled: true
+
+# === Distributed Cognition (Cluster Bridge) ===
+cluster_bridge_enabled: true
+bridge_accept_remote: true
+
+# === Stability Monitoring ===
+stability_testing_enabled: true
+stability_failure_log: "logs/stability_failures.md"
+
+# === Self-Evaluation Mode ===
+allow_self_eval: true   # Enable trusted self-evaluation and autonomous suggestion mode

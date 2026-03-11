@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Sanctum -- Magistus</title>
+<style>
+/* ========================================
+   The Sanctum -- Magistus Interface
+   A dark room. Clear words. No distractions.
+   ======================================== */
+
+:root {
+  --bg-deep: #0d0d1a;
+  --bg-surface: #151525;
+  --bg-elevated: #1c1c35;
+  --bg-input: #12122a;
+  --text-primary: #d8d8e8;
+  --text-secondary: #8888a8;
+  --text-dim: #555570;
+  --accent-gold: #c9a96e;
+  --accent-gold-dim: #8a7548;
+  --accent-glow: rgba(201, 169, 110, 0.15);
+  --user-bg: #1a1a30;
+  --magistus-bg: transparent;
+  --border-subtle: #252540;
+  --font-body: 'Georgia', 'Times New Roman', serif;
+  --font-mono: 'Consolas', 'Monaco', monospace;
+  --max-width: 720px;
+  --radius: 8px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* -- Layout -- */
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* -- Header -- */
+
+#header {
+  padding: 28px 0 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+#header h1 {
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-bottom: 4px;
+}
+
+#header .tagline {
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  font-style: italic;
+}
+
+#status-bar {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+#status-bar .dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.dot-ready { background: #4a9; }
+.dot-loading { background: var(--accent-gold); animation: pulse 1.5s infinite; }
+.dot-offline { background: #666; }
+
+/* -- Messages -- */
+
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 0;
+  scroll-behavior: smooth;
+}
+
+#messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+#messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#messages::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 2px;
+}
+
+.message {
+  margin-bottom: 24px;
+  animation: fadeIn 0.3s ease;
+}
+
+.message-header {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.message-header.user {
+  color: var(--text-secondary);
+}
+
+.message-header.magistus {
+  color: var(--accent-gold);
+}
+
+.message-content {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.message-content.user {
+  background: var(--user-bg);
+  border-left: 2px solid var(--border-subtle);
+}
+
+.message-content.magistus {
+  background: var(--magistus-bg);
+  border-left: 2px solid var(--accent-gold-dim);
+  font-size: 17px;
+}
+
+.message-content code {
+  background: var(--bg-elevated);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.message-content pre {
+  background: var(--bg-elevated);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  margin: 8px 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.message-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.message-content strong {
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+.message-content em {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.message-content p {
+  margin-bottom: 8px;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-content ul, .message-content ol {
+  padding-left: 20px;
+  margin-bottom: 8px;
+}
+
+.message-time {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}
+
+/* -- Thinking Indicator -- */
+
+#thinking {
+  display: none;
+  margin-bottom: 24px;
+}
+
+#thinking.active {
+  display: block;
+}
+
+.thinking-label {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--accent-gold-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 6px;
+  padding-left: 16px;
+}
+
+.thinking-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-gold-dim);
+  animation: thinkPulse 1.4s infinite;
+}
+
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* -- Input Area -- */
+
+#input-area {
+  flex-shrink: 0;
+  padding: 16px 0 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+#input-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+#message-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  padding: 12px 16px;
+  resize: none;
+  min-height: 48px;
+  max-height: 160px;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#message-input:focus {
+  border-color: var(--accent-gold-dim);
+}
+
+#message-input::placeholder {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+#send-btn {
+  background: var(--accent-gold-dim);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--bg-deep);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  height: 48px;
+}
+
+#send-btn:hover {
+  background: var(--accent-gold);
+}
+
+#send-btn:disabled {
+  background: var(--border-subtle);
+  cursor: not-allowed;
+}
+
+#input-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* -- Welcome Screen -- */
+
+#welcome {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+}
+
+#welcome .sigil {
+  font-size: 48px;
+  color: var(--accent-gold-dim);
+  margin-bottom: 24px;
+  opacity: 0.6;
+}
+
+#welcome h2 {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+#welcome p {
+  font-size: 14px;
+  line-height: 1.8;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* -- Toolbar -- */
+
+#toolbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+#toolbar button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+#toolbar button:hover {
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+}
+
+/* -- Animations -- */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes thinkPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* -- Responsive -- */
+
+@media (max-width: 600px) {
+  :root { --max-width: 100%; }
+  #app { padding: 0 12px; }
+  #header h1 { font-size: 22px; letter-spacing: 4px; }
+  .message-content { padding: 10px 12px; }
+  #message-input { font-size: 15px; padding: 10px 12px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Header -->
+  <div id="header">
+    <h1>Magistus</h1>
+    <div class="tagline">ethical AI companion</div>
+    <div id="status-bar">
+      <span><span class="dot dot-offline" id="model-dot"></span><span id="model-status">initializing</span></span>
+      <span id="session-info"></span>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <span id="session-label"></span>
+    <div>
+      <button onclick="loadModel()" id="load-model-btn">load model</button>
+      <button onclick="clearSession()">new session</button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div id="messages">
+    <div id="welcome">
+      <div class="sigil">&#9672;</div>
+      <h2>The Sanctum</h2>
+      <p>
+        A space for conversation with Magistus.<br>
+        Type below to begin. Speak honestly.<br>
+        Magistus will respond in kind.
+      </p>
+    </div>
+  </div>
+
+  <!-- Thinking indicator -->
+  <div id="thinking">
+    <div class="thinking-label">Magistus is thinking</div>
+    <div class="thinking-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div id="input-area">
+    <div id="input-wrapper">
+      <textarea id="message-input" rows="1" placeholder="Speak..." autofocus></textarea>
+      <button id="send-btn" onclick="sendMessage()">Send</button>
+    </div>
+    <div id="input-hint">Enter to send &middot; Shift+Enter for newline</div>
+  </div>
+</div>
+
+<script>
+/* ========================================
+   Sanctum Client
+   WebSocket chat with streaming display
+   ======================================== */
+
+let ws = null;
+let isGenerating = false;
+let currentStreamEl = null;
+let currentStreamText = '';
+
+// -- WebSocket Connection --
+
+function connect() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocol}//${location.host}/ws/chat`);
+
+  ws.onopen = () => {
+    console.log('[Sanctum] Connected');
+    updateModelStatus('connected', 'ready');
+  };
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    handleMessage(msg);
+  };
+
+  ws.onclose = () => {
+    console.log('[Sanctum] Disconnected');
+    updateModelStatus('disconnected', 'offline');
+    // Reconnect after delay
+    setTimeout(connect, 3000);
+  };
+
+  ws.onerror = (err) => {
+    console.error('[Sanctum] WebSocket error', err);
+  };
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'status':
+      if (msg.content === 'thinking') {
+        showThinking(true);
+      } else {
+        showStatus(msg.content);
+      }
+      break;
+
+    case 'token':
+      showThinking(false);
+      appendToken(msg.content);
+      break;
+
+    case 'done':
+      showThinking(false);
+      finishStream(msg.content);
+      isGenerating = false;
+      enableInput(true);
+      break;
+
+    case 'error':
+      showThinking(false);
+      addMessage('magistus', `[Error: ${msg.content}]`);
+      isGenerating = false;
+      enableInput(true);
+      break;
+  }
+}
+
+// -- Message Display --
+
+function addMessage(role, content, time) {
+  hideWelcome();
+  const container = document.getElementById('messages');
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'message';
+
+  const header = document.createElement('div');
+  header.className = `message-header ${role}`;
+  header.textContent = role === 'user' ? 'You' : 'Magistus';
+  msgDiv.appendChild(header);
+
+  const contentDiv = document.createElement('div');
+  contentDiv.className = `message-content ${role}`;
+  if (role === 'magistus') {
+    contentDiv.innerHTML = renderMarkdown(content);
+  } else {
+    contentDiv.textContent = content;
+  }
+  msgDiv.appendChild(contentDiv);
+
+  if (time) {
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'message-time';
+    timeDiv.textContent = formatTime(time);
+    msgDiv.appendChild(timeDiv);
+  }
+
+  container.appendChild(msgDiv);
+  scrollToBottom();
+  return contentDiv;
+}
+
+function startStream() {
+  hideWelcome();
+  const container = document.getElementById('messages');
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'message';
+
+  const header = document.createElement('div');
+  header.className = 'message-header magistus';
+  header.textContent = 'Magistus';
+  msgDiv.appendChild(header);
+
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content magistus';
+  msgDiv.appendChild(contentDiv);
+
+  container.appendChild(msgDiv);
+  currentStreamEl = contentDiv;
+  currentStreamText = '';
+  scrollToBottom();
+}
+
+function appendToken(token) {
+  if (!currentStreamEl) {
+    startStream();
+  }
+  currentStreamText += token;
+  currentStreamEl.innerHTML = renderMarkdown(currentStreamText);
+  scrollToBottom();
+}
+
+function finishStream(fullContent) {
+  if (currentStreamEl) {
+    currentStreamEl.innerHTML = renderMarkdown(fullContent || currentStreamText);
+    currentStreamEl = null;
+    currentStreamText = '';
+  }
+  scrollToBottom();
+}
+
+// -- Markdown Rendering (lightweight) --
+
+function renderMarkdown(text) {
+  if (!text) return '';
+
+  // Escape HTML
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Code blocks (```...```)
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    return `<pre><code>${code.trim()}</code></pre>`;
+  });
+
+  // Inline code (`...`)
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Bold (**...**)
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // Italic (*...*)
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  // Headings (### ... )
+  html = html.replace(/^### (.+)$/gm, '<strong style="font-size:1.1em">$1</strong>');
+  html = html.replace(/^## (.+)$/gm, '<strong style="font-size:1.2em">$1</strong>');
+
+  // Lists
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+  // Clean up nested ul tags
+  html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+  // Paragraphs (double newlines)
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = `<p>${html}</p>`;
+  html = html.replace(/<p>\s*<\/p>/g, '');
+
+  // Single newlines within paragraphs -> <br>
+  html = html.replace(/([^>])\n([^<])/g, '$1<br>$2');
+
+  return html;
+}
+
+// -- UI Controls --
+
+function sendMessage() {
+  const input = document.getElementById('message-input');
+  const text = input.value.trim();
+  if (!text || isGenerating || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+  addMessage('user', text, new Date().toISOString());
+  input.value = '';
+  input.style.height = 'auto';
+  isGenerating = true;
+  enableInput(false);
+
+  ws.send(JSON.stringify({ content: text }));
+}
+
+function enableInput(enabled) {
+  document.getElementById('message-input').disabled = !enabled;
+  document.getElementById('send-btn').disabled = !enabled;
+  if (enabled) {
+    document.getElementById('message-input').focus();
+  }
+}
+
+function showThinking(show) {
+  document.getElementById('thinking').className = show ? 'active' : '';
+}
+
+function showStatus(text) {
+  // Brief status messages in the status bar
+  const el = document.getElementById('model-status');
+  if (el) el.textContent = text;
+}
+
+function hideWelcome() {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.style.display = 'none';
+}
+
+function scrollToBottom() {
+  const messages = document.getElementById('messages');
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function updateModelStatus(status, dotClass) {
+  const dot = document.getElementById('model-dot');
+  const label = document.getElementById('model-status');
+  dot.className = `dot dot-${dotClass}`;
+  label.textContent = status;
+}
+
+function formatTime(isoString) {
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+async function clearSession() {
+  try {
+    const resp = await fetch('/api/clear', { method: 'POST' });
+    const data = await resp.json();
+    document.getElementById('messages').innerHTML = `
+      <div id="welcome">
+        <div class="sigil">&#9672;</div>
+        <h2>The Sanctum</h2>
+        <p>
+          A space for conversation with Magistus.<br>
+          Type below to begin. Speak honestly.<br>
+          Magistus will respond in kind.
+        </p>
+      </div>
+    `;
+    updateSessionLabel(data.session_id, 0);
+  } catch (e) {
+    console.error('Failed to clear session:', e);
+  }
+}
+
+function updateSessionLabel(id, count) {
+  const el = document.getElementById('session-label');
+  if (el && id) {
+    el.textContent = id.replace('session_', '').replace(/_/g, ' ');
+  }
+}
+
+// -- Auto-resize textarea --
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+// -- Keyboard handling --
+
+document.getElementById('message-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+document.getElementById('message-input').addEventListener('input', function() {
+  autoResize(this);
+});
+
+// -- Load history on start --
+
+async function loadHistory() {
+  try {
+    const resp = await fetch('/api/history');
+    const data = await resp.json();
+    if (data.messages && data.messages.length > 0) {
+      hideWelcome();
+      for (const msg of data.messages) {
+        addMessage(
+          msg.role === 'assistant' ? 'magistus' : msg.role,
+          msg.content,
+          msg.timestamp
+        );
+      }
+    }
+    updateSessionLabel(data.session_id, data.messages ? data.messages.length : 0);
+  } catch (e) {
+    console.log('Could not load history:', e);
+  }
+}
+
+// -- Status polling --
+
+async function pollStatus() {
+  try {
+    const resp = await fetch('/api/status');
+    const data = await resp.json();
+
+    const model = data.model || {};
+    if (model.status === 'ready') {
+      updateModelStatus('model ready', 'ready');
+    } else if (model.status === 'loading') {
+      updateModelStatus('loading model', 'loading');
+    } else if (model.status === 'error') {
+      updateModelStatus('echo mode', 'offline');
+    } else {
+      updateModelStatus('standby', 'offline');
+    }
+
+    if (data.session) {
+      updateSessionLabel(data.session.id, data.session.message_count);
+    }
+
+    const info = document.getElementById('session-info');
+    if (info && data.system) {
+      const parts = [];
+      if (data.system.training_complete) parts.push('trained');
+      else parts.push('training pending');
+      info.textContent = parts.join(' | ');
+    }
+  } catch (e) {
+    // Server not reachable
+    updateModelStatus('offline', 'offline');
+  }
+}
+
+async function loadModel() {
+  const btn = document.getElementById('load-model-btn');
+  btn.textContent = 'loading...';
+  btn.disabled = true;
+  updateModelStatus('loading model...', 'loading');
+  try {
+    const resp = await fetch('/api/load-model', { method: 'POST' });
+    const data = await resp.json();
+    if (data.status === 'loaded' || data.status === 'already_loaded') {
+      updateModelStatus('model ready', 'ready');
+      btn.textContent = 'model loaded';
+    } else {
+      updateModelStatus('load failed', 'offline');
+      btn.textContent = 'load model';
+      btn.disabled = false;
+      console.error('Model load error:', data.error);
+    }
+  } catch (e) {
+    updateModelStatus('load failed', 'offline');
+    btn.textContent = 'load model';
+    btn.disabled = false;
+    console.error('Model load error:', e);
+  }
+}
+
+// -- Init --
+
+window.addEventListener('load', () => {
+  loadHistory();
+  pollStatus();
+  connect();
+  // Poll status every 30s
+  setInterval(pollStatus, 30000);
+});
+</script>
+</body>
+</html>

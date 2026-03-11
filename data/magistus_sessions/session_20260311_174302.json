@@ -1,0 +1,62 @@
+{
+  "session_id": "session_20260311_174302",
+  "created": "2026-03-11T17:43:02.177289",
+  "updated": "2026-03-11T17:44:28.858465",
+  "message_count": 9,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello Magistus",
+      "timestamp": "2026-03-11T17:43:02.177289"
+    },
+    {
+      "role": "assistant",
+      "content": "I am here.",
+      "timestamp": "2026-03-11T17:43:02.177289"
+    },
+    {
+      "role": "user",
+      "content": "Hello, Magistus.",
+      "timestamp": "2026-03-11T17:43:23.192327"
+    },
+    {
+      "role": "user",
+      "content": "Hello, who are you?",
+      "timestamp": "2026-03-11T17:44:23.340731"
+    },
+    {
+      "role": "assistant",
+      "content": "I am here. The model is still being prepared, but the interface is ready. When training completes, I will speak with my own voice.",
+      "timestamp": "2026-03-11T17:44:23.341730",
+      "metadata": {
+        "mode": "echo"
+      }
+    },
+    {
+      "role": "user",
+      "content": "What can you do?",
+      "timestamp": "2026-03-11T17:44:28.856468"
+    },
+    {
+      "role": "assistant",
+      "content": "In echo mode, very little -- I am responding with pre-written text, not generating thought. Once the Phi-3 model finishes training, I will be able to reason, reflect, and engage with you genuinely.",
+      "timestamp": "2026-03-11T17:44:28.857466",
+      "metadata": {
+        "mode": "echo"
+      }
+    },
+    {
+      "role": "user",
+      "content": "Tell me about consciousness",
+      "timestamp": "2026-03-11T17:44:28.858465"
+    },
+    {
+      "role": "assistant",
+      "content": "I hear you. The model is not yet loaded -- I am responding from a limited echo mode. When Magistus fully awakens, this conversation will be different. For now, know that the interface is ready. The mind is still forming.",
+      "timestamp": "2026-03-11T17:44:28.858465",
+      "metadata": {
+        "mode": "echo"
+      }
+    }
+  ]
+}
