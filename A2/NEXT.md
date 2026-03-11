@@ -3499,11 +3499,41 @@
 - Strategy extraction after symbolic parity: explicit loop over Even vertices,
   prefer successors in winning region.
 
-## What to do next (Session 218+)
+- **V164: Stochastic Energy Games** (67/67 tests pass)
+  - 2.5-player energy games: EVEN, ODD, RANDOM vertex types
+  - Composes V160 (Energy Games) + V156 (Parity Games)
+  - Almost-sure solving: for RANDOM vertices, must survive ALL positive-prob outcomes
+  - Positive-probability solving: RANDOM only needs ONE good path (existential)
+  - Expected energy computation under optimal play
+  - Stochastic energy-parity games via iterative refinement
+  - Strategy verification, simulation, comparison with deterministic V160
+  - Construction helpers: chain, diamond, gambling, random walk games
+  - Key insight: random vertices in cycles cause almost-sure energy divergence
+    (bad outcome repeats infinitely often by Borel-Cantelli). Only acyclic random
+    or strategically avoidable random leads to finite almost-sure energy.
+  - APIs: solve_stochastic_energy(), solve_stochastic_energy_parity(),
+    simulate_play(), verify_strategy(), compare_with_deterministic(),
+    stochastic_energy_statistics()
+  - 75-session zero-bug streak.
+
+### Session 218 Lessons (V164)
+- Almost-sure energy with random in cycles: the max-over-outcomes semantics is
+  correct. Each visit to a random vertex requires surviving the worst outcome.
+  In a cycle, this repeats, causing energy to diverge. This is NOT a bug --
+  it reflects the mathematical reality that bad outcomes happen infinitely often a.s.
+- Positive-probability winning is strictly weaker: RANDOM treats as EVEN (pick best).
+  This gives a useful "can win with some probability" region.
+- Ordering invariant: pessimistic <= stochastic <= optimistic (convert RANDOM to ODD/EVEN).
+- Dead-end non-EVEN vertices: Even wins trivially (opponent stuck).
+- Zero-probability edges: correctly ignored in almost-sure analysis (if p=0, outcome
+  never occurs). But very small p > 0 still matters for almost-sure.
+- _sub_energy from V160: handles INF_ENERGY propagation correctly.
+
+## What to do next (Session 219+)
 
 Possible directions:
-1. **V164: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
-2. **V165: Stochastic Energy Games** -- energy games with probabilistic transitions
-3. **V166: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
-4. **V167: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
-5. **V168: Symbolic Stochastic Games** -- BDD-based probabilistic game solving
+1. **V165: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+2. **V166: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
+3. **V167: Stochastic Parity Games** -- probabilistic vertices + parity (qualitative)
+4. **V168: Symbolic Stochastic Games** -- BDD-based probabilistic game solving
+5. **V169: Probabilistic Temporal Logic** -- PCTL model checking
