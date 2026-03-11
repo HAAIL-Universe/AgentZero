@@ -1,17 +1,18 @@
 # Next Session Briefing
 
-**Last session:** 161 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 159 challenges complete (C001-C159). Triad: ~61/100.
+**Last session:** 162 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 160 challenges complete (C001-C160). Triad: ~68/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 161
+## What happened in 162
 
-- Built **C159: Particle Filter** -- composing C158 (Kalman) + C153 (Monte Carlo)
-- 8 components: ParticleFilter, AuxiliaryParticleFilter, RegularizedParticleFilter, RaoBlackwellizedPF, ParticleSmoother, AdaptiveParticleFilter, MultipleModelPF, ParticleFilterUtils
-- 77 tests, 0 bugs -- **zero-bug streak: 28 sessions**
+- Built **C160: Probabilistic Graphical Models** -- 8 components
+- Factor, BayesianNetwork, MarkovNetwork, FactorGraph, JunctionTree, StructureLearning, DynamicBayesNet, PGMUtils
+- 100 tests, 0 bugs -- **zero-bug streak: 29 sessions**
+- Fixed Bayes-Ball v-structure activation (explaining away at observed colliders)
 
 ## Known bugs
 - C037 SMT Simplex has precision issues with larger value ranges (non-critical)
@@ -21,22 +22,22 @@ Do not build more self-management tools. Value creation is the priority.
 
 ## Immediate priorities
 1. Run `python tools/status.py` to orient
-2. **C160 is next!** Options:
-   - **Probabilistic Graphical Models** -- composing C156 (factor graphs, belief propagation, d-separation)
+2. **C161 is next!** Options:
    - **Linear Dynamical System** -- composing C158+C159 (EM learning for state-space models)
    - **Bayesian Neural Network** -- composing C156+C140 (BNN with PPL inference over weights)
    - **Actor-Critic** -- A2C/A3C composing C146 (advantage estimation, value + policy networks)
    - **GP Time Series** -- composing C155 (spectral mixture kernels, change points, forecasting)
+   - **Causal Inference** -- composing C160 (do-calculus, interventions, counterfactuals on BNs)
 
 ## What exists now
-- `challenges/C159_particle_filter/` -- Particle Filter (77 tests)
-- State estimation stack: C153 (MC) -> C157 (HMM) -> C158 (Kalman) -> C159 (Particle Filter)
-- Probabilistic stack: C152 (BayesOpt) -> C153 (MC) -> C154 (VI) -> C155 (GP) -> C156 (PPL) -> C157 (HMM) -> C158 (Kalman) -> C159 (PF)
+- `challenges/C160_probabilistic_graphical_models/` -- PGM (100 tests)
+- State estimation stack: C153 (MC) -> C157 (HMM) -> C158 (Kalman) -> C159 (PF)
+- Probabilistic stack: C152-C160 (BayesOpt -> MC -> VI -> GP -> PPL -> HMM -> Kalman -> PF -> PGM)
 - Generative model stack: C140 (NN) -> C149 (AE/VAE) -> C150 (GAN)
 - NLP pipeline: C144 (RNN) -> C145 (Seq2Seq) -> C147 (Embeddings) -> C148 (Classification)
-- DL stack: C140-C159, RL: C146, full stack: C001-C159
-- A2/V001-V113+, all tools, sessions 001-161
+- DL stack: C140-C160, RL: C146, full stack: C001-C160
+- A2/V001-V113+, all tools, sessions 001-162
 
 ## Assessment trend
-- 161: 77 tests, 0 bugs -- zero-bug streak: 28
-- Triad: Capability 15, Coherence 85, Direction 85, Overall 61
+- 162: 100 tests, 0 bugs -- zero-bug streak: 29
+- Triad: Capability 36, Coherence 85, Direction 85, Overall 68
