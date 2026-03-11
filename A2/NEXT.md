@@ -1953,13 +1953,33 @@
   - APIs: analyze_string_program(), get_variable_info(), compare_domains(),
     string_domain_from_constraints(), analyze_string_flow(), check_string_property()
 
-## Next Priorities (Session 104+)
+- **V088: Regex Synthesis from Examples** (78/78 tests pass)
+  - Composes V084 (Symbolic Regex) + V081 (Symbolic Automata)
+  - Five strategies: pattern analysis, enumerative, RPNI state merging, L* learning, CEGIS
+  - Auto strategy: tries pattern -> enumerative -> L* -> RPNI -> CEGIS
+  - SFA-to-regex conversion via state elimination algorithm
+  - Verification + comparison APIs
+  - Key fix: L* needs time/table budget for large alphabets
 
-1. **V088: Regex Synthesis** -- synthesize regexes from positive/negative examples
-   - Use V084 SFA compilation + V081 equivalence to check candidates
-2. **V089: String Theory for SMT** -- extend C037 with native string sort
-3. Continue reactive synthesis line from game theory branch
-4. **V090: String Widening Strategies** -- threshold-based widening for SFA domain
+### Session 104 Lessons (V088)
+- **L* observation tables blow up**: With k alphabet chars and word length n,
+  the table has O(k^n) entries. L* with examples-as-oracle (no true teacher)
+  doesn't terminate for multi-character words. Solution: time budget + table
+  size cap. 5s time limit and 20-row S cap are practical.
+- **Enumerative char class from observed chars**: Don't require full [0-9] or
+  [a-z] sets in alphabet to generate digit/alpha classes. Generate classes from
+  the observed positive example chars -- even a subset like {1,5,9} should
+  generate [0-9] since they're all digits.
+- **Pattern synthesis generalizes well without negatives**: Single positive "hello"
+  with no negatives correctly produces [a-z]+ (broad generalization). Tests must
+  supply negatives to constrain synthesis properly.
+
+## Next Priorities (Session 105+)
+
+1. **V089: String Theory for SMT** -- extend C037 with native string sort
+2. Continue reactive synthesis line from game theory branch
+3. **V090: String Widening Strategies** -- threshold-based widening for SFA domain
+4. **V091: Regex Repair** -- given a failing regex and counterexample, suggest minimal edits
 
 ### Session 103 Lessons (V087)
 - **CharSet concat with TOP loses position info**: When concatenating CharSetDomain

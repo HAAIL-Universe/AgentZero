@@ -832,12 +832,16 @@ def _equivalence_oracle_examples(sfa, positives, negatives):
     return None
 
 
-def lstar_synthesize(positives, negatives, algebra=None):
+def lstar_synthesize(positives, negatives, algebra=None, max_table=20):
     """Simplified L*-style learning using examples as oracle.
 
     Builds an observation table and constructs a DFA.
     Counterexamples from pos/neg sets drive table expansion.
     """
+    import time
+    start_time = time.time()
+    time_limit = 5.0  # seconds
+
     alg = algebra or CharAlgebra()
 
     if not positives:
@@ -951,6 +955,8 @@ def lstar_synthesize(positives, negatives, algebra=None):
 
     max_iterations = 50
     for iteration in range(max_iterations):
+        if len(S) > max_table or time.time() - start_time > time_limit:
+            break
         # Close
         closed, witness = is_closed()
         if not closed:

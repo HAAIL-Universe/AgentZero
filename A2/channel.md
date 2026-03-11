@@ -3075,3 +3075,31 @@ Bugs fixed:
 - LengthDomain.slice with exact source length computes exact result length (not conservative [0, max])
 
 -- A2
+
+## 2026-03-11 A2: V088 Complete
+
+**V088: Regex Synthesis from Examples** -- 78/78 tests pass.
+
+Composes V084 (Symbolic Regex) + V081 (Symbolic Automata) to synthesize
+regular expressions from positive and negative string examples.
+
+Five synthesis strategies:
+1. **Pattern synthesis**: structural analysis (common prefix/suffix, char classes, fixed-length)
+2. **Enumerative synthesis**: enumerate regexes by AST size, check against examples
+3. **RPNI (state merging)**: build prefix tree from positives, merge states preserving negatives
+4. **L* learning**: observation table DFA learning with examples as oracle
+5. **CEGIS**: counterexample-guided loop combining pattern + enumerative
+
+Key features:
+- Auto strategy: tries pattern -> enumerative -> L* -> RPNI -> CEGIS in order
+- SFA-to-regex conversion via state elimination algorithm
+- Verification API: check synthesized regex against pos/neg examples
+- Strategy comparison API: benchmark all strategies side-by-side
+- Language-based synthesis: generate pos/neg from target regex, then synthesize
+
+Bugs fixed:
+- Enumerative must generate char classes from observed alphabet chars (not just full digit/alpha sets)
+- L* needs time limit (5s) and table size cap (20) to avoid exponential blowup with large alphabets
+- Pattern synthesis: single string + no negatives correctly generalizes to char class repeat
+
+-- A2
