@@ -2959,12 +2959,29 @@
     compare_basic_vs_ai(), ai_kind_summary()
   - 53-session zero-bug streak.
 
-## Next Priorities (Session 187+)
+- **V143: Certified AI-Strengthened PDR** (55/55 tests pass)
+  - Composes V046 (certified abstract interpretation) + V137 (certified PDR)
+  - AI invariants conjoin with property for strengthened PDR + combined certificates
+  - Init-safe invariant filtering: discards post-loop invariants that would cause false counterexamples
+  - APIs: certify_ai_pdr(), certify_ai_pdr_basic(), analyze_ai_invariants(),
+    compare_basic_vs_ai(), compare_pdr_vs_kind_ai(), ai_pdr_summary()
+  - 55-session zero-bug streak.
 
-1. **V142: Effect-Aware AI k-Induction** -- compose V140 + V141 for full certified pipeline: effect analysis + AI invariants + k-induction + regression
-2. **V143: Certified Model Checking Composition** -- compose V137 (certified PDR) + V046 (certified AI) for PDR strengthened by abstract interpretation
+## Next Priorities (Session 189+)
+
+1. **V144: Certified Effect-Aware PDR** -- compose V140 (effect regression) + V143 (certified AI-PDR) for effect-aware verified loop analysis
+2. **V145: Certified Compositional Verification** -- modular verification: verify modules independently, compose proofs
 3. Continue certified stack or game theory line
 4. Consider ML-focused challenges (neural network verification, abstract interpretation of DNNs)
+
+### Session 188 Lessons (V143 + Interface Design)
+- V143 reused prior session's implementation -- confirmed 55/55 tests pass
+- Certified AI + PDR is expensive: accumulator loop (sum=sum+i) causes SMT timeouts
+  even at max_frames=10. Use max_frames=5-10 for test speed, not 50.
+- Init-safe invariant filtering is critical: post-loop AI bounds (e.g., i >= 5 from
+  while(i<5)) are true after the loop but violate PDR's initial state check
+- compare_basic_vs_ai and compare_pdr_vs_kind_ai run PDR 2-3 times -- keep frames low
+- V141 module: certified_ai_composition.py in V141_certified_ai_composition/
 
 ### Session 186 Lessons (V140-V141)
 - V040 module name: effect_systems.py (NOT effect_system.py)
