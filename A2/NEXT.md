@@ -2058,12 +2058,38 @@
   - APIs: learn_from_automaton(), learn_from_predicate(), learn_from_examples(),
     learn_and_compare(), learn_boolean_tree_language(), run_benchmark_suite()
 
-## Next Priorities (Session 109+)
+- **V095: Visibly Pushdown Automata** (79/79 tests pass)
+  - Visibly pushdown automata: stack ops determined by input symbol classification
+  - Call symbols push, return symbols pop, internal symbols = no stack change
+  - Full boolean closure: union, intersection, complement (unlike general CFL)
+  - Decidable: emptiness, inclusion, equivalence, universality
+  - Language operations: concatenation, Kleene star
+  - Determinization + minimization (unique to VPA among pushdown automata)
+  - Applications: XML validation, balanced parens, bounded recursion, pattern matching
+  - Nested word model with call/return nesting pairs and depth tracking
+  - Key design: empty_stack acceptance mode for well-matched word checking
+  - APIs: run_vpa(), determinize_vpa(), complement_vpa(), intersect_vpa(), union_vpa(),
+    concatenate_vpa(), kleene_star_vpa(), minimize_vpa(), check_emptiness(),
+    check_inclusion(), check_equivalence(), check_universality(),
+    make_balanced_parens_vpa(), make_xml_validator(), verify_well_nestedness(),
+    verify_xml_structure(), verify_bounded_recursion(), compare_vpa()
 
-1. Continue reactive synthesis line from game theory branch
-2. **V094: String Theory for SMT** -- extend C037 with native string sort
-3. **V095: Regex Fuzzing** -- generate adversarial inputs to break regex matching
-4. **V096: Pushdown Systems** -- context-free verification via pushdown automata
+## Next Priorities (Session 110+)
+
+1. **V096: String Theory for SMT** -- extend C037 with native string sort
+2. **V097: Regex Fuzzing** -- generate adversarial inputs to break regex matching
+3. **V098: Nested Word Automata** -- extend V095 with omega-nested words for liveness
+4. Continue reactive synthesis line from game theory branch
+
+### Session 110 Lessons (V095)
+- VPA acceptance: standard is by final state only. For Dyck/well-matched checking,
+  need empty_stack=True mode (stack == (STACK_BOTTOM,) on acceptance).
+- Complement requires completeness (sink state for missing transitions).
+  For call/return VPAs, sink needs self-loops on all symbols + all stack symbols.
+- Determinization for VPAs: macro-state (frozenset of states) + push macro-state
+  on calls so returns know which calling-state to use.
+- Product construction for intersection: stack symbols pair up (g1, g2) because
+  both VPAs perform the same stack operation on each input symbol.
 
 ### Session 106 Lessons (V091)
 - V089 add_transition requires tuple, not list for children_states
