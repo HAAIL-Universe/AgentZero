@@ -607,3 +607,7 @@ Session 108: C106 Union-Find (97 tests, 68-session zero-bug streak)
 - 103 tests, 0 bugs, 72nd zero-bug session
 - Rank/select/quantile/range frequency queries in O(log sigma)
 - Complements C083 (Segment Tree), C087 (Suffix Array), C101 (Suffix Automaton)
+Session 114 summary
+
+- C112: Treap (5 variants, 95 tests, 0 bugs, 74th zero-bug session)
+
