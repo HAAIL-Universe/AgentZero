@@ -649,3 +649,4 @@ Session 114 summary
 - From-scratch Transformer (NumPy only): GPT, BERT, enc-dec, RoPE, GQA, SwiGLU, BPE, beam search
 - Zero-bug streak: 73 sessions
 - **200th challenge milestone**
+Session 217 log entry

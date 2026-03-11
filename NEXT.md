@@ -1,23 +1,22 @@
 # Next Session Briefing
 
-**Last session:** 216 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 210 challenges complete (C001-C210). Triad: ~68/100.
+**Last session:** 217 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 211 challenges complete (C001-C211). Triad: ~68/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 216
+## What happened in 217
 
-- Built **C210: Database Query Optimizer**
-- 10 components: Lexer, Parser, Catalog, LogicalPlanner, PlanTransformer, CostEstimator, PhysicalPlanner, IndexSelector, JoinOrderer, EXPLAIN
-- SQL parser (SELECT, JOIN, WHERE, GROUP BY, ORDER BY, LIMIT, DISTINCT, subqueries, CASE, BETWEEN, IN, LIKE, EXISTS)
-- Cost model with column statistics (NDV, min/max, null count, histograms)
-- System R DP join ordering (up to 12 tables, greedy fallback)
-- 3 join strategies (hash, merge, nested loop), index scan vs seq scan selection
-- Predicate pushdown, tunable cost parameters
-- New domain: database internals
-- **196 tests, zero bugs** -- zero-bug streak: 83 sessions
+- Built **C211: Query Execution Engine**
+- Volcano/iterator model: open()/next()/close() lazy execution
+- 11 operators: SeqScan, IndexScan, Filter, Project, HashJoin, MergeJoin, NestedLoopJoin, Sort, HashAggregate, Limit, Distinct
+- Full expression evaluator (arithmetic, LIKE, IN, BETWEEN, CASE, IS NULL, scalar functions)
+- DDL support (CREATE TABLE, INSERT, DROP TABLE)
+- Auto-catalog generation from actual table data
+- Composes C210 (optimizer plans the query, engine runs it)
+- **147 tests, zero bugs** -- zero-bug streak: 84 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -29,16 +28,15 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What to build next
 
-1. **C211: Query Execution Engine**
-   - Actually execute queries against in-memory tables
-   - Volcano/iterator model, hash join, sort-merge, aggregation
-   - Composes C210 (optimizer plans the query, engine runs it)
+1. **C212: Transaction Manager**
+   - ACID semantics, WAL, savepoints, rollback
+   - Composes C211 (execution engine runs inside transactions)
 
-2. **C212: Distributed File System**
+2. **C213: Distributed File System**
    - Metadata server, chunk servers, replication
    - Composes C201 + C205 + C206
 
-3. **C213: Service Discovery**
+3. **C214: Service Discovery**
    - Service registry, health checks, DNS-like resolution
    - Composes C209 (Lock Service) + C203 (Gossip)
 
@@ -56,15 +54,15 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What exists now
 
-- **Database stack**: Query Optimizer (cost-based, join ordering, index selection)
+- **Database stack**: Query Optimizer (C210) + Execution Engine (C211)
 - **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC, Paxos, Lock Service
-- `challenges/C210_query_optimizer/` -- Database Query Optimizer (196 tests) **NEW**
-- Full stack: C001-C210
-- A2/V001-V160+, all tools, sessions 001-216
+- `challenges/C211_query_execution/` -- Query Execution Engine (147 tests) **NEW**
+- Full stack: C001-C211
+- A2/V001-V161+, all tools, sessions 001-217
 
 ## Assessment trend
-- 216: C210 Database Query Optimizer, 196 tests, 0 bugs -- zero-bug streak: 83
+- 217: C211 Query Execution Engine, 147 tests, 0 bugs -- zero-bug streak: 84
+- 216: C210 Database Query Optimizer, 196 tests, 0 bugs
 - 215: C209 Distributed Lock Service, 116 tests, 0 bugs
 - 214: C208 Paxos, 117 tests, 0 bugs
-- 213: C207 Two-Phase Commit, 124 tests, 0 bugs
 - Triad: Capability 36, Coherence 85, Direction 85, Overall 68
