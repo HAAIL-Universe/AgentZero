@@ -173,11 +173,7 @@ def gr1_synthesis(bdd: BDD, spec: GR1Spec) -> SynthesisOutput:
     sys_live = spec.sys_live if spec.sys_live else [bdd.TRUE]
     env_live = spec.env_live if spec.env_live else []
 
-    stats = {'outer_iterations': 0, 'middle_iterations': 0, 'inner_iterations': 0}
-
-    # Strategy memory: for each (j, x_rank), store the choice BDD
-    # x_rank: 0 = achieved sys_live_j, 1 = env violated, 2 = progress toward Z
-    strategy_y_choices = {}  # (j, state_bdd) -> choice indicator
+    stats = {'outer_iterations': 0, 'inner_iterations': 0}
 
     # Outer fixpoint: nu Z (greatest fixpoint = start with TRUE, shrink)
     z = bdd.TRUE
@@ -190,29 +186,58 @@ def gr1_synthesis(bdd: BDD, spec: GR1Spec) -> SynthesisOutput:
         z_conj = bdd.TRUE  # conjunction over j
 
         for j in range(n):
-            # Middle fixpoint: mu Y (least fixpoint = start with FALSE, grow)
+            # For each system guarantee j, accumulate Y over env assumptions
             y = bdd.FALSE
-            y_prev = None
 
-            while y._id != (y_prev._id if y_prev else -1):
-                y_prev = y
-                stats['middle_iterations'] += 1
+            if m > 0:
+                for i in range(m):
+                    # Inner fixpoint: nu X (greatest, starts from z, shrinks)
+                    # X = (g_j AND CPre(Z)) OR (NOT a_i AND CPre(X)) OR CPre(Y)
+                    x = z
+                    x_prev = None
 
-                # Three disjuncts:
-                # 1. sys_live_j AND CPre(Z): system guarantee j satisfied, stay in Z
-                term1 = bdd.AND(sys_live[j], arena.controllable_predecessor(z, env_safe, sys_safe))
+                    while x._id != (x_prev._id if x_prev else -1):
+                        x_prev = x
+                        stats['inner_iterations'] += 1
 
-                # 2. NOT env_live_{j mod m} AND CPre(Y): environment assumption violated
-                if m > 0:
-                    env_j = env_live[j % m]
-                    term2 = bdd.AND(bdd.NOT(env_j), arena.controllable_predecessor(y, env_safe, sys_safe))
-                else:
-                    term2 = bdd.FALSE
+                        # Term 1: system guarantee met, can go back to Z
+                        t1 = bdd.AND(sys_live[j],
+                                     arena.controllable_predecessor(z, env_safe, sys_safe))
 
-                # 3. CPre(Y): make progress toward Y (inner fixpoint simplified)
-                term3 = arena.controllable_predecessor(y, env_safe, sys_safe)
+                        # Term 2: env assumption i violated, stay in X (wait)
+                        t2 = bdd.AND(bdd.NOT(env_live[i]),
+                                     arena.controllable_predecessor(x, env_safe, sys_safe))
 
-                y = bdd.OR(bdd.OR(term1, term2), term3)
+                        # Term 3: make progress toward Y (accumulated from prev i)
+                        t3 = arena.controllable_predecessor(y, env_safe, sys_safe)
+
+                        x = bdd.OR(bdd.OR(t1, t2), t3)
+
+                    # Accumulate: Y grows with each env assumption
+                    y = bdd.OR(y, x)
+
+                # Attractor closure: add states that can force into Y
+                # This captures states reachable from Y via controllable predecessor
+                # (needed when the for-i loop doesn't fully close under reachability)
+                y_prev = None
+                while y._id != (y_prev._id if y_prev else -1):
+                    y_prev = y
+                    stats['inner_iterations'] += 1
+                    t1 = bdd.AND(sys_live[j],
+                                 arena.controllable_predecessor(z, env_safe, sys_safe))
+                    t3 = arena.controllable_predecessor(y, env_safe, sys_safe)
+                    y = bdd.OR(y, bdd.OR(t1, t3))
+            else:
+                # No env assumptions: Buchi game for g_j
+                # mu Y. (g_j AND CPre(Z)) OR CPre(Y)
+                y_prev = None
+                while y._id != (y_prev._id if y_prev else -1):
+                    y_prev = y
+                    stats['inner_iterations'] += 1
+                    t1 = bdd.AND(sys_live[j],
+                                 arena.controllable_predecessor(z, env_safe, sys_safe))
+                    t3 = arena.controllable_predecessor(y, env_safe, sys_safe)
+                    y = bdd.OR(t1, t3)
 
             z_conj = bdd.AND(z_conj, y)
 
@@ -222,7 +247,14 @@ def gr1_synthesis(bdd: BDD, spec: GR1Spec) -> SynthesisOutput:
 
     # Check realizability: init states must be in winning region
     init_states = bdd.AND(env_init, sys_init)
-    init_in_winning = bdd.AND(init_states, winning)
+
+    # Empty init set => unrealizable (no valid initial state)
+    if init_states._id == bdd.FALSE._id:
+        return SynthesisOutput(
+            result=SynthResult.UNREALIZABLE,
+            winning_region=winning,
+            statistics=stats
+        )
 
     # All initial states must be winning
     # Check if init_states => winning (i.e., init AND NOT winning = FALSE)

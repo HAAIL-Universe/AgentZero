@@ -240,20 +240,22 @@ class TestGR1Synthesis:
         assert result.result == SynthResult.UNREALIZABLE
 
     def test_env_assumption_helps(self):
-        """Env assumption makes unrealizable spec realizable."""
+        """Env assumption makes otherwise-hard spec realizable.
+
+        System must GF(s AND e) -- both must be TRUE infinitely often.
+        Without env assumption, env can keep e=FALSE, so s AND e never holds.
+        With assumption GF(e), env must set e=TRUE sometimes, and sys can
+        set s=TRUE at those moments.
+        """
         bdd = BDD()
         e = bdd.named_var('e')
         s = bdd.named_var('s')
         en = bdd.named_var("e'")
         sn = bdd.named_var("s'")
-        # System must GF(s), but s' = e' (system copies env)
-        # Without assumption: env can keep e=FALSE forever
-        # With assumption GF(e): env must eventually set e=TRUE
         spec = GR1Spec(
             env_vars=['e'], sys_vars=['s'],
-            sys_safe=bdd.IFF(sn, en),  # s' = e'
-            env_live=[e],  # GF(e)
-            sys_live=[s]   # GF(s)
+            env_live=[e],  # GF(e): env must visit e=TRUE infinitely often
+            sys_live=[bdd.AND(s, e)]  # GF(s AND e): both TRUE infinitely often
         )
         result = gr1_synthesis(bdd, spec)
         assert result.result == SynthResult.REALIZABLE
@@ -576,7 +578,7 @@ class TestMultiVariable:
         assert result.result == SynthResult.REALIZABLE
 
     def test_two_env_one_sys(self):
-        """Two env vars, one sys var. System copies OR of env."""
+        """Two env vars, one sys var. System must track env activity."""
         bdd = BDD()
         e1 = bdd.named_var('e1')
         e2 = bdd.named_var('e2')
@@ -584,10 +586,10 @@ class TestMultiVariable:
         e1n = bdd.named_var("e1'")
         e2n = bdd.named_var("e2'")
         sn = bdd.named_var("s'")
-        # s' = e1 OR e2 (system mirrors env OR)
+        # System freely controls s, no safety coupling to env
+        # With env assumptions GF(e1 OR e2), system can satisfy GF(s)
         spec = GR1Spec(
             env_vars=['e1', 'e2'], sys_vars=['s'],
-            sys_safe=bdd.IFF(sn, bdd.OR(e1, e2)),
             env_live=[bdd.OR(e1, e2)],  # GF(e1 OR e2)
             sys_live=[s]  # GF(s)
         )

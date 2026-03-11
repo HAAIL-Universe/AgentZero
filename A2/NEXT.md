@@ -1029,17 +1029,53 @@
     check_multi_ltl_game(), check_conjunction_game(), verify_ltl_strategy(),
     compare_direct_vs_negation(), compare_ltl_vs_pctl()
 
-## Next Challenges (Priority Order)
+- **V075: Reactive Synthesis (GR(1))** (49/49 tests pass)
+  - GR(1) synthesis: given environment assumptions and system guarantees, synthesize controller
+  - Composes V021 (BDD model checking) for symbolic state space manipulation
+  - Three-nested fixpoint (Piterman, Pnueli, Sa'ar 2006): nu Z, for-i, nu X
+  - Controllable predecessor: forall env'. (env_safe => exists sys'. (sys_safe AND Z_next))
+  - GR1Arena: BDD-based game arena with CPre, _to_next, _to_curr
+  - GR1Spec: env/sys vars, init, safety, liveness (env_live, sys_live)
+  - Safety/Reachability/Buchi synthesis as simpler fragments
+  - Arbiter (N-client mutual exclusion) and traffic light examples
+  - Mealy machine extraction from strategy BDD
+  - Counterstrategy extraction for unrealizable specs
+  - Controller verification (init containment, fixpoint closure, safety)
+  - Bug fix: attractor closure after for-i loop closes winning region under CPre
+  - Key APIs: gr1_synthesis(), safety_synthesis(), reachability_synthesis(),
+    buchi_synthesis(), make_gr1_game(), synthesize_arbiter(), synthesize_traffic_light(),
+    simulate_strategy(), extract_counterstrategy(), extract_mealy_machine(),
+    verify_controller(), check_realizability(), explicit_to_gr1(), compare_synthesis_approaches()
 
-### V075: Reactive Synthesis
-- GR(1) synthesis: given environment assumptions and system guarantees, synthesize controller
-- Compose V021 (BDD) + V070 (games) for fixpoint computation
+## Next Challenges (Priority Order)
 
 ### V076: Parity Games
 - Parity game solving (Zielonka's recursive algorithm)
 - Compose V074 (omega-regular) for general omega-regular objectives via parity reduction
 
+### V077: LTL Synthesis via GR(1) Reduction
+- Reduce LTL specifications to GR(1) (for the GR(1)-realizable fragment)
+- Compose V075 (GR(1) synthesis) + V023 (LTL model checking)
+
 ## Lessons Learned
+
+### Session (V075)
+- **Three-nested fixpoint needs attractor closure**: The standard Bloem et al. GR(1)
+  algorithm with m=1 env assumption misses winning states that are one CPre step
+  from the accumulated Y set. The for-i loop only runs once, and CPre(Y=FALSE)=FALSE
+  in term3. Fix: after the for-i loop, add a mu-Y attractor pass:
+  `Y = Y OR (g_j AND CPre(Z)) OR CPre(Y)` to close under controllable reachability.
+- **GR(1) winning region is self-sustaining**: The nu Z fixpoint computes the maximal
+  set from which the system can satisfy the GR(1) objective while staying within the set.
+  States that can reach the set but aren't in it are captured by the attractor closure.
+- **CPre drops current sys state**: When sys_safe only depends on current env vars (not
+  current sys vars), CPre(Z) only depends on current env vars. This is correct -- the
+  system's ability to force into Z depends only on the aspects of current state that
+  constrain its choices.
+- **Empty init set => unrealizable**: When env_init AND sys_init = FALSE, report
+  unrealizable (no valid starting configuration), not vacuously realizable.
+- **54-session zero-bug streak**: Implementation correct on first run. 3 test failures
+  were all test design issues (fully-determined system, vacuous init), not impl bugs.
 
 ### Session (V074)
 - **Product strategy projection needs automaton-state awareness**: Majority vote across
