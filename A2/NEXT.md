@@ -1011,17 +1011,47 @@
     assume_guarantee_synthesis(), refine_strategy(), compare_strategies(),
     synthesize_from_pctl(), synthesize(), synthesis_summary()
 
-## Next Challenges (Priority Order)
+- **V074: Omega-Regular Games** (51/51 tests pass)
+  - Composes V023 (LTL model checking) + V070 (stochastic games) + V072 (game PCTL)
+  - LTL objectives for two-player stochastic games
+  - Pipeline: LTL -> NBA (Buchi automaton) -> product game (Game x NBA) -> Buchi game solving
+  - Product game construction preserving ownership and transitions
+  - Qualitative: almost-sure winning and positive winning regions
+  - Quantitative: value iteration for Buchi acceptance probabilities
+  - Strategy extraction with initial-automaton-state preference
+  - Direct and negation-based modes
+  - Convenience: safety, liveness, persistence, recurrence, response
+  - Multi-objective LTL, conjunction, LabeledGame integration
+  - Strategy verification via MC simulation
+  - Comparison APIs (direct vs negation, LTL vs PCTL)
+  - APIs: check_ltl_game_direct(), check_ltl_game(), check_ltl_labeled_game(),
+    check_safety/liveness/persistence/recurrence/response_game(),
+    check_multi_ltl_game(), check_conjunction_game(), verify_ltl_strategy(),
+    compare_direct_vs_negation(), compare_ltl_vs_pctl()
 
-### V074: Omega-Regular Games
-- Extend V023 (LTL) to stochastic games
-- LTL objectives for two-player games with fairness
+## Next Challenges (Priority Order)
 
 ### V075: Reactive Synthesis
 - GR(1) synthesis: given environment assumptions and system guarantees, synthesize controller
 - Compose V021 (BDD) + V070 (games) for fixpoint computation
 
+### V076: Parity Games
+- Parity game solving (Zielonka's recursive algorithm)
+- Compose V074 (omega-regular) for general omega-regular objectives via parity reduction
+
 ## Lessons Learned
+
+### Session (V074)
+- **Product strategy projection needs automaton-state awareness**: Majority vote across
+  automaton states for game-level strategy picks wrong action when different automaton states
+  need different actions. Fix: prefer initial automaton state's action.
+- **Buchi game dual formulation**: For LTL checking, negate formula, build NBA for negation,
+  then P2 tries to satisfy Buchi acceptance (violate original formula). P1's probability
+  of satisfying formula = 1 - P2's Buchi acceptance value.
+- **Direct automaton is simpler and equally correct**: Building NBA for formula directly
+  (not negation) and having P1 maximize Buchi acceptance avoids the role-swapping complexity.
+- **53-session zero-bug streak**: Implementation correct on first run. One test failure
+  was strategy projection issue (fixed same session, not an algorithmic bug).
 
 ### Session (V073)
 - **PCTL atoms use .label not .name**: PCTL class stores atom names in `label` field.
