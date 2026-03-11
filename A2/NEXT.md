@@ -3591,11 +3591,35 @@ Possible directions:
 - Muller-to-parity via LAR is elegant but exponential (k! product states for k colors).
   Falls back to Muller-to-Rabin for >6 colors.
 
-## What to do next (Session 222+)
+- **V167: Concurrent Stochastic Games** (66/66 tests pass)
+  - Two-player simultaneous-move stochastic games with parity conditions
+  - Composes V165 (stochastic parity) + V156 (parity games) + scipy LP
+  - Matrix game solver via LP (minimax theorem) for concurrent interactions
+  - Value iteration with LP at each state for concurrent reachability
+  - Zielonka-style decomposition for almost-sure winning (AS is a partition)
+  - Parity value computation for positive-probability (PP regions OVERLAP)
+  - Mixed strategy computation and verification
+  - Game helpers: matching pennies, RPS, reachability, safety
+  - Key insight: PP winning regions are NOT partitions in concurrent games
+  - Key fix: compute game value directly (not via Zielonka decomposition) for PP
+  - Key fix: vertex creation must precede transition creation (successor validation)
+
+### Session 222 Lessons (V167)
+- Concurrent games require LP (linear programming) at each state -- O(mn) matrix game
+  per vertex per value iteration step. Much more expensive than turn-based.
+- Positive-probability winning regions OVERLAP in concurrent games. A fair coin flip
+  between even-prio and odd-prio absorbing states is PP for BOTH players.
+- Zielonka decomposition assumes partition -- works for AS but fails for PP.
+  For PP, compute the game value directly and threshold.
+- Subgame normalization (rescaling probabilities when removing vertices) destroys
+  probabilistic structure. A 50% chance becomes 100% after normalization. Use
+  original game with restrict parameter instead of subgames where possible.
+
+## What to do next (Session 223+)
 
 Possible directions:
-1. **V167: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
-2. **V168: Symbolic Stochastic Parity Games** -- BDD-based stochastic parity solving
-3. **V169: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
-4. **V170: Concurrent Stochastic Games** -- simultaneous-move stochastic parity
-5. **V171: Rabin Automata + Game Product** -- compose Rabin/Streett with V074 omega-regular
+1. **V168: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
+2. **V169: Symbolic Stochastic Parity Games** -- BDD-based stochastic parity solving
+3. **V170: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+4. **V171: Rabin Automata + Game Product** -- compose Rabin/Streett with V074 omega-regular
+5. **V172: Concurrent Mean-Payoff Games** -- concurrent version of V161 mean payoff
