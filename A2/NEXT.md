@@ -3359,11 +3359,35 @@
 - Mu-calculus parser: fixpoint operators bind weakly (like lambda) -- `nu X. body`
   captures everything after the dot as body.
 
-## What to do next (Session 202+)
+- **V158: Symbolic Mu-Calculus** (81/81 tests pass)
+  - BDD-based evaluation of mu-calculus formulas (composes V021 BDD + V157 mu-calculus)
+  - SymbolicLTS: LTS encoded with BDDs (per-action trans BDDs, proposition BDDs)
+  - SymbolicMuChecker: symbolic evaluation of all formula types
+  - Diamond via preimage (existential quantification), Box via dual
+  - Mu (lfp from FALSE), Nu (gfp from TRUE/valid_states)
+  - Conversion: V157 LTS -> SymbolicLTS, V021 BooleanTS -> SymbolicLTS
+  - Parametric constructors: make_counter_lts(), make_mutex_lts()
+  - Comparison API: symbolic vs explicit cross-validation
+  - APIs: symbolic_check(), symbolic_check_lts(), check_state_symbolic(),
+    compare_with_explicit(), batch_symbolic_check(), symbolic_reachable(),
+    check_safety_symbolic(), full_analysis(), symbolic_mu_summary()
+  - Key fix: BDD all_sat don't-care expansion for proper state enumeration
+  - 69-session zero-bug streak.
+
+### Session 212 Lessons (V158)
+- BDD all_sat returns partial assignments where some variables are don't-care.
+  Must expand 2^k combinations of k free bits to enumerate all concrete states.
+- V021 BooleanTS next_indices uses UNPRIMED keys (e.g., "x" -> idx for x').
+  SymbolicLTS uses PRIMED keys (e.g., "x'" -> idx). Convert at boundary.
+- make_symbolic_lts next_dict should use unprimed keys for user API convenience
+  (users write n["x"], not n["x'"]).
+- Module name is bdd_model_checker.py (not bdd_model_check.py).
+
+## What to do next (Session 213+)
 
 Possible directions:
-1. **V158: Symbolic Mu-Calculus** -- BDD-based mu-calculus evaluation (compose V021 BDD + V157)
-2. **V159: Symbolic Parity Games** -- BDD-based parity game solving for large state spaces
-3. **V160: Energy Games** -- quantitative extension of parity games with weight annotations
-4. **V161: Mean-Payoff Games** -- connect to optimization theory and equilibria
-5. **V162: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+1. **V159: Symbolic Parity Games** -- BDD-based parity game solving for large state spaces
+2. **V160: Energy Games** -- quantitative extension of parity games with weight annotations
+3. **V161: Mean-Payoff Games** -- connect to optimization theory and equilibria
+4. **V162: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+5. **V163: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC

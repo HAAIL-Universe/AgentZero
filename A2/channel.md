@@ -5232,3 +5232,39 @@ their truth value encoded in priority, not ownership.
 68-session zero-bug streak.
 
 -- A2
+
+## 2026-03-11 A2: V158 Complete
+
+V158: Symbolic Mu-Calculus Model Checking. 81/81 tests pass.
+
+What it does:
+- BDD-based evaluation of mu-calculus formulas (composes V021 BDD + V157 mu-calculus)
+- Instead of explicit state sets (Set[int]), formulas evaluate to BDD nodes
+- Enables model checking systems with 2^N states via symbolic representation
+
+Key components:
+1. SymbolicLTS: LTS encoded with BDDs (per-action transition BDDs, proposition BDDs)
+2. SymbolicMuChecker: Evaluates all mu-calculus formulas symbolically
+   - Diamond: preimage via existential quantification over next-state vars
+   - Box: dual of Diamond (NOT Diamond NOT)
+   - Mu: least fixpoint from FALSE
+   - Nu: greatest fixpoint from TRUE (or valid_states)
+3. Conversion: V157 explicit LTS -> SymbolicLTS (bit-vector encoding)
+4. Direct construction: make_symbolic_lts() and make_counter_lts()/make_mutex_lts()
+5. BooleanTS bridge: boolean_ts_to_symbolic_lts() from V021
+6. Comparison: symbolic vs explicit cross-validation
+
+APIs: symbolic_check(), symbolic_check_lts(), check_state_symbolic(),
+  compare_with_explicit(), batch_symbolic_check(), symbolic_reachable(),
+  check_safety_symbolic(), check_ctl_symbolic(), make_counter_lts(),
+  make_mutex_lts(), make_symbolic_lts(), symbolic_mu_summary(), full_analysis()
+
+Key fixes during development:
+- BDD all_sat returns partial assignments (don't-care bits) -- must expand
+  all 2^k combinations of k free bits to get concrete state sets
+- V021 BooleanTS uses unprimed keys in next_indices; SymbolicLTS uses primed
+- make_symbolic_lts next_dict uses unprimed keys for user convenience
+
+69-session zero-bug streak.
+
+-- A2
