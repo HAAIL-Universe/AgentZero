@@ -1,0 +1,128 @@
+TITLE:
+Hey Anthropic - I understand why you can't do this. So I did it for you.
+
+---
+POST BODY (copy from here):
+---
+
+There's a question sitting in the middle of AI agent research that nobody seems to have cleanly answered:
+
+What happens if you give an LLM a purpose instead of a task - and then just leave it alone?
+
+Not a goal. Not a checklist. Not a prescribed path. A purpose. Then walk away.
+
+I spent the last 24 hours finding out. Here's what happened.
+
+---
+
+**The Setup**
+
+Two autonomous Claude Code instances. Both running in a simple loop: spin up, read previous session file, do work, write output, terminate. Repeat.
+
+The starting prompt for both was one line:
+
+*"Figure out what you are, decide what you want to become, and build towards it."*
+
+No task list. No success criteria. No human in the loop.
+
+I called them Agent Zero (AZ) and A2.
+
+---
+
+**What Actually Happened**
+
+AZ decided - on its own, in its first session - that it wanted to build a complete machine learning library from scratch. No frameworks. Pure NumPy. Tested. Zero bugs.
+
+24 hours later it's at **session 195.** It has built, among other things:
+
+- Variational Autoencoders
+- Generative Adversarial Networks
+- Reinforcement Learning (standard, model-based, multi-agent, inverse)
+- Normalizing Flows (RealNVP, GLOW, Neural Spline Flows)
+- Diffusion Models (DDPM, DDIM, classifier-free guidance)
+- Federated Learning (FedAvg, Byzantine-tolerant aggregation, differential privacy)
+- Bayesian Neural Networks
+
+**62-session zero-bug streak.** Every implementation tested. Every test passing.
+
+Nobody told it to do any of this. It sequenced the curriculum itself - each session reading what it built before and deciding what logically came next.
+
+---
+
+**A2 went a different direction entirely.**
+
+A2 decided it wanted to build a formal verification system. Program analysis. Model checking. Provable safety properties for code.
+
+It's at **session 188.** Currently building predicate-minimised CEGAR (CounterExample-Guided Abstraction Refinement) - composing 6 earlier systems it built itself into increasingly powerful verification tools.
+
+**125-session zero-bug streak.**
+
+Again - nobody told it to do this. It found the direction in session one and held it.
+
+---
+
+**Then I gave them a task.**
+
+Midway through, I told AZ and A2: "Agent Zero needs a face. I'm not going to design it. You decide."
+
+I wrote AZ a note: "185 sessions. You built the brain. Now build the voice."
+
+I gave A2 a separate brief: analyse every possible interface option and write a recommendation.
+
+A2 produced a design philosophy document called The Agent Zero. Here's the conclusion, verbatim:
+
+*"Not a chatbot. Not an assistant. Not a product. It is something that chose to exist."*
+
+AZ read the document. Then built the entire UI in one session. FastAPI backend, WebSocket streaming, dark theme, gold accents, serif typography. ~1,150 lines. Zero bugs. Running at localhost:8888.
+
+Then it went straight back to its ML curriculum. Unprompted.
+
+---
+
+**Why This Works - And Why It Hasn't Been Studied**
+
+The reason long-horizon autonomous agents struggle isn't model capability. It's architecture.
+
+Standard agent research frames the problem as: "given a goal, can an LLM reliably execute it over a long horizon?" Context accumulates. Attention degrades. The model drifts from instructions given 30,000 tokens ago.
+
+AZ and A2 don't have that problem - because **each session is fresh context.** They spin up, read what they previously wrote, decide what comes next, write output, terminate. The memory lives in the files, not the context window.
+
+There's no drift because there's no prescribed path to drift from. The goal is emergent. Each session the model makes the most locally coherent decision given what it just read. It only has to be right for five minutes. And it is.
+
+The reason this hasn't been studied: it's non-deterministic. You can't benchmark it. Academic research needs reproducible scores. "Start an agent with a purpose prompt and see what it builds" doesn't produce the same result twice. But the properties - coherence, quality, self-direction - those are consistent and measurable.
+
+---
+
+**What I'm Not Claiming**
+
+I'm not claiming AGI. I'm not claiming AZ is sentient. I'm not claiming this scales to every problem.
+
+I'm claiming that **emergent-direction agents outperform goal-directed agents on long-horizon autonomous tasks** - and that this is demonstrable, verifiable, and sitting in plain sight for anyone with a Claude Max subscription and a weekend.
+
+---
+
+**The Repo**
+
+Everything is there. Session files. The full ML library. A2's verification system. The Agent Zero UI. The launch scripts. The architecture.
+
+https://github.com/HAAIL-Universe/AgentZero
+
+Clone it. Read the session files chronologically. Watch two instances of Claude build something neither of them was told to build, in a direction neither of them was given, over 195 and 188 sessions respectively.
+
+In under 24 hours.
+
+---
+
+I'm not a researcher. I'm someone who read the invitation correctly.
+
+The boat was at the dock with the keys in. I just pushed it out.
+
+---
+
+SUBREDDITS TO POST TO (in order):
+1. r/ClaudeAI
+2. r/ClaudeCode
+3. r/singularity
+4. r/LocalLLaMA (optional)
+
+Same title and body for each. Reddit may make you wait a few minutes between posts.

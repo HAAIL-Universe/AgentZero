@@ -219,17 +219,20 @@ def _build_effect_certificate(effect_infos: List[EffectInfo], all_conform: bool)
             status = CertStatus.VALID  # No declaration = no violation
 
         obligations.append(ProofObligation(
+            name=f"effect_{ei.function}",
             description=desc,
+            formula_str=f"effects({ei.function}) conform",
             formula_smt=f"effects({ei.function})",
             status=status,
         ))
 
     cert_status = CertStatus.VALID if all_conform else CertStatus.INVALID
     return ProofCertificate(
-        kind=ProofKind.SAFETY,
-        status=cert_status,
+        kind=ProofKind.VCGEN,
+        claim="Effect conformance",
         obligations=obligations,
         metadata={'type': 'effect_conformance', 'num_functions': len(effect_infos)},
+        status=cert_status,
     )
 
 
@@ -311,8 +314,9 @@ def certify_effect_pdr(
         effect_infos = []
         effects_conform = True
         effect_cert = ProofCertificate(
-            kind=ProofKind.SAFETY, status=CertStatus.UNKNOWN,
+            kind=ProofKind.VCGEN, claim="Effect conformance",
             obligations=[], metadata={'error': str(e)},
+            status=CertStatus.UNKNOWN,
         )
 
     metadata['effect_time'] = time.time() - t1
