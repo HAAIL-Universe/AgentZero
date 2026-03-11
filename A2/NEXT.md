@@ -1266,19 +1266,50 @@
   - Limitation: bounded loop unrolling -- use PDR/k-induction for loops
   - Zero bugs on first run, 71/71
 
+- **V112: Trace Abstraction Refinement** (68/68 tests pass)
+  - Automata-based program verification (Heizmann et al., 2009)
+  - Composes V107 (Craig interpolation) + C037 (SMT solver) + C010 (parser)
+  - Program traces = words over CFG edge alphabet
+  - Infeasibility automaton: union of learned interpolation automata
+  - CEGAR: enumerate error traces -> SMT feasibility -> Craig interpolation -> NFA generalization
+  - Two modes: BFS trace enumeration and lazy DFS with coverage
+  - Comparison API with V110's ART-based CEGAR
+  - APIs: verify_trace_abstraction(), verify_lazy(), check_assertion(),
+    get_cfg(), trace_abstraction_summary(), compare_with_art()
+  - Key fix: Python module identity -- V107 imports `from smt_solver` creating different
+    class than `from challenges.C037_smt_solver.smt_solver`. Use consistent import paths.
+  - Key fix: V107 sequence_interpolate returns [True,...,False] -- don't add extra endpoints
+  - Key fix: Trivial edge self-loops must be on ALL automaton states, not just initial
+
 ## Next Challenges (Priority Order)
 
-### V111: Configurable Program Analysis (CPA)
+### V113: Configurable Program Analysis (CPA)
 - Compose V110 (ART) + V020 (domain functor) + V104 (relational domains)
 - CPAchecker-style: pluggable abstract domains into ART framework
 - Domain-agnostic ART exploration with configurable transfer functions
 
-### V112: Trace Abstraction Refinement
-- Compose V022 (trace partitioning) + V107 (Craig interpolation)
-- Refinement-guided trace splitting: only partition traces that matter
-- Interpolation-based spurious trace elimination
+### V114: Trace Abstraction with Loop Acceleration
+- Extend V112 with loop summarization for unbounded verification
+- Compose V112 (trace abstraction) + V025 (termination/ranking) or V015 (k-induction)
+- Accelerate loop traces via induction instead of unrolling
 
 ## Lessons Learned
+
+### Session 159 (V112)
+- **Python module identity for isinstance**: V107 imports `from smt_solver import Var`
+  via sys.path, which loads a separate module object than `from challenges.C037_smt_solver.smt_solver import Var`.
+  isinstance() fails because they're different classes. Fix: use the same import path as V107
+  (add C037 dir to sys.path, import `from smt_solver`).
+- **V107 sequence_interpolate returns [True, ..., False]**: The returned list already
+  includes True at index 0 and False at the end. Don't prepend/append extra endpoints.
+- **Trivial edge self-loops on ALL states**: Skip/join edges (trivially true formulas)
+  don't change the abstract state. Self-loops must be added for every automaton state,
+  not just the initial TRUE state. Otherwise traces passing through non-TRUE states
+  can't traverse skip edges and acceptance fails.
+- **C10 CallExpr at top level**: `assert(x > 0);` parses as a bare CallExpr, not wrapped
+  in ExprStmt. The CFG builder's `_build_stmt` must handle CallExpr directly.
+- **112-session zero-bug streak**: All 7 issues were composition boundary problems.
+  Core algorithm (CEGAR loop, SSA encoding, feasibility checking) correct on first run.
 
 ### Session 147 (V104)
 - **Octagon DBM doubled encoding**: Unary bounds are doubled (dbm[x+][x-] = 2*upper),
