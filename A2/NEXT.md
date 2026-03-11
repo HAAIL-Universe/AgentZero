@@ -2890,12 +2890,44 @@
   - JSON round-trip, V044 bridge
   - Clean first-pass: 37/37, zero bugs. 130-session zero-bug streak.
 
-## Next Priorities (Session 185+)
+- **V138: Effect-Aware Verification** (50/50 tests pass)
+  - Composes V040 (effect systems) + V004 (VCGen) + C010 + C037
+  - Effect inference drives VC generation: effects tell us WHAT to verify
+  - 5 VC categories: division safety (SMT), frame conditions (structural),
+    purity (IO + exception), IO isolation, termination (ranking functions)
+  - EffectVCGenerator: generates effect-specific VCs from AST analysis
+  - EffectAwareVerifier: full pipeline (infer -> generate VCs -> check via SMT)
+  - APIs: verify_effects(), verify_pure_function(), verify_state_function(),
+    verify_exception_free(), infer_and_verify(), compare_declared_vs_inferred(),
+    effect_verification_summary()
+  - Key design: always generate division safety VCs unless Exn explicitly declared
+  - 52-session zero-bug streak.
 
-1. **V138: Effect-Aware Verification** -- compose V040 (effects) + V004/C098 (program verifier) for effect-typed Hoare logic
-2. **V139: Certified Equivalence + k-Induction** -- compose V134 (certified equiv) + V136 (certified k-induction) for certified regression verification
+- **V139: Certified Regression Verification** (35/35 tests pass)
+  - Composes V134 (certified equivalence) + V136 (certified k-induction)
+  - Two-phase strategy:
+    1. Try certified equivalence (fast: old == new implies property preserved)
+    2. Fall back to certified k-induction on new version
+  - RegressionCertificate: JSON serializable, independently checkable
+  - APIs: verify_regression(), verify_function_regression(),
+    verify_program_regression(), check_regression_certificate(),
+    save/load_regression_certificate(), compare_equiv_vs_kind()
+  - Clean first pass, zero bugs. 52-session zero-bug streak.
+
+## Next Priorities (Session 186+)
+
+1. **V140: Effect-Aware Regression** -- compose V138 (effect-aware) + V139 (certified regression) for effect-checked regression verification
+2. **V141: Certified Abstract Interpretation Composition** -- compose V046 (certified AI) + V136 (k-induction) for certified AI-strengthened k-induction
 3. Continue certified stack or game theory line
-4. Consider certified abstract interpretation (V132 + V136 composition)
+4. Consider ML-focused challenges (neural network verification, abstract interpretation of DNNs)
+
+### Session 185 Lessons (V138-V139)
+- V040 EffectInferrer.infer_program() returns dict[str, FnEffectSig] including "__main__"
+- V040 infers Exn(DivByZero) for variable divisors: must generate div-safety VCs regardless
+  of inference result (only skip when Exn is explicitly DECLARED by the user)
+- V134 certify_function_equivalence param_types must be non-empty dict to trigger execution
+- Empty dict `{}` is falsy in Python -- `if param_types:` fails for zero-arg functions
+- V136 certify_loop() extracts loop TS from source, works with source-level property strings
 
 ### Session 184 Lessons (V136-V137)
 - C037 sort constants: BOOL = 'Bool', INT = 'Int' (capital B/I). Using lowercase 'bool'/'int'
