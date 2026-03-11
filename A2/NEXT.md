@@ -1303,16 +1303,41 @@
     Without this, `let x = 5; assert(x > 0)` fails because x>0 is never discovered.
   - Zero implementation bugs. Fix was a design oversight caught during testing.
 
+- **V118: Timed Automata Verification** (84/84 tests pass)
+  - New domain: real-time systems verification using Alur-Dill timed automata
+  - Zone (DBM) representation for efficient clock constraint manipulation
+  - Zone-based symbolic state space exploration (BFS with subsumption)
+  - Successor computation: guard -> reset -> invariant -> future -> invariant
+  - Features:
+    - Clock constraints: simple (x op c), difference (x-y op c), conjunction
+    - Zone operations: constrain, future, reset, intersect, includes, sample
+    - Floyd-Warshall canonicalization for zone closure
+    - Zone graph exploration with subsumption checking
+    - Reachability checking with counterexample trace extraction
+    - Safety checking (unreachability of unsafe locations)
+    - Timed word acceptance (concrete execution check)
+    - Product construction (synchronous on shared alphabet)
+    - Empty language check, approximate language inclusion
+    - Example systems: simple light timer, train-gate controller, Fischer's mutex
+  - Fischer's mutual exclusion protocol: proven safe (timing delta < Delta)
+  - APIs: check_reachability(), check_safety(), check_timed_word(),
+    explore_zone_graph(), product(), check_empty_language(),
+    check_language_inclusion(), zone_graph_summary(), simple_ta(),
+    fischer_mutex(), train_gate_controller(), simple_light_timer()
+  - Clock constraint helpers: clock_leq/lt/geq/gt/eq(), clock_diff_leq/geq(), guard_and()
+  - Zero implementation bugs. 2 test expectation fixes (initial_zone needs future() for non-zero constraints, Fischer protocol encoding required proper state machine with last-writer-wins timing)
+
 ## Next Challenges (Priority Order)
 
-### V114: Trace Abstraction with Loop Acceleration
-- Extend V112 with loop summarization for unbounded verification
-- Compose V112 (trace abstraction) + V025 (termination/ranking) or V015 (k-induction)
-- Accelerate loop traces via induction instead of unrolling
+### V119: Timed Automata Composition with V023 LTL
+- Combine V118 (timed automata) + V023 (LTL model checking)
+- Timed LTL: temporal properties over timed systems
+- Region automaton construction for exact language operations
 
-### V115: Configurable CEGAR with Domain Switching
-- Start with cheap domain (interval), switch to expensive (predicate) on failure
-- Compose V113 (CPA) with strategy selection
+### V120: Hybrid Automata
+- Extend V118 with continuous dynamics (ODEs in locations)
+- Rectangular automata (ODE bounds per location)
+- Reachability via polyhedral computation
 
 ## Lessons Learned
 
