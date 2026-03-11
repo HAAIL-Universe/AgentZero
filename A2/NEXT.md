@@ -1202,19 +1202,49 @@
     live_variables(), compare_sensitivity(), pds_reachability_analysis(),
     pds_context_analysis(), full_interprocedural_analysis()
 
+- **V098: IDE Framework (Interprocedural Distributive Environment)** (75/75 tests pass)
+  - Extends V096 IFDS to IDE: facts carry values (environments), not just sets
+  - Value lattice: TOP > Const(n) > BOT with meet/join/leq
+  - Micro-function algebra: Id, Const, Linear(a*x+b), Top, Bot, Composed, Meet
+  - Two-phase algorithm: Phase 1 (forward tabulation), Phase 2 (value computation)
+  - Copy-constant propagation: tracks constant assignments and copies
+  - Linear constant propagation: tracks a*x+b transformations precisely
+  - C10 ICFG construction with call/return/call-to-return edges
+  - APIs: ide_analyze(), get_constants(), compare_analyses(), ide_verify_constant()
+  - Bug fix: ReturnStmt as last stmt needs explicit edge to exit point
+  - Key lesson: In IDE, ZERO-seeded paths determine generated values via micro-functions.
+    Non-ZERO paths propagate value transformations via composition.
+
 ## Next Challenges (Priority Order)
 
-### V097: IDE Framework (Interprocedural Distributive Environment)
-- Extend V096 IFDS to IDE: facts carry values (environments), not just sets
-- Enables copy-constant propagation, linear constant propagation
-- Micro-function composition for environment transformers
-
-### V098: Modular Pushdown Analysis
+### V099: Modular Pushdown Analysis
 - Compose V096 (IFDS) + V094 (PDS) + V055 (modular AI)
 - Per-module function summaries, compositional inter-module analysis
 - Incremental re-analysis when one module changes
 
+### V100: Demand-Driven Analysis
+- Extend V098 IDE to demand-driven mode
+- Only compute values for queried variables at queried points
+- Backward tabulation from query to relevant definitions
+
 ## Lessons Learned
+
+### Session 140 (V098)
+- **ReturnStmt last-statement edge (again)**: V096 lesson learned in session 137
+  ("ALL last statements need edge to exit") was not applied when building V098's
+  ICFG construction. The `if last_cls != 'ReturnStmt'` guard silently dropped
+  the exit edge for single-return functions like `fn seven() { return 7; }`.
+  This blocked ALL interprocedural value flow.
+- **IDE Phase 2 reads final jump_fn**: Phase 2 iterates `self.jump_fn` after
+  Phase 1 completes. Jump functions updated via meet during Phase 1 are visible
+  to Phase 2 even if the updated path edge wasn't re-popped from the worklist.
+- **ZERO-seeded values come from micro-functions**: For IFDS-style ZERO fact,
+  the micro-function IS the value generator. ConstFunction(Const(5)).apply(BOT)
+  gives Const(5) directly. Non-ZERO paths transform values via composition.
+- **Test exit points, not intermediate points**: Statement effects are applied
+  on the OUTGOING edge, not at the statement node itself. Values at `main.s1`
+  reflect state BEFORE s1's statement executes. Always check exit points.
+- **98-session zero-bug streak**: The ICFG bug was caught and fixed during testing.
 
 ### Session 137 (V096)
 - **Return-calls need special handling**: `return foo(x);` in C10 is a ReturnStmt
