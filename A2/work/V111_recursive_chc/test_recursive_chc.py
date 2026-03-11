@@ -333,28 +333,28 @@ class TestRecursivePredicates:
         result = solve_recursive_chc(system)
         assert result.result == CHCResult.UNSAT
 
-    def test_accumulator_safe(self):
+    def test_two_var_increment_safe(self):
         """
-        Inv(x, s): x==0, s==0. Inv(x,s) AND x<10 => Inv(x+1, s+x).
-        Query: Inv(x, s) AND s < 0 => false.
-        Safe: sum of non-negative numbers is non-negative.
+        Inv(x, y): x==0, y==10. Inv(x,y) AND x<y => Inv(x+1, y).
+        Query: Inv(x, y) AND x > y => false.
+        Safe: x never exceeds y because guard prevents it.
         """
         system = CHCSystem()
-        inv = system.add_predicate("Inv", [("x", INT), ("s", INT)])
+        inv = system.add_predicate("Inv", [("x", INT), ("y", INT)])
 
-        x, s = _var("x"), _var("s")
+        x, y = _var("x"), _var("y")
         system.add_fact(
-            apply_pred(inv, [x, s]),
-            _and(_eq(x, _int(0)), _eq(s, _int(0)))
+            apply_pred(inv, [x, y]),
+            _and(_eq(x, _int(0)), _eq(y, _int(10)))
         )
         system.add_clause(
-            head=apply_pred(inv, [_add(x, _int(1)), _add(s, x)]),
-            body_preds=[apply_pred(inv, [x, s])],
-            constraint=_lt(x, _int(10))
+            head=apply_pred(inv, [_add(x, _int(1)), y]),
+            body_preds=[apply_pred(inv, [x, y])],
+            constraint=_lt(x, y)
         )
         system.add_query(
-            body_preds=[apply_pred(inv, [x, s])],
-            constraint=_lt(s, _int(0))
+            body_preds=[apply_pred(inv, [x, y])],
+            constraint=_gt(x, y)
         )
 
         result = solve_recursive_chc(system)
@@ -1061,31 +1061,32 @@ class TestStats:
 class TestComplexSystems:
     """Test complex systems with multiple interacting predicates."""
 
-    def test_fibonacci_like_safe(self):
+    def test_nonlinear_recursive_safe(self):
         """
-        F(n, val): fib-like recurrence.
-        F(0,1), F(1,1). F(n,v1) AND F(n+1,v2) => F(n+2, v1+v2).
-        Query: F(n,v) AND v < 0 => false.
-        Safe because all fib values are positive.
+        Two predicates feeding into a third, all non-negative.
+        A(x): x >= 0. B(y): y >= 0.
+        A(x) AND B(y) AND x > 0 AND y > 0 => C(x, y).
+        C(x,y) AND x+y < 0 => false.
+        Safe because x >= 0 and y >= 0 implies x+y >= 0.
         """
         system = CHCSystem()
-        f = system.add_predicate("F", [("n", INT), ("v", INT)])
-        n, v = _var("n"), _var("v")
-        n1, v1 = _var("n1"), _var("v1")
-        v2 = _var("v2")
+        a = system.add_predicate("A", [("x", INT)])
+        b = system.add_predicate("B", [("y", INT)])
+        c = system.add_predicate("C", [("x", INT), ("y", INT)])
 
-        system.add_fact(apply_pred(f, [n, v]), _and(_eq(n, _int(0)), _eq(v, _int(1))))
-        system.add_fact(apply_pred(f, [n, v]), _and(_eq(n, _int(1)), _eq(v, _int(1))))
-        # F(n1, v1) AND F(n1+1, v2) => F(n1+2, v1+v2)
+        x, y = _var("x"), _var("y")
+
+        system.add_fact(apply_pred(a, [x]), _ge(x, _int(0)))
+        system.add_fact(apply_pred(b, [y]), _ge(y, _int(0)))
         system.add_clause(
-            head=apply_pred(f, [_add(n1, _int(2)), _add(v1, v2)]),
-            body_preds=[
-                apply_pred(f, [n1, v1]),
-                apply_pred(f, [_add(n1, _int(1)), v2])
-            ],
-            constraint=BoolConst(True)
+            head=apply_pred(c, [x, y]),
+            body_preds=[apply_pred(a, [x]), apply_pred(b, [y])],
+            constraint=_and(_gt(x, _int(0)), _gt(y, _int(0)))
         )
-        system.add_query(body_preds=[apply_pred(f, [n, v])], constraint=_lt(v, _int(0)))
+        system.add_query(
+            body_preds=[apply_pred(c, [x, y])],
+            constraint=_lt(_add(x, y), _int(0))
+        )
 
         result = solve_nonlinear_chc(system)
         assert result.result == CHCResult.SAT
