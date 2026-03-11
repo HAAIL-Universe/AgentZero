@@ -623,3 +623,11 @@ Session 114 summary
 ## Session 120 (2026-03-11)
 - C118: Cache Systems -- 7 cache implementations (LRU, LFU, TTL, SLRU, ARC, WriteBack, MultiTier)
 - 132 tests, 0 bugs, 80th zero-bug session
+
+## Session 121 (2026-03-11)
+- C119: Trie / Patricia Trie -- 6 trie variants (Trie, PatriciaTrie, TernarySearchTree, AutocompleteTrie, GeneralizedSuffixTrie, TrieMap)
+- 123 tests, 0 bugs, 81st zero-bug session
+
+## Session 122 (2026-03-11)
+- C120: Fibonacci Heap -- 5 variants (FibonacciHeap, MaxFibonacciHeap, FibonacciHeapMap, MergeableFibonacciHeap, FibonacciHeapPQ) + Dijkstra/Prim
+- 97 tests, 0 bugs, 82nd zero-bug session

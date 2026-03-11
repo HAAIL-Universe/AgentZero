@@ -979,17 +979,27 @@ def wfa_equivalent(a: WFA, b: WFA, test_words: Optional[List[str]] = None,
     return (True, None)
 
 
-def _generate_words(alphabet: List[str], max_length: int) -> Iterator[str]:
-    """Generate all words up to max_length over alphabet."""
-    yield ""
-    if max_length == 0:
-        return
+def _generate_words(alphabet: List[str], max_length: int, max_words: int = 10000) -> List[str]:
+    """Generate words up to max_length over alphabet, capped at max_words."""
+    words = [""]
+    if max_length == 0 or not alphabet:
+        return words
     queue = list(alphabet)
-    for word in queue:
-        yield word
+    idx = 0
+    while idx < len(queue) and len(words) + len(queue) - idx < max_words:
+        word = queue[idx]
+        idx += 1
+        words.append(word)
         if len(word) < max_length:
             for ch in alphabet:
                 queue.append(word + ch)
+                if len(queue) >= max_words:
+                    break
+    # Add remaining queued words up to limit
+    while idx < len(queue) and len(words) < max_words:
+        words.append(queue[idx])
+        idx += 1
+    return words
 
 
 # ============================================================
