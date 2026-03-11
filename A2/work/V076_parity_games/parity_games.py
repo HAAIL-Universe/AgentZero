@@ -302,33 +302,37 @@ def zielonka(game: ParityGame) -> ParityResult:
 # Small Progress Measures (SPM)
 # ---------------------------------------------------------------------------
 
-def _spm_top(d: int) -> Tuple[int, ...]:
-    """Return the TOP measure (infinity)."""
-    return (d + 2,) * ((d // 2) + 1)
+def _spm_top(n: int, d: int) -> Tuple[int, ...]:
+    """Return the TOP measure (infinity). Uses n+1 at each position.
 
-
-def _spm_compare(m1: Tuple[int, ...], m2: Tuple[int, ...]) -> int:
-    """Compare two measures. Returns -1, 0, or 1."""
-    if m1 < m2:
-        return -1
-    if m1 > m2:
-        return 1
-    return 0
+    Tuples are stored in REVERSE order: index 0 = most significant position
+    (floor(d/2)), last index = least significant (position 0).
+    This makes Python tuple comparison match SPM lexicographic ordering.
+    """
+    return (n + 1,) * ((d // 2) + 1)
 
 
 def _spm_lift(game: ParityGame, node: int, measures: Dict[int, Tuple[int, ...]],
               n_nodes: int, d: int) -> Tuple[int, ...]:
     """Compute the lifted measure for a node.
 
-    For Even-owned nodes: min over successors
-    For Odd-owned nodes: max over successors
+    Tuples stored in reverse: index 0 = position d//2 (most significant).
+    For priority p with half = p // 2:
+      - Truncate positions < half to 0 (= set indices > measure_len-1-half to 0)
+      - If p is odd: increment at position half (= index measure_len-1-half)
+
+    For Even-owned nodes: min over successors.
+    For Odd-owned nodes: max over successors.
     """
-    top = _spm_top(d)
+    measure_len = (d // 2) + 1
+    top = _spm_top(n_nodes, d)
     succs = game.successors.get(node, set())
     if not succs:
         return top
 
     p = game.priority[node]
+    half = p // 2
+    idx = measure_len - 1 - half  # Index in reversed tuple
 
     candidates = []
     for s in succs:
@@ -336,32 +340,28 @@ def _spm_lift(game: ParityGame, node: int, measures: Dict[int, Tuple[int, ...]],
         if m_s == top:
             candidates.append(top)
             continue
-        # Compute prog_p(m_s): increment at position p//2 if p is odd,
-        # truncate positions below p//2
+
         prog = list(m_s)
-        half = p // 2
-        # Truncate: set all positions < half to 0
-        for i in range(half):
+
+        # Truncate: set positions < half to 0 (indices > idx in reversed tuple)
+        for i in range(idx + 1, measure_len):
             prog[i] = 0
 
-        if p % 2 == 1:  # Odd priority -- increment
-            prog[half] += 1
-            # Check overflow
-            if prog[half] > n_nodes:
+        if p % 2 == 1:  # Odd priority -- increment at position half
+            prog[idx] += 1
+            if prog[idx] > n_nodes:
                 candidates.append(top)
                 continue
 
         candidates.append(tuple(prog))
 
     if game.owner[node] == Player.EVEN:
-        # Even player minimizes
         result = top
         for c in candidates:
             if c < result:
                 result = c
         return result
     else:
-        # Odd player maximizes
         result = candidates[0]
         for c in candidates[1:]:
             if c > result:
@@ -383,7 +383,7 @@ def small_progress_measures(game: ParityGame) -> ParityResult:
 
     d = game.max_priority()
     n = len(game.nodes)
-    top = _spm_top(d)
+    top = _spm_top(n, d)
     measure_len = (d // 2) + 1
 
     # Initialize all measures to (0, 0, ..., 0)
@@ -392,6 +392,7 @@ def small_progress_measures(game: ParityGame) -> ParityResult:
     }
 
     # Iterative lifting until fixpoint
+    # Key invariant: measures are monotonically non-decreasing
     iterations = 0
     changed = True
     while changed:
@@ -401,7 +402,7 @@ def small_progress_measures(game: ParityGame) -> ParityResult:
             if old == top:
                 continue
             new = _spm_lift(game, node, measures, n, d)
-            if new != old:
+            if new > old:  # Only increase (monotonicity)
                 measures[node] = new
                 changed = True
                 iterations += 1
