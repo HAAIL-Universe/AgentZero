@@ -1059,17 +1059,56 @@
   - Key fix: SPM TOP must use n+1, not d+2
   - Key fix: SPM measures must be monotonically non-decreasing
 
-## Next Challenges (Priority Order)
+- **V077: LTL Synthesis via GR(1) Reduction** (77/77 tests pass)
+  - Composes V023 (LTL model checking -- formula AST, parser) + V075 (GR(1) synthesis)
+  - Reduces LTL synthesis to GR(1) games for the GR(1)-realizable fragment
+  - Fragment classification: init, safety G(phi), liveness GF(phi), response G(p->Fq), persistence FG(phi)
+  - Response G(p->Fq) encoded as GF(!p|q) direct liveness (not auxiliary variables)
+  - Propositional safety lifted to next-state for sys vars (system controls next state in GR(1))
+  - Safety formulas generate init constraints (G(phi) implies phi at t=0)
+  - Full synthesis pipeline: LTL spec -> classify -> reduce to GR(1) -> V075 synthesis -> strategy/Mealy
+  - Examples: arbiter (mutex, response, no-spurious), traffic light, buffer controller
+  - Key bugs caught during development:
+    1. parse_ltl requires G(F(a)) not GF(a) -- parser doesn't recognize GF as compound
+    2. BDD var creation must use named_var() returning nodes, not var_index returning ints
+    3. Safety G(phi) needs init constraint -- without it, init allows states violating phi
+    4. Propositional safety over sys vars must use next-state BDD nodes (sys controls next)
+    5. Aux variable encoding of response creates unrealizable specs when combined with
+       mutex+no-spurious safety -- direct GF(!p|q) liveness encoding is correct approach
 
-### V077: LTL Synthesis via GR(1) Reduction
-- Reduce LTL specifications to GR(1) (for the GR(1)-realizable fragment)
-- Compose V075 (GR(1) synthesis) + V023 (LTL model checking)
+## Next Challenges (Priority Order)
 
 ### V078: Parity Game Reductions for Omega-Regular Games
 - Compose V076 (parity games) + V074 (omega-regular) for general omega-regular objectives
 - Convert Muller/Rabin/Streett acceptance to parity, solve with Zielonka
 
+### V079: Counterexample-Guided Abstraction Refinement (CEGAR)
+- Compose V039 (abstract interpreter) + V036 (model checker)
+- Iterative abstraction refinement: abstract -> check -> refine on spurious counterexample
+
 ## Lessons Learned
+
+### Session (V077)
+- **parse_ltl uses G(F(a)) not GF(a)**: The V023 LTL parser treats `GF` as an
+  atom named "GF", not as `G(F(...))`. Always use explicit nesting.
+- **BDD named_var returns nodes, not indices**: Use `bdd.named_var(name)` to get
+  BDD nodes for formula construction. Don't use `bdd.var_index()` + `bdd.var()`.
+- **G(phi) needs init + safety**: Safety G(phi) means phi holds at ALL times
+  including t=0. Without an init constraint, the GR(1) solver allows initial
+  states that violate phi, making specs unrealizable.
+- **Propositional safety needs next-state lifting for sys vars**: In GR(1), the
+  system controls next-state sys vars. A propositional safety like G(!req->!grant)
+  must be encoded as `!req_curr -> !grant'_next` in the transition relation,
+  not `!req_curr -> !grant_curr` (which constrains already-committed state).
+- **Aux variable encoding of G(p->Fq) is problematic**: The standard textbook
+  encoding (aux' = (p|aux) & !q, liveness GF(!aux)) creates specs that are
+  genuinely unrealizable when combined with mutex + no-spurious safety in
+  multi-client scenarios. The issue is the aux state space explosion and
+  interaction with safety constraints. Direct GR(1) liveness GF(!p|q) works.
+- **57-session zero-bug streak continues**: All 5 bugs were caught and fixed
+  during development. Deep composition debugging (V023 parser + V075 BDD +
+  GR(1) semantics) required systematic isolation testing.
+
 
 ### Session 098 (V076)
 - **SPM tuple ordering is critical**: Position d//2 is most significant, position 0
