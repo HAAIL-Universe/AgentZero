@@ -320,18 +320,12 @@ class RecursiveCHCSolver:
         param_names = [p[0] for p in pred.params]
         head_args = clause.head.args
 
-        # Build renaming: head_arg_name -> param_name
+        # Build equality constraints: param == head_arg_expr
         eq_constraints = []
         for param_name, head_arg in zip(param_names, head_args):
-            if isinstance(head_arg, Var):
-                # Simple variable: add equality constraint
-                eq_constraints.append(
-                    App(Op.EQ, [Var(param_name, INT), head_arg], BOOL)
-                )
-            elif isinstance(head_arg, IntConst):
-                eq_constraints.append(
-                    App(Op.EQ, [Var(param_name, INT), head_arg], BOOL)
-                )
+            eq_constraints.append(
+                App(Op.EQ, [Var(param_name, INT), head_arg], BOOL)
+            )
 
         # Combine: exists intermediates. body AND head_arg == param
         combined = _and(body_formula, *eq_constraints)
@@ -344,10 +338,10 @@ class RecursiveCHCSolver:
         """
         Try to eliminate existential variables by direct substitution.
         If head args are just variables, substitute directly.
+        Handles name collisions by pre-renaming conflicting body variables.
         """
         pred = clause.head.predicate
         head_args = clause.head.args
-        param_set = set(param_names)
 
         # Collect all variables in the body
         body_vars = self._collect_var_names(body_formula)
@@ -359,11 +353,27 @@ class RecursiveCHCSolver:
         if all(isinstance(a, Var) for a in head_args):
             head_var_names = [a.name for a in head_args]
             if len(set(head_var_names)) == len(head_var_names):
-                # Simple renaming: substitute body vars to param names
+                head_var_set = set(head_var_names)
+
+                # Check for collisions: param name exists in body but isn't a head arg
+                # e.g., body uses 'x' from Phase1, head uses 'x_prime' -> formal 'x'
+                collision_rename = {}
+                for param_name in param_names:
+                    if param_name in body_vars and param_name not in head_var_set:
+                        # This param name collides with a body variable
+                        fresh = f"__fresh_{param_name}"
+                        collision_rename[param_name] = Var(fresh, INT)
+
+                # Apply collision renames first
+                formula = body_formula
+                if collision_rename:
+                    formula = _substitute(formula, collision_rename)
+
+                # Now apply head-arg -> formal-param renaming
                 mapping = {}
                 for param_name, head_arg in zip(param_names, head_args):
                     mapping[head_arg.name] = Var(param_name, INT)
-                return _substitute(body_formula, mapping)
+                return _substitute(formula, mapping)
 
         # Fall back to conjunction with equalities
         return combined
@@ -529,7 +539,7 @@ class RecursiveCHCSolver:
         ts.set_property(_not(_or(*prop_disjuncts)))
 
         try:
-            pdr_output = check_ts(ts)
+            pdr_output = check_ts(ts, max_frames=20)
             self.stats.smt_queries += pdr_output.stats.smt_queries
 
             if pdr_output.result == PDRResult.SAFE:
@@ -862,6 +872,8 @@ class NonlinearCHCSolver:
             # Nonlinear clause: P1(x1) AND P2(x2) AND ... AND phi => H(y)
             # Create product predicate for pairs
             current_preds = list(clause.body_preds)
+            # Accumulate all rename maps to apply to head and constraint
+            accumulated_renames = {}
 
             while len(current_preds) > 1:
                 # Take first two, create product
@@ -888,6 +900,9 @@ class NonlinearCHCSolver:
                     rename_map[orig_name] = Var(new_name, sort)
                     p2_args_renamed.append(Var(new_name, sort))
 
+                # Track renames for head/constraint
+                accumulated_renames.update(rename_map)
+
                 product_args = list(bp1.args) + p2_args_renamed
                 product_app = apply_pred(product_pred, product_args)
 
@@ -908,11 +923,20 @@ class NonlinearCHCSolver:
                     args=product_args
                 ))
 
+            # Apply accumulated renames to head and constraint
+            new_head = clause.head
+            new_constraint = clause.constraint
+            if accumulated_renames and new_head is not None:
+                new_head_args = [_substitute(a, accumulated_renames) for a in new_head.args]
+                new_head = PredicateApp(predicate=new_head.predicate, args=new_head_args)
+            if accumulated_renames:
+                new_constraint = _substitute(new_constraint, accumulated_renames)
+
             # Now current_preds has exactly one element
             new_system.add_clause(
-                head=clause.head,
+                head=new_head,
                 body_preds=current_preds,
-                constraint=clause.constraint
+                constraint=new_constraint
             )
 
         return new_system
@@ -1039,21 +1063,9 @@ class ModularCHCSolver:
 
         if has_nonlinear:
             solver = NonlinearCHCSolver(sub_system, max_iterations=self.max_iterations)
-        elif scc.is_recursive:
-            solver = RecursiveCHCSolver(sub_system,
-                                        max_iterations=self.max_iterations,
-                                        max_depth=self.max_depth)
         else:
-            # Simple: use V109's PDR solver for linear non-recursive
-            if sub_system.is_linear and len(sub_system.predicates) <= 2:
-                try:
-                    solver = PDRCHCSolver(sub_system)
-                    result = solver.solve()
-                    self.stats.smt_queries += solver.stats.smt_queries
-                    return result
-                except Exception:
-                    pass
-            # Fallback to recursive solver (handles non-recursive as base case)
+            # Use RecursiveCHCSolver for all cases -- it handles non-recursive
+            # as a base case and recursive via PDR + Kleene
             solver = RecursiveCHCSolver(sub_system,
                                         max_iterations=self.max_iterations,
                                         max_depth=self.max_depth)

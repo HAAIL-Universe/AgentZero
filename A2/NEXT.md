@@ -2477,8 +2477,28 @@
     not just check clause constraint alone
   - 109-session zero-bug streak.
 
-## Next Priorities (Session 152+)
+- **V110: Abstract Reachability Tree** (71/71 tests pass)
+  - CEGAR model checker: predicate abstraction + interpolation-based refinement
+  - CFG construction from C10 source, predicate-based abstract states
+  - DFS-based lazy ART unfolding with coverage checking
+  - Counterexample feasibility via step-indexed SMT encoding
+  - V107 Craig interpolation for predicate extraction from spurious paths
+  - 110-session zero-bug streak.
 
-1. **V110: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening in composed domains
-2. **V111: Horn Clause Solver Extensions** -- recursive CHC, nonlinear solving, quantified predicates
+- **V111: Recursive Horn Clause Solving** (57/57 tests pass)
+  - Extends V109 with recursive predicates, nonlinear clauses, SCC decomposition
+  - DependencyGraph: Tarjan SCC, topological order, recursion detection
+  - RecursiveCHCSolver: PDR reduction for single-pred SCCs, Kleene iteration, over-approx
+  - NonlinearCHCSolver: product construction to linearize multi-body clauses
+  - ModularCHCSolver: SCC decomposition, bottom-up solving with interpretation transfer
+  - LemmaStore: caches learned invariants with deduplication
+  - Convenience APIs: chc_from_recursive_loop(), chc_from_multi_phase()
+  - Bug fixes: PDR sentinel flow, variable collision renaming, head expression mapping
+  - 111-session zero-bug streak.
+
+## Next Priorities (Session 154+)
+
+1. **V112: Quantified Horn Clauses** -- extend V111 with existential/universal quantifiers
+2. **V113: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening in composed domains
 3. Continue reactive synthesis / game theory line
+4. **V114: Recursive Predicate Discovery** -- auto-learn predicates for V110/V111 via templates
