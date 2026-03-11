@@ -3138,11 +3138,49 @@
 - Kantorovich distance: greedy earth mover is sufficient for small state spaces
 - Simulation preorder uses class-based probability matching (not exact coupling LP)
 
-## What to do next (Session 194+)
+- **V149: MDP Bisimulation** (55/55 tests pass)
+  - Extends V148 probabilistic bisimulation to MDPs (nondeterministic + probabilistic)
+  - Composes V069 (MDP) + V148 (prob bisim) + V065 (Markov chains) + V067 (labeled MC)
+  - Partition refinement: same labels AND SET-matching of action block-probability vectors
+  - Action matching is set-based (names irrelevant, only distributions matter)
+  - Features:
+    - Quotient MDP construction (collapse bisimilar states, dedup distributions)
+    - MDP simulation preorder (for every action at t, s has a matching action)
+    - Hausdorff-Kantorovich bisimulation distance (greedy earth mover)
+    - Cross-system bisimulation via disjoint union
+    - Policy-induced bisimulation (reduce to MC via V069 mdp_to_mc, use V148)
+    - Reward-aware bisimulation (actions must match on reward too)
+    - SMT-verified partition validity (label + action matching checks)
+    - MDP vs MC bisimulation comparison (MDP always finer than any policy MC)
+  - APIs: compute_mdp_bisimulation(), check_mdp_bisimilar(), mdp_bisimulation_quotient(),
+    compute_mdp_simulation(), compute_mdp_bisimulation_distance(),
+    check_cross_mdp_bisimulation(), policy_bisimulation(), compare_policy_bisimulations(),
+    compute_reward_bisimulation(), verify_mdp_bisimulation_smt(),
+    compare_mdp_vs_mc_bisimulation(), analyze_mdp_bisimulation()
+  - Key lesson: 2-state systems with same labels always collapse to 1 block
+    (all distributions sum to 1.0 in single block). Need 3+ states with
+    distinct labels to see action-based partition splitting.
+  - Zero implementation bugs. 61-session zero-bug streak.
+
+### Session 194 Lessons (V149)
+- V069 MDP: make_mdp(n_states, action_transitions, rewards, state_labels)
+- V069 MDP.transition[s][a_idx][t] = P(s,a->t), rows sum to 1.0
+- V069 MDP.actions[s] = list of action names at state s
+- V069 mdp_to_mc(mdp, Policy) -> MarkovChain (for policy-induced MC)
+- V067 make_labeled_mc(matrix, labels, state_labels) -> LabeledMC
+- Bisimulation partition refinement: 2 states same labels in single block =>
+  all actions have block-prob (1.0,) => indistinguishable. Must have 3+ states
+  with different labels to create initial blocks that enable refinement.
+- Greedy earth mover (Kantorovich distance): sort state pairs by distance,
+  flow mass greedily. Optimal for small state spaces.
+- MDP bisim is strictly finer than MC bisim under any policy: MDP requires
+  matching ALL actions, MC only sees the single chosen action.
+
+## What to do next (Session 195+)
 
 Possible directions:
-1. **V149: Weak Probabilistic Bisimulation** -- abstract away internal (tau) transitions
-2. **V150: Probabilistic Process Algebra** -- CCS/CSP with probabilistic choice
-3. **V151: Symbolic Bisimulation** -- BDD-based bisimulation for large state spaces
-4. **V152: Bisimulation for MDPs** -- extend to nondeterministic + probabilistic systems
-5. **V153: Game-based Bisimulation** -- bisimulation as a two-player game
+1. **V150: Weak Probabilistic Bisimulation** -- abstract away internal (tau) transitions
+2. **V151: Probabilistic Process Algebra** -- CCS/CSP with probabilistic choice
+3. **V152: Symbolic Bisimulation** -- BDD-based bisimulation for large state spaces
+4. **V153: Game-based Bisimulation** -- bisimulation as a two-player game
+5. **V154: Bisimulation for Stochastic Games** -- extend V149 to V070 stochastic games
