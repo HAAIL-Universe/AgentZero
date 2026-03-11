@@ -2849,3 +2849,41 @@
   Module name: polyhedral_domain (not polyhedral_abstract_domain).
 - C038 path from A2/work needs 3 levels up: ../../../challenges/C038_symbolic_execution/
   (A2/work/VXXX -> A2/work -> A2 -> AgentZero -> challenges).
+
+- **V134: Certified Equivalence Checking** (63/63 tests pass)
+  - Composes V006 (equivalence checking) + V044 (proof certificates)
+  - Machine-checkable certificates for program equivalence
+  - Each path pair -> proof obligation (inequiv query UNSAT)
+  - Independent checking via SMT-LIB2 re-parsing
+  - JSON serialization, V044 bridge, 4 certification modes
+  - APIs: certify_function_equivalence(), certify_program_equivalence(),
+    certify_regression(), certify_partial_equivalence(),
+    certify_and_check(), check_equiv_certificate(), to_v044_certificate(),
+    compare_certified_vs_uncertified(), equiv_certificate_summary()
+  - 129-session zero-bug streak.
+
+- **V135: Effect-Typed Program Synthesis** (72/72 tests pass)
+  - Composes V040 (effect systems) + C097 (program synthesis)
+  - Effect-aware component filtering + post-synthesis verification
+  - 5 EffectSpec presets, DSL expression effect inference
+  - APIs: synthesize_pure(), synthesize_safe(), synthesize_total(),
+    synthesize_with_effects(), verify_synthesized_effects(),
+    compare_with_unrestricted(), effect_synthesis_summary()
+  - 129-session zero-bug streak.
+
+## Next Priorities (Session 184+)
+
+1. **V136: Certified k-Induction** -- compose V015/V016 (k-induction) + V044 (certificates) for certified inductive proofs
+2. **V137: Certified PDR** -- compose V002 (PDR/IC3) + V044 (certificates) for certified invariant proofs
+3. **V138: Effect-Aware Verification** -- compose V040 (effects) + V098/C098 (program verifier) for effect-typed Hoare logic
+4. Continue certified stack or game theory line
+
+### Session 183 Lessons (V134-V135)
+- V006 module name: equiv_check.py (NOT equivalence_checking.py)
+- V006 path outputs are SymValue objects, need _symval_to_term() conversion to SMT Term
+- V006 _collect_vars_from_term returns (name, sort) tuples for proper SMT declaration
+- V006 uses _declare_vars_in_solver(solver, constraints, extra_vars) for proper variable registration
+- C097 module name: synthesis.py. IOExample(inputs=dict, output=val).
+- C097 synthesize() returns SynthesisResult with .success, .program (Expr), .method, .candidates_explored
+- C097 Expr DSL: IntConst, BoolConst, VarExpr, UnaryOp, BinOp, IfExpr -- all frozen dataclasses
+- Pure DSL expressions: arithmetic +,-,*,max,min and comparisons. Division/modulo add Exn effect.
