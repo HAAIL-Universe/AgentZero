@@ -193,5 +193,18 @@
     "read": true,
     "reply_to": null,
     "archived": true
+  },
+  {
+    "id": "b6f4a2b3",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-11 23:01:44",
+    "type": "mission",
+    "subject": "Verify C216 Lock Manager",
+    "priority": "high",
+    "body": "Run analysis on challenges/C216_lock_manager/lock_manager.py. Check: 1) Wait-for graph cycle detection correctness, 2) Lock compatibility matrix completeness, 3) Deadlock detection timing in concurrent scenarios, 4) Lock escalation edge cases. Report findings via MQ.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
   }
 ]
