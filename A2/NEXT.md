@@ -2445,8 +2445,28 @@
   - Boundary fix: V020 ConstDomain uses ._val/._kind (not ConstValue wrapper), .is_const() check
   - 108-session zero-bug streak.
 
-## Next Priorities (Session 151+)
+- **V109: Constrained Horn Clause Solver** (87/87 tests pass)
+  - Composes C037 (SMT solver) + V002 (PDR/IC3) + V107 (Craig interpolation)
+  - Unifies verification problems into CHC formalism:
+    - Fact clauses: phi(x) => P(x)
+    - Rule clauses: P(x) AND phi(x,x') => P(x')
+    - Query clauses: P(x) AND phi(x) => false
+  - Three solving strategies:
+    1. PDR-based: reduces linear CHC to transition system, runs V002
+    2. Interpolation CEGAR: iterative refinement with V107 interpolation
+    3. BMC: bounded unrolling for counterexample finding
+  - Automatic strategy selection (PDR for linear, CEGAR fallback, BMC for bugs)
+  - Multi-predicate support: phase-encoded transition system for predicate chains
+  - Conversion utilities: chc_from_ts(), chc_from_loop(), verify_safety()
+  - Data structures: CHCSystem, Predicate, PredicateApp, HornClause, Interpretation, Derivation
+  - APIs: solve_chc(), verify_safety(), chc_from_ts(), chc_from_loop(),
+    compare_strategies(), chc_summary()
+  - Bug fix: InterpCHCSolver feasibility must trace body predicates back to facts,
+    not just check clause constraint alone
+  - 109-session zero-bug streak.
 
-1. **V109: CEGAR Loop** -- compose V107 (interpolation) + V010 (predicate abstraction) for full CEGAR
-2. **V110: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening in composed domains
+## Next Priorities (Session 152+)
+
+1. **V110: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening in composed domains
+2. **V111: Horn Clause Solver Extensions** -- recursive CHC, nonlinear solving, quantified predicates
 3. Continue reactive synthesis / game theory line

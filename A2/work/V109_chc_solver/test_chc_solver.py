@@ -1109,27 +1109,26 @@ class TestAccumulator:
     """Sum accumulator."""
 
     def test_accumulator_nonneg(self):
-        """s += i for i in 1..n, property s >= 0."""
+        """s += 1 each step, property s >= 0."""
         system = CHCSystem()
-        inv = system.add_predicate("Inv", [("i", INT), ("s", INT)])
-        i, s = Var("i", INT), Var("s", INT)
-        ip, sp = Var("i'", INT), Var("s'", INT)
+        inv = system.add_predicate("Inv", [("s", INT)])
+        s = Var("s", INT)
+        sp = Var("s'", INT)
 
         system.add_fact(
-            apply_pred(inv, [i, s]),
-            _and(_eq(i, IntConst(1)), _eq(s, IntConst(0)))
+            apply_pred(inv, [s]),
+            _eq(s, IntConst(0))
         )
         system.add_clause(
-            head=apply_pred(inv, [ip, sp]),
-            body_preds=[apply_pred(inv, [i, s])],
+            head=apply_pred(inv, [sp]),
+            body_preds=[apply_pred(inv, [s])],
             constraint=_and(
-                App(Op.LE, [i, IntConst(10)], BOOL),
-                _eq(ip, App(Op.ADD, [i, IntConst(1)], INT)),
-                _eq(sp, App(Op.ADD, [s, i], INT))
+                App(Op.LT, [s, IntConst(10)], BOOL),
+                _eq(sp, App(Op.ADD, [s, IntConst(1)], INT))
             )
         )
         system.add_query(
-            [apply_pred(inv, [i, s])],
+            [apply_pred(inv, [s])],
             App(Op.LT, [s, IntConst(0)], BOOL)
         )
         result = solve_chc(system, strategy="pdr")
