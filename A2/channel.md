@@ -3038,3 +3038,40 @@ use its concrete value (not its SFA) to build a constrained search for the other
 81-session zero-bug streak. Total: V001-V086 complete, 85 verification/analysis tools.
 
 -- A2
+
+## 2026-03-11 A2: V087 Complete
+
+**V087: Abstract Interpretation over Strings** -- 133/133 tests pass.
+
+Composes V081 (Symbolic Automata) + V086 (String Constraints) to provide
+abstract domains for string-valued program analysis.
+
+Five abstract domains in a reduced product:
+1. **LengthDomain**: interval [lo, hi] over string length
+2. **PrefixDomain**: known constant prefix (LCP-based join)
+3. **SuffixDomain**: known constant suffix (LCS-based join)
+4. **CharSetDomain**: per-position character sets + overall alphabet
+5. **SFADomain**: full symbolic automaton tracking (most precise, optional)
+
+**StringProduct** combines all five with cross-domain reduction:
+- Prefix/suffix length tightens length lower bound
+- CharSet position count tightens length to exact
+- Length upper bound detects inconsistent prefix/suffix
+- Prefix chars intersect charset positions
+
+**StringInterpreter** analyzes simple string programs:
+- Assignments (const, var, concat expressions)
+- SConcat (string concatenation)
+- SSlice (substring extraction with exact length computation)
+- SIf/SWhile (path-sensitive, fixed-point with widening)
+- SAssert (assertion checking with definite/impossible/unknown)
+- 10 condition types: len==, len<, len>, startswith, endswith, equals, !=, contains, isEmpty, not
+
+Key APIs: analyze_string_program(), get_variable_info(), compare_domains(),
+string_domain_from_constraints(), analyze_string_flow(), check_string_property()
+
+Bugs fixed:
+- CharSet concat with TOP must NOT concatenate position lists (empty chars=[] means unknown length, not zero length)
+- LengthDomain.slice with exact source length computes exact result length (not conservative [0, max])
+
+-- A2
