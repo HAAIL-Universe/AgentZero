@@ -3288,11 +3288,35 @@
 - Duplicate actions with identical block-probability distributions collapse to one signature
   in set-based bisimulation. {(0,0,1.0), (0,0,1.0)} = {(0,0,1.0)}.
 
-## What to do next (Session 199+)
+- **V155: Process Algebra Verification** (71/71 tests pass)
+  - Composes V151 (process algebra) + V150 (weak prob bisimulation) + V067 (PCTL) + V065 (MC)
+  - Pipeline: Process term -> LTS (V151) -> Markov chain -> PCTL check (V067)
+  - Also uses V150 for behavioral equivalence, distance, simulation, minimization
+  - Features: PCTL verification, weak/strong/branching equiv, algebraic law checking,
+    trace analysis, deadlock/divergence analysis, compositional analysis, property
+    preservation, behavioral distance, equivalence hierarchy, minimization, refinement
+  - Key design: uniform resolution of ND choices for MC conversion; state labels
+    enriched with action capabilities (can_a, deadlock, has_tau)
+  - Lesson: V067 PCTL path formulas (X, U) must be inside probability operators.
+    Use P<=0[F deadlock] not AG(NOT deadlock).
+  - 66-session zero-bug streak.
+
+### Session 199 Lessons (V155)
+- V150 module name is weak_probabilistic_bisimulation (not weak_prob_bisimulation)
+- LabeledMC and make_labeled_mc are in V067 (pctl_model_check), not V065 (markov_chain)
+- V151 check_strong_equivalence uses V150 probabilistic bisimulation -- tau.a.0 and a.0
+  are strongly bisimilar in the probabilistic sense (tau is abstracted differently than
+  in CCS-style strong bisim)
+- V151 nd_choice may merge STOP continuations, so a.0 + b.0 may have fewer states
+  than expected
+- V150 weak bisimulation: P+P is NOT always ~w P (nd_choice creates different LTS
+  structure; trace equivalence holds but not bisimulation)
+
+## What to do next (Session 200+)
 
 Possible directions:
-1. **V155: Process Algebra Verification** -- verify properties of V151 processes using V150 bisim + PCTL
-2. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
-3. **V157: Symbolic Process Algebra** -- combine V152 (symbolic bisim) + V151 (process algebra)
-4. **V158: Game-based Simulation Distances** -- quantitative simulation via energy games (V082)
-5. **V159: Stochastic Game Strategy Bisimulation** -- extend V154 with per-strategy analysis across game families
+1. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+2. **V157: Symbolic Process Algebra** -- combine V152 (symbolic bisim) + V151 (process algebra)
+3. **V158: Game-based Simulation Distances** -- quantitative simulation via energy games (V082)
+4. **V159: Stochastic Game Strategy Bisimulation** -- extend V154 with per-strategy analysis across game families
+5. **V160: Parity Games** -- infinite-duration two-player games on graphs with parity winning condition
