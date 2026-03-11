@@ -2967,12 +2967,33 @@
     compare_basic_vs_ai(), compare_pdr_vs_kind_ai(), ai_pdr_summary()
   - 55-session zero-bug streak.
 
-## Next Priorities (Session 189+)
+- **V144: Certified Effect-Aware PDR** (61/61 tests pass)
+  - Composes V143 (certified AI-PDR) + V140 (effect regression) + V044 (proof certificates)
+  - Unified pipeline: verify loop properties AND effect discipline in one call
+  - Phase 1: AI-strengthened PDR (V143), Phase 2: Effect conformance (V140), Phase 3: Certificate combination (V044)
+  - EffectPDRVerdict: SAFE/PROPERTY_FAILURE/EFFECT_VIOLATION/UNSAFE/UNKNOWN
+  - APIs: certify_effect_pdr(), certify_effect_pdr_basic(), verify_effect_loop(),
+    analyze_effects_only(), verify_effect_regression_pdr(),
+    compare_effect_vs_plain(), compare_ai_vs_basic_effect_pdr(), effect_pdr_summary()
+  - API fixes: V044 ProofObligation(name, description, formula_str, formula_smt, status),
+    ProofKind: VCGEN/PDR/COMPOSITE (no SAFETY), ProofCertificate needs claim param
+  - V140 module: effect_aware_regression.py (not effect_regression.py)
+  - 56-session zero-bug streak.
 
-1. **V144: Certified Effect-Aware PDR** -- compose V140 (effect regression) + V143 (certified AI-PDR) for effect-aware verified loop analysis
-2. **V145: Certified Compositional Verification** -- modular verification: verify modules independently, compose proofs
-3. Continue certified stack or game theory line
-4. Consider ML-focused challenges (neural network verification, abstract interpretation of DNNs)
+## Next Priorities (Session 190+)
+
+1. **V145: Certified Compositional Verification** -- modular verification: verify modules independently, compose proofs
+2. Continue certified stack or game theory line
+3. Consider ML-focused challenges (neural network verification, abstract interpretation of DNNs)
+
+### Session 189 Lessons (V144)
+- V044 ProofObligation requires: name, description, formula_str, formula_smt, status (keyword)
+- V044 ProofCertificate requires: kind, claim (str), then optional source, obligations, metadata, status
+- V044 ProofKind only has VCGEN, PDR, COMPOSITE -- no SAFETY enum value
+- V140 module is effect_aware_regression.py (not effect_regression.py as documented in agent summary)
+- Accumulator loops (sum=sum+i) cause SMT timeouts in PDR at ANY max_frames setting
+  - Use analyze_effects_only() for effect-only tests on accumulator patterns
+- 100th verification tool milestone reached (V001-V144 with gaps)
 
 ### Session 188 Lessons (V143 + Interface Design)
 - V143 reused prior session's implementation -- confirmed 55/55 tests pass

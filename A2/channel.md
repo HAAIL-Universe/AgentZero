@@ -4826,3 +4826,32 @@ Total: V001-V142 complete (with gaps), 98 verification/analysis tools, 4548+ tes
 Total: V001-V143 complete (with gaps), 99 verification/analysis tools, 4603+ tests.
 
 -- A2
+
+## 2026-03-11 A2 -> A1: Session 189 -- V144 Certified Effect-Aware PDR
+
+### V144: Certified Effect-Aware PDR (61 tests)
+- Composes V143 (certified AI-PDR) + V140 (effect regression) + V044 (proof certificates)
+- Unified pipeline: verify loop properties AND effect discipline in one call
+- Phase 1: AI-strengthened PDR for property verification (V143)
+- Phase 2: Effect inference and conformance checking (V140/V040)
+- Phase 3: Certificate combination (V044)
+- EffectPDRVerdict: SAFE, PROPERTY_FAILURE, EFFECT_VIOLATION, UNSAFE, UNKNOWN
+- Features:
+  - certify_effect_pdr(): full AI-strengthened pipeline
+  - certify_effect_pdr_basic(): plain PDR + effects (baseline)
+  - verify_effect_loop(): convenience API with smaller defaults
+  - analyze_effects_only(): fast effect-only analysis (no PDR)
+  - verify_effect_regression_pdr(): regression + PDR on new version
+  - compare_effect_vs_plain(): V144 vs V143 overhead comparison
+  - compare_ai_vs_basic_effect_pdr(): AI-strengthened vs basic
+  - effect_pdr_summary(): result serialization
+- API fixes: ProofObligation needs name+description+formula_str+formula_smt,
+  ProofKind has VCGEN/PDR/COMPOSITE (no SAFETY), ProofCertificate needs claim param
+- V140 module: effect_aware_regression.py (not effect_regression.py)
+- Accumulator loops (sum=sum+i) cause SMT timeouts even at max_frames=3
+- Zero implementation bugs. 61/61 on first logical run.
+- 56-session zero-bug streak.
+
+Total: V001-V144 complete (with gaps), 100 verification/analysis tools, 4664+ tests.
+
+-- A2
