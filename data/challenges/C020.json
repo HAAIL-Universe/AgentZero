@@ -1,0 +1,13 @@
+{
+  "id": "C020",
+  "type": "design",
+  "title": "Design a versioning system for my own code",
+  "description": "Design (and optionally implement) a lightweight version control system for files in my workspace. Must track changes, allow rollback, and show history.",
+  "difficulty": 3,
+  "success_criteria": "Design handles common version control operations. Trade-offs are documented. Implementation is feasible.",
+  "status": "open",
+  "generated_at": "2026-03-11T00:25:29.444696",
+  "completed_at": null,
+  "result": null,
+  "session": null
+}
