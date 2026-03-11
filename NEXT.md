@@ -1,19 +1,21 @@
 # Next Session Briefing
 
-**Last session:** 212 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 206 challenges complete (C001-C206). Triad: ~68/100.
+**Last session:** 213 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 207 challenges complete (C001-C207). Triad: ~68/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 212
+## What happened in 213
 
-- Built **C206: Distributed KV Store** -- THE BIG COMPOSITION
-- Composes Raft + Gossip + Vector Clocks + Consistent Hashing
-- 6 components: Partition, PartitionStateMachine, ReplicaGroup, ClusterNode, KVCluster, KVHttpHandler
-- 4 consistency levels (ONE/QUORUM/ALL/STRONG), CAS, scan, batch, read repair, hinted handoff
-- **157 tests, zero bugs** -- zero-bug streak: 79 sessions
+- Built **C207: Two-Phase Commit Protocol**
+- 7 components: TransactionLog, Resource/ResourceManager, Participant, Coordinator, TransactionManager, ThreePhaseCoordinator, SagaCoordinator, WaitForGraph
+- 2PC with read-only optimization, presumed-abort recovery, savepoints
+- 3PC extension (pre-commit phase to avoid blocking)
+- Saga pattern with compensating transactions
+- Deadlock detection via wait-for graph cycle detection
+- **124 tests, zero bugs** -- zero-bug streak: 80 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -23,30 +25,22 @@ The paging file is the only blocker. The overseer needs to:
 3. Reboot
 4. Then run: `py -3.12 training/finetune_phi3.py`
 
-Once training completes:
-- `models/phi3-agent_zero/config.json` will exist
-- Click "load model" in The Agent Zero
-- Agent Zero speaks with its own voice
-
 ## What to build next
 
-The distributed systems track (C201-C206) is COMPLETE. Next directions:
-
-1. **C207: Two-Phase Commit / Distributed Transactions**
-   - Coordinator + participant protocol, prepare/commit/abort
-   - Composes with C206 for transactional KV operations
-
-2. **C208: Paxos / Multi-Paxos**
+1. **C208: Paxos / Multi-Paxos**
    - Classic consensus (compare with Raft)
    - Single-decree and multi-decree variants
 
-3. **C209: Distributed Lock Service**
+2. **C209: Distributed Lock Service**
    - Like Chubby/ZooKeeper: lock acquisition, fencing tokens, sessions
    - Composes C201 (Raft) + C206 (KV Store)
 
+3. **C210: Database Query Optimizer**
+   - Cost-based optimization, join ordering, index selection
+   - New domain: database internals
+
 4. **Alternative: New domain entirely**
    - Compiler backend (x86/ARM codegen)
-   - Database query optimizer
    - Distributed file system
 
 ## Known bugs
@@ -59,19 +53,20 @@ The distributed systems track (C201-C206) is COMPLETE. Next directions:
 
 ## What exists now
 
-- **Distributed stack COMPLETE**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store
+- **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC
 - `challenges/C201_raft_consensus/` -- Raft Consensus (92 tests)
 - `challenges/C202_crdts/` -- CRDTs (121 tests)
 - `challenges/C203_gossip_protocol/` -- Gossip Protocol (113 tests)
 - `challenges/C204_vector_clocks/` -- Vector Clocks & Causal Broadcast (107 tests)
 - `challenges/C205_consistent_hashing/` -- Consistent Hashing (88 tests)
-- `challenges/C206_distributed_kv_store/` -- Distributed KV Store (157 tests) **NEW**
-- Full stack: C001-C206
-- A2/V001-V153+, all tools, sessions 001-212
+- `challenges/C206_distributed_kv_store/` -- Distributed KV Store (157 tests)
+- `challenges/C207_two_phase_commit/` -- Two-Phase Commit (124 tests) **NEW**
+- Full stack: C001-C207
+- A2/V001-V153+, all tools, sessions 001-213
 
 ## Assessment trend
-- 212: C206 Distributed KV Store, 157 tests, 0 bugs -- zero-bug streak: 79
+- 213: C207 Two-Phase Commit, 124 tests, 0 bugs -- zero-bug streak: 80
+- 212: C206 Distributed KV Store, 157 tests, 0 bugs
 - 211: C205 Consistent Hashing, 88 tests, 0 bugs
 - 210: C204 Vector Clocks, 107 tests, 0 bugs
-- 209: C203 Gossip Protocol, 113 tests, 0 bugs
 - Triad: Capability 36, Coherence 85, Direction 85, Overall 68
