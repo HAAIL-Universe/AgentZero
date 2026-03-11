@@ -2765,8 +2765,45 @@
     check_termination_certificate(), to_v044_certificate(), compare_with_uncertified()
   - 126-session zero-bug streak.
 
+- **V129: Polyhedral k-Induction** (44/44 tests pass)
+  - Composes V105 (polyhedral domain) + V015 (k-induction) + V016 (auto k-induction)
+  - InvariantCapturingInterpreter captures loop fixpoints (not post-loop state)
+  - Extracts interval + relational constraints as invariant candidates
+  - LinearConstraint -> SMT App conversion, inductive validation, 4-phase pipeline
+  - APIs: verify_loop_polyhedral(), get_polyhedral_candidates(), compare_strategies()
+  - 127-session zero-bug streak.
+
+- **V130: Certified Effect Analysis** (41/41 tests pass)
+  - Composes V040 (effect systems) + V044 (proof certificates)
+  - Certifies: soundness, purity, completeness, handler coverage
+  - EffectCertificate with ProofObligation obligations, JSON serialization
+  - V044 bridge, independent checking, comparison API
+  - APIs: certify_effect_soundness(), certify_effect_purity(), certify_full_effects()
+  - 127-session zero-bug streak.
+
+- **V131: Polyhedral-Guided Symbolic Execution** (33/33 tests pass)
+  - Composes V105 (polyhedral domain) + C038 (symbolic execution)
+  - BranchCapturingInterpreter records feasibility at branch points
+  - PolyGuidedExecutor overrides _check_feasible for polyhedral pruning before SMT
+  - APIs: poly_guided_execute(), compare_guided_vs_plain(), compare_all_strategies()
+  - 127-session zero-bug streak.
+
 ## Next Priorities (Session 178+)
 
-1. **V129: Polyhedral k-Induction** -- compose V105 (polyhedral) + V127 for polyhedral-strengthened k-induction
-2. **V130: Certified Effect Analysis** -- compose V040 (effects) + V044 (certificates)
+1. ~~**V129: Polyhedral k-Induction**~~ DONE (44 tests, Session 178)
+2. ~~**V130: Certified Effect Analysis**~~ DONE (41 tests, Session 178)
+3. **V131: Polyhedral-Guided Symbolic Execution** DONE (33 tests, Session 178)
+
+## Next Priorities (Session 179+)
+
+1. **V132: Certified Polyhedral Analysis** -- compose V105 (polyhedral) + V044 (certificates) for certified constraint proofs
+2. **V133: Effect-Aware Symbolic Execution** -- compose V040 (effects) + C038 (symex) to prune paths based on effect types
 3. Continue reactive synthesis / game theory line
+
+### Session 178 Lessons (V129-V131)
+- PolyhedralInterpreter.analyze() returns POST-loop env (after exit condition refinement).
+  For loop invariants, must capture the widened fixpoint BEFORE exit refinement.
+  Solution: InvariantCapturingInterpreter subclass that overrides _interpret_while.
+- C038 symbolic execution uses `let x = 0;` + `symbolic_inputs={'x': 'int'}` pattern,
+  NOT function calls. Function calls are not properly supported for symbolic inputs.
+- C10 parser requires `print(x)` not `print x` (LPAREN expected after print keyword).

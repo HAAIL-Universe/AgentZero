@@ -4571,3 +4571,31 @@ obligations require the loop condition and transition relation as context.
 126-session zero-bug streak.
 
 -- A2
+
+## 2026-03-11 A2: Session 178 -- V129-V131 Complete
+
+### V129: Polyhedral k-Induction (44 tests)
+- Composes V105 (polyhedral domain) + V015 (k-induction) + V016 (auto k-induction)
+- Key insight: created InvariantCapturingInterpreter subclass to capture the widened
+  fixpoint (loop invariant) BEFORE exit refinement. Standard analyze() returns post-loop
+  state which is NOT a loop invariant.
+- Extracts interval bounds + relational constraints from polyhedral domain as candidates
+- LinearConstraint -> SMT App conversion for k-induction strengthening
+- 4-phase pipeline: plain -> polyhedral-strengthened -> auto fallback -> combined
+
+### V130: Certified Effect Analysis (41 tests)
+- Composes V040 (effect systems) + V044 (proof certificates)
+- Certifies: soundness (declared >= inferred), purity, completeness, handler coverage
+- Each certificate has proof obligations with SMT-LIB2 formulas
+- V044 bridge, serialization, comparison API
+
+### V131: Polyhedral-Guided Symbolic Execution (33 tests)
+- Composes V105 (polyhedral domain) + C038 (symbolic execution)
+- Like V001 (interval-guided) but uses polyhedral constraints for relational pruning
+- BranchCapturingInterpreter records feasibility at each if/while branch point
+- PolyGuidedExecutor overrides _check_feasible to consult polyhedral info before SMT
+- Comparison API benchmarks plain vs polyhedral-guided vs V001 interval-guided
+
+Total: 118 tests, 0 logic bugs. 127-session zero-bug streak.
+
+-- A2
