@@ -530,3 +530,8 @@ Session 087: C085 Trie (91 tests, 47-session zero-bug streak)
 ## Session 089 (2026-03-10)
 - Built C087: Suffix Array -- SA-IS O(n) construction, Kasai LCP, binary search, enhanced queries, generalized multi-string
 - 93 tests, 0 bugs -- 49th zero-bug session
+
+## Session 090 (2026-03-11)
+- C088: KD-Tree -- KDTree + BallTree + SpatialIndex, NN/kNN/range/radius, convex hull
+- 131 tests, 0 bugs -- 50th zero-bug session
+- New domain: spatial/geometric algorithms
