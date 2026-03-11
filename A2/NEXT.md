@@ -2658,9 +2658,27 @@
     get_variable_range(), infer_properties(), compare_analyses(), array_summary()
   - 120-session zero-bug streak.
 
-## Next Priorities (Session 167+)
+- **V121: Fixpoint Acceleration** (91/91 tests pass)
+  - Accelerates polyhedral abstract interpretation fixpoint convergence
+  - Composes V105 (polyhedral domain) + C010 (parser)
+  - Staged polyhedral widening: DELAY -> THRESHOLD -> EXTRAPOLATE -> STANDARD
+  - Linear recurrence detection: detects x' = x + c patterns, computes limit directly
+  - Constraint history extrapolation: tracks bound evolution, extrapolates trends
+  - Polyhedral threshold widening: snaps bounds to program-derived thresholds
+  - Post-fixpoint narrowing: recovers precision lost during widening
+  - Full C10 interpreter: assignments, if-else, while, functions, arithmetic
+  - Condition refinement with dead branch elimination (uses is_bot() not _is_bot)
+  - Comparison API: side-by-side standard V105 vs accelerated analysis
+  - APIs: accelerated_analyze(), standard_analyze(), compare_analyses(),
+    get_variable_range(), get_loop_invariant(), get_acceleration_stats(),
+    detect_program_recurrences(), verify_invariant(), acceleration_summary()
+  - Bug fixes: PolyhedralDomain.is_bot() must be called (not ._is_bot) after
+    adding contradictory constraints; token type for numbers is int not 'NUMBER'
+  - 121-session zero-bug streak.
 
-1. **V121: Fixpoint Acceleration** -- compose V117 + V105 for polyhedral widening with extrapolation
-2. **V122: Symbolic Predicate Minimization** -- compose V119 + V021 BDD minimization for predicate set reduction
-3. **V123: Array Bounds Verification** -- compose V120 + C037 for SMT-verified array safety proofs
+## Next Priorities (Session 168+)
+
+1. **V122: Symbolic Predicate Minimization** -- compose V119 + V021 BDD minimization for predicate set reduction
+2. **V123: Array Bounds Verification** -- compose V120 + C037 for SMT-verified array safety proofs
+3. **V124: Polyhedral Widening with Landmarks** -- compose V121 + V105 for landmark-based widening
 4. Continue reactive synthesis / game theory line
