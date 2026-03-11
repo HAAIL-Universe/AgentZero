@@ -270,10 +270,41 @@ def _reduce_cobuchi(arena: GameArena, acc: AcceptanceCondition) -> ParityGame:
 
 
 def _reduce_rabin(arena: GameArena, acc: AcceptanceCondition) -> ParityGame:
-    """Rabin -> parity via V076."""
-    pg_owner = {n: _arena_owner_to_pg(arena.owner[n]) for n in arena.nodes}
-    pairs = [RabinPair(fin=f, inf=i) for f, i in acc.rabin_pairs]
-    return rabin_to_parity(arena.nodes, pg_owner, arena.successors, pairs)
+    """Rabin -> parity via Muller conversion + LAR.
+
+    V076's rabin_to_parity has a bug with non-pair nodes. We use the
+    correct approach: convert Rabin to Muller table, then use LAR.
+    A set S is Rabin-accepting iff exists pair (L_i, U_i): S & L_i = {} and S & U_i != {}.
+    """
+    relevant = set()
+    for fin, inf in acc.rabin_pairs:
+        relevant.update(fin)
+        relevant.update(inf)
+
+    if not relevant:
+        # No pairs -> no acceptance -> Odd wins
+        pg = ParityGame()
+        for n in arena.nodes:
+            pg.add_node(n, _arena_owner_to_pg(arena.owner[n]), 1)
+        for n in arena.nodes:
+            for s in arena.successors.get(n, set()):
+                pg.add_edge(n, s)
+        return pg
+
+    # Build Muller table from Rabin pairs
+    from itertools import combinations
+    relevant_list = sorted(relevant)
+    muller_table = set()
+    for r in range(len(relevant_list) + 1):
+        for subset in combinations(relevant_list, r):
+            s = frozenset(subset)
+            for fin, inf in acc.rabin_pairs:
+                if not (s & fin) and (s & inf):
+                    muller_table.add(s)
+                    break
+
+    muller_acc = AcceptanceCondition.muller(muller_table)
+    return _reduce_muller(arena, muller_acc)
 
 
 def _reduce_streett(arena: GameArena, acc: AcceptanceCondition) -> ParityGame:
@@ -364,21 +395,30 @@ def _reduce_muller(arena: GameArena, acc: AcceptanceCondition) -> ParityGame:
                 else:
                     priority = 2 * pos + 1  # odd -> good for Odd
             else:
-                # Non-relevant node: neutral even priority (doesn't affect acceptance)
-                priority = 2 * k
+                # Non-relevant node: must not dominate relevant priorities
+                # If empty set is accepting, non-relevant cycles should let Even win (even prio)
+                # If not, non-relevant should not help Even (odd prio)
+                if frozenset() in acc.muller_table:
+                    priority = 0  # even, lowest -- transparent
+                else:
+                    priority = 1  # odd -- doesn't help Even
             pg.add_node(sid, owner, priority)
 
-    # Edges
+    # Edges: LAR is updated for the SOURCE node n, then carried to successor
+    # State (n, perm) means: at node n, LAR before visiting n is perm
+    # Priority is computed from (n, perm) -- the visit of n with this LAR
+    # Edge goes to (succ, updated_perm) where updated_perm = LAR after visiting n
     for n in arena.nodes:
         for succ in arena.successors.get(n, set()):
             for pi, perm in enumerate(all_perms):
                 src = state_id(n, pi)
-                if succ in relevant:
-                    local_idx = node_to_local[succ]
+                if n in relevant:
+                    # Update LAR for visiting n (the source)
+                    local_idx = node_to_local[n]
                     new_perm, _ = update_lar(perm, local_idx)
                     dst_pi = perm_to_idx[new_perm]
                 else:
-                    dst_pi = pi  # LAR doesn't change
+                    dst_pi = pi  # non-relevant doesn't change LAR
                 dst = state_id(succ, dst_pi)
                 pg.add_edge(src, dst)
 
