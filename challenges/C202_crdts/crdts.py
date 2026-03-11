@@ -477,14 +477,13 @@ class RGA:
         ts = self._next_timestamp()
         new_node = RGANode(value, ts, self.node_id)
 
-        if position == 0 and len(self.nodes) == 0:
+        if len(self.nodes) == 0:
             self.nodes.append(new_node)
             self._index[new_node.identifier()] = 0
             return new_node.identifier()
 
         # Find the actual index (accounting for tombstones)
         if position == 0:
-            # Insert before everything: find insertion point
             insert_idx = 0
         else:
             live_count = 0
@@ -495,14 +494,6 @@ class RGA:
                     if live_count == position:
                         insert_idx = i + 1
                         break
-
-        # Insert right after, but before any nodes with smaller timestamps
-        # (to maintain causal ordering for concurrent inserts at same position)
-        while insert_idx < len(self.nodes):
-            existing = self.nodes[insert_idx]
-            if (existing.timestamp, existing.node_id) > (ts, self.node_id):
-                break
-            insert_idx += 1
 
         self.nodes.insert(insert_idx, new_node)
         self._rebuild_index()
@@ -560,11 +551,11 @@ class RGA:
         return [n.value for n in self.nodes if not n.deleted]
 
     def merge(self, other):
-        """Merge with another RGA."""
+        """Merge with another RGA using union + document-order sort."""
         result = RGA(self.node_id)
         result.clock = max(self.clock, other.clock)
 
-        # Collect all nodes by identifier
+        # Collect all nodes by identifier, union tombstones
         all_nodes = {}
         for n in self.nodes:
             ident = n.identifier()
@@ -573,15 +564,14 @@ class RGA:
         for n in other.nodes:
             ident = n.identifier()
             if ident in all_nodes:
-                # Union tombstones
                 all_nodes[ident].deleted = all_nodes[ident].deleted or n.deleted
             else:
                 all_nodes[ident] = RGANode(n.value, n.timestamp, n.node_id,
                                            n.deleted)
 
-        # Sort: higher timestamp first (within same position), stable
+        # Sort by timestamp ascending (document order), node_id for tiebreak
         result.nodes = sorted(all_nodes.values(),
-                              key=lambda n: (-n.timestamp, n.node_id))
+                              key=lambda n: (n.timestamp, n.node_id))
         result._rebuild_index()
         return result
 
