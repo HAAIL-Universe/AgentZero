@@ -803,16 +803,16 @@ class BDDCEGAR:
     def _refine(self, path: List[BDDARTNode]) -> int:
         """Refine: extract new predicates from spurious counterexample.
 
-        Key refinement strategy: for each assignment var := expr on the path,
-        compute backward substitutions of existing predicates. This produces
-        the predicates needed to track values across assignments.
+        Strategy: backward weakest precondition along the path.
+        Starting from the assertion, propagate predicates backward through
+        assignments to discover the needed pre-state predicates.
         """
         added = 0
         env = {}
 
+        # Collect conditions and assertions on the path
         for node in path:
             cfg_node = node.cfg_node
-
             if cfg_node.type in (CFGNodeType.ASSUME, CFGNodeType.ASSUME_NOT, CFGNodeType.ASSERT):
                 if cfg_node.data is not None:
                     cond = _safe_ast_to_smt(cfg_node.data, dict(env))
@@ -828,30 +828,41 @@ class BDDCEGAR:
                         if self.mgr.num_predicates > before:
                             added += 1
 
+        # Backward WP propagation: start from assert predicates, propagate
+        # through assignments to get precondition predicates
+        # Collect the set of predicates to propagate backward
+        wp_terms = set()
+        for node in reversed(path):
+            cfg_node = node.cfg_node
+            if cfg_node.type == CFGNodeType.ASSERT and cfg_node.data:
+                cond = _safe_ast_to_smt(cfg_node.data, dict(env))
+                if cond is not None:
+                    wp_terms.add(str(cond))
             elif cfg_node.type == CFGNodeType.ASSIGN and cfg_node.data:
                 var_name, expr_ast = cfg_node.data
                 expr_smt = _safe_ast_to_smt(expr_ast, dict(env))
-
-                # Standard: var >= 0
-                v = Var(var_name, INT)
-                zero = IntConst(0)
-                geq_zero = App(Op.GE, [v, zero], BOOL)
-                before = self.mgr.num_predicates
-                self.mgr.add_predicate(geq_zero, f"{var_name} >= 0")
-                if self.mgr.num_predicates > before:
-                    added += 1
-
-                # Backward substitution: for each existing predicate mentioning
-                # var_name, compute p[var := expr] and add as new predicate
                 if expr_smt is not None:
-                    current_preds = list(self.mgr.predicates)
-                    for pred_term, pred_desc in current_preds:
-                        if var_name in _collect_vars(pred_term):
-                            subst = _substitute_smt(pred_term, var_name, expr_smt)
-                            before = self.mgr.num_predicates
-                            self.mgr.add_predicate(subst, str(subst))
-                            if self.mgr.num_predicates > before:
-                                added += 1
+                    # For each WP term mentioning var_name, substitute
+                    new_wp = set()
+                    for wp_str in list(wp_terms):
+                        # Find the actual predicate term
+                        for pred_term, _ in self.mgr.predicates:
+                            if str(pred_term) == wp_str and var_name in _collect_vars(pred_term):
+                                subst = _substitute_smt(pred_term, var_name, expr_smt)
+                                before = self.mgr.num_predicates
+                                self.mgr.add_predicate(subst, str(subst))
+                                if self.mgr.num_predicates > before:
+                                    added += 1
+                                new_wp.add(str(subst))
+                    wp_terms.update(new_wp)
+
+                    # Also add var >= 0
+                    v = Var(var_name, INT)
+                    geq_zero = App(Op.GE, [v, IntConst(0)], BOOL)
+                    before = self.mgr.num_predicates
+                    self.mgr.add_predicate(geq_zero, f"{var_name} >= 0")
+                    if self.mgr.num_predicates > before:
+                        added += 1
 
         return added
 

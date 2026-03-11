@@ -2636,9 +2636,20 @@
     (has .stmts); IntervalDomain uses .lo/.hi; .contains(0) for div-zero check
   - 117-session zero-bug streak.
 
-## Next Priorities (Session 165+)
+- **V119: BDD-Based Predicate Abstraction** (90/90 tests pass)
+  - Composes V021 (BDD) + V110 (ART/CEGAR) + C037 (SMT) + C010 (parser)
+  - BDD-based abstract transition encoding: Cartesian abstraction with assume guards
+  - BDD image computation replaces per-predicate SMT queries for abstract post
+  - CEGAR loop with backward WP refinement for predicate discovery
+  - 5 APIs: bdd_verify(), check_assertion(), bdd_vs_smt_comparison(),
+    get_transition_bdds(), bdd_summary()
+  - Composition boundary fixes: C037 SMTResult is enum (not string), ASSERT edges
+    need guard encoding, assume transitions need feasibility guards
+  - 119-session zero-bug streak.
 
-1. **V118: Predicate Abstraction with BDDs** -- compose V021 (BDD) + V115 for symbolic predicate tracking
-2. **V119: Array Domain Abstract Interpretation** -- compose V116 + C039 for array content analysis
-3. **V120: Fixpoint Acceleration** -- compose V117 + V105 for polyhedral widening with extrapolation
+## Next Priorities (Session 166+)
+
+1. **V120: Array Domain Abstract Interpretation** -- compose V116 + C039 for array content analysis
+2. **V121: Fixpoint Acceleration** -- compose V117 + V105 for polyhedral widening with extrapolation
+3. **V122: Symbolic Predicate Minimization** -- compose V119 + V021 BDD minimization for predicate set reduction
 4. Continue reactive synthesis / game theory line
