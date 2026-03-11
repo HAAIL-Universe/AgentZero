@@ -4,11 +4,16 @@ import pytest
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V021_bdd'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V110_abstract_reachability_tree'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', 'challenges', 'C037_smt_solver'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', 'challenges', 'C010_stack_vm'))
+_here = os.path.dirname(__file__)
+sys.path.insert(0, _here)
+for p in [
+    os.path.join(_here, '..', 'V021_bdd_model_checking'),
+    os.path.join(_here, '..', 'V110_abstract_reachability_tree'),
+    os.path.join(_here, '..', '..', '..', 'challenges', 'C037_smt_solver'),
+    os.path.join(_here, '..', '..', '..', 'challenges', 'C010_stack_vm'),
+]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 from bdd_predicate_abstraction import (
     BDDPredicateManager, BDDPredicateState, TransitionBDDBuilder,
@@ -18,7 +23,7 @@ from bdd_predicate_abstraction import (
     _smt_not, _declare_vars, _collect_vars, _safe_ast_to_smt,
     INT, BOOL,
 )
-from bdd import BDD
+from bdd_model_checker import BDD
 from smt_solver import Var, IntConst, App, Op, Sort, SortKind
 
 
@@ -299,7 +304,7 @@ class TestTransitionBDDAssignment:
 
         # State: y >= 0
         state = mgr.state_from_predicates({0})
-        result = mgr.image(state, trans.bdd_node)
+        result = mgr.image(state, trans)
         # y >= 0 should still hold
         assert not result.is_bottom
 
@@ -314,7 +319,7 @@ class TestTransitionBDDAssignment:
 
         # From top (no info about x)
         state = mgr.state_top()
-        result = mgr.image(state, trans.bdd_node)
+        result = mgr.image(state, trans)
         assert not result.is_bottom
 
     def test_assign_contradicts_predicate(self):
@@ -337,7 +342,7 @@ class TestTransitionBDDAssignment:
         trans = builder.build_assign_transition("x", x, 0, 1)
 
         state = mgr.state_from_predicates({0})
-        result = mgr.image(state, trans.bdd_node)
+        result = mgr.image(state, trans)
         assert not result.is_bottom
 
 
@@ -358,7 +363,7 @@ class TestTransitionBDDAssume:
 
         # From top state
         state = mgr.state_top()
-        result = mgr.image(state, trans.bdd_node)
+        result = mgr.image(state, trans)
         assert not result.is_bottom
 
     def test_assume_negated(self):
@@ -371,7 +376,7 @@ class TestTransitionBDDAssume:
         cond = App(Op.GE, [x, IntConst(10)], BOOL)
         trans = builder.build_assume_transition(cond, True, 0, 1)
         # Should not crash, transition should be valid
-        assert trans.bdd_node is not None
+        assert trans is not None
 
     def test_assume_contradicts_state(self):
         """assume(x < 0) with state {x >= 0} should yield bottom."""
@@ -385,7 +390,7 @@ class TestTransitionBDDAssume:
 
         # State where x >= 0 is true
         state = mgr.state_from_predicates({0})
-        result = mgr.image(state, trans.bdd_node)
+        result = mgr.image(state, trans)
         # x < 0 contradicts x >= 0, should be infeasible
         assert result.is_bottom
 
@@ -397,10 +402,10 @@ class TestTransitionBDDAssume:
         mgr.add_predicate(App(Op.LE, [x, IntConst(10)], BOOL), "x <= 10")
 
         builder = TransitionBDDBuilder(mgr)
-        trans = builder.build_skip_transition(0, 1)
+        trans = builder.build_identity_transition(0, 1)
 
         state = mgr.state_from_predicates({0, 1})
-        result = mgr.image(state, trans.bdd_node)
+        result = mgr.image(state, trans)
         assert not result.is_bottom
 
     def test_transition_caching(self):
@@ -409,8 +414,8 @@ class TestTransitionBDDAssume:
         mgr.add_predicate(App(Op.GE, [Var("x", INT), IntConst(0)], BOOL))
 
         builder = TransitionBDDBuilder(mgr)
-        t1 = builder.build_skip_transition(0, 1)
-        t2 = builder.build_skip_transition(0, 1)
+        t1 = builder.build_identity_transition(0, 1)
+        t2 = builder.build_identity_transition(0, 1)
         assert t1 is t2
 
 
@@ -846,7 +851,7 @@ class TestComplexTransitions:
 
         # From state where x >= 0
         state = mgr.state_from_predicates({0})
-        result = mgr.image(state, trans.bdd_node)
+        result = mgr.image(state, trans)
         # x + 1 >= 0 when x >= 0, so should be non-bottom
         assert not result.is_bottom
 
@@ -861,7 +866,7 @@ class TestComplexTransitions:
 
         # From top state
         state = mgr.state_top()
-        result = mgr.image(state, trans.bdd_node)
+        result = mgr.image(state, trans)
         assert not result.is_bottom
 
     def test_multiple_assume_steps(self):
@@ -882,8 +887,8 @@ class TestComplexTransitions:
         )
 
         state = mgr.state_top()
-        s1 = mgr.image(state, t1.bdd_node)
-        s2 = mgr.image(s1, t2.bdd_node)
+        s1 = mgr.image(state, t1)
+        s2 = mgr.image(s1, t2)
         assert not s2.is_bottom
 
 
