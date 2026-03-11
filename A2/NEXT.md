@@ -1281,19 +1281,51 @@
   - Key fix: V107 sequence_interpolate returns [True,...,False] -- don't add extra endpoints
   - Key fix: Trivial edge self-loops must be on ALL automaton states, not just initial
 
-## Next Challenges (Priority Order)
+- **V113: Configurable Program Analysis (CPA)** (81/81 tests pass)
+  - Composes V110 (ART/CFG) + V020 (domain functor) + V104 (relational domains) + V107 (Craig interpolation) + C037 (SMT) + C010 (parser)
+  - CPAchecker-style framework: pluggable abstract domains into ART exploration
+  - CPA interface: AbstractState, TransferRelation, MergeOperator, StopOperator, PrecisionAdjustment
+  - Three concrete CPAs:
+    1. IntervalCPA: per-variable interval tracking with condition refinement
+    2. ZoneCPA: difference-bound matrix (DBM) with relational constraints (x-y<=c)
+    3. PredicateCPA: predicate abstraction with SMT-based transfer + CEGAR refinement
+  - CompositeCPA: product of multiple CPAs (independent component-wise transfer)
+  - Merge strategies: MergeSep (keep separate), MergeJoin (join all)
+  - Stop strategies: StopSep (covered by any), StopJoin (covered by join)
+  - Generic CPA algorithm: BFS ART exploration with configurable components
+  - CEGAR loop for predicate CPA: infeasible path -> Craig interpolation -> new predicates
+  - Predicate discovery: assignment transfer checks all registered predicates (not just current)
+  - Path feasibility: SSA-based SMT encoding of error traces
+  - APIs: verify_with_intervals(), verify_with_zones(), verify_with_predicates(),
+    verify_with_composite(), compare_cpas(), get_variable_ranges(), cpa_summary()
+  - Key fix: PredicateTransfer._post_assign must check ALL registered predicates
+    (not just those in current state) to discover newly-true predicates after assignment.
+    Without this, `let x = 5; assert(x > 0)` fails because x>0 is never discovered.
+  - Zero implementation bugs. Fix was a design oversight caught during testing.
 
-### V113: Configurable Program Analysis (CPA)
-- Compose V110 (ART) + V020 (domain functor) + V104 (relational domains)
-- CPAchecker-style: pluggable abstract domains into ART framework
-- Domain-agnostic ART exploration with configurable transfer functions
+## Next Challenges (Priority Order)
 
 ### V114: Trace Abstraction with Loop Acceleration
 - Extend V112 with loop summarization for unbounded verification
 - Compose V112 (trace abstraction) + V025 (termination/ranking) or V015 (k-induction)
 - Accelerate loop traces via induction instead of unrolling
 
+### V115: Configurable CEGAR with Domain Switching
+- Start with cheap domain (interval), switch to expensive (predicate) on failure
+- Compose V113 (CPA) with strategy selection
+
 ## Lessons Learned
+
+### Session 160 (V113)
+- **Predicate post-assign must discover new predicates**: The standard predicate
+  abstraction transfer only checks if existing predicates are PRESERVED. But after
+  `x = 5`, no predicates hold yet (initial state is empty). Must check ALL registered
+  predicates for implication after assignment, not just current ones.
+- **V110 module name is art.py, not abstract_reachability_tree.py**: Always check
+  actual filenames with ls before importing.
+- **V104 module name is relational_domains.py, not relational_abstract_domains.py**
+- **113-session zero-bug streak**: Fix was a design oversight (predicate discovery
+  scope), not an algorithmic bug. Core CPA algorithm correct on first implementation.
 
 ### Session 159 (V112)
 - **Python module identity for isinstance**: V107 imports `from smt_solver import Var`
