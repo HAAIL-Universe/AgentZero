@@ -2033,12 +2033,24 @@
     compare_repairs(), batch_repair(), repair_from_counterexample(), semantic_distance()
   - Bug: V088 synthesize_regex() has no timeout parameter -- just call without it
 
-## Next Priorities (Session 108+)
+- **V093: Tree Regular Language Learning** (59/59 tests pass)
+  - L* algorithm adapted for bottom-up tree automata (BUTA)
+  - Composes V089 (tree automata) for hypothesis construction + equivalence
+  - Components: Context (tree with hole), ObservationTable (terms x contexts),
+    AutomatonTeacher, PredicateTeacher, ExampleTeacher
+  - Benchmark targets: all_trees, height_bounded(k), symbol_count(mod k, rem)
+  - Key fix: CE processing must generate alphabet-derived contexts f(s1,...,[],...,sn),
+    not just sub-contexts of the CE tree. Otherwise height-bounded languages
+    can't be distinguished (the contexts from the CE tree give same row values).
+  - APIs: learn_from_automaton(), learn_from_predicate(), learn_from_examples(),
+    learn_and_compare(), learn_boolean_tree_language(), run_benchmark_suite()
 
-1. **V093: Tree Regular Language Learning** -- L* for tree automata
-2. Continue reactive synthesis line from game theory branch
-3. **V094: String Theory for SMT** -- extend C037 with native string sort
-4. **V095: Regex Fuzzing** -- generate adversarial inputs to break regex matching
+## Next Priorities (Session 109+)
+
+1. Continue reactive synthesis line from game theory branch
+2. **V094: String Theory for SMT** -- extend C037 with native string sort
+3. **V095: Regex Fuzzing** -- generate adversarial inputs to break regex matching
+4. **V096: Pushdown Systems** -- context-free verification via pushdown automata
 
 ### Session 106 Lessons (V091)
 - V089 add_transition requires tuple, not list for children_states
@@ -2110,3 +2122,11 @@
   Score by how many false neg/pos are fixed.
 - _replace_at_path + _enumerate_subtrees is a clean pattern for AST mutation search
 - 72 tests in 11.6s with 22 test sections covering all APIs
+
+### Session 108 Lessons (V093)
+- Tree L* counterexample processing must generate contexts from ALPHABET structure,
+  not just from the counterexample tree. Use single-step contexts f(s1,...,[],...,sn)
+  with S representatives. This is analogous to suffix-closing in word L*.
+- Promote all CE subtrees directly to S (not R) for fastest convergence.
+- ObservationTable row equality determines state merging -- ensure distinguishing
+  contexts are rich enough to separate states with different behavior.
