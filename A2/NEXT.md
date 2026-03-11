@@ -2269,8 +2269,23 @@
   - Bug fixed: C043 CallExpr.callee is Var object (not str)
   - 99-session zero-bug streak.
 
-## Next Priorities (Session 142+)
+- **V100: Points-To-Guided Shape Analysis** (82/82 tests pass)
+  - Composes V097 (context-sensitive points-to analysis) + V030-style shape analysis
+  - PTA alias info guides strong vs weak updates in shape graph
+  - C10 heap operation extraction from C043 AST (arrays, hashes, closures)
+  - PTAShapeGraph with field edges (not just "next"), 3-valued logic
+  - Shape properties: acyclicity, sharing, reachability, disjointness, null safety
+  - Null deref detection with PTA-refined precision
+  - Comparison API: PTA-guided vs conservative (no PTA) side-by-side
+  - APIs: analyze_pta_shape(), analyze_conservative(), check_acyclic(), check_not_null(),
+    check_shared(), check_disjoint(), check_reachable(), compare_precision(),
+    alias_query(), full_pta_shape_analysis(), pta_shape_summary()
+  - Boundary fixes: dataclasses.field name collision, C043 parse() signature,
+    C043 null as Var('null'), untracked params not null-deref warnings
+  - 100-session zero-bug streak.
 
-1. **V100: Shape Analysis via Points-To** -- compose V097 + V030 for heap shape
-2. **V101: Regex Fuzzing** -- adversarial input generation for regex
+## Next Priorities (Session 143+)
+
+1. **V101: Regex Fuzzing** -- adversarial input generation for regex
+2. **V102: Numeric Abstract Domain Widening Strategies** -- delayed widening, policy iteration
 3. Continue reactive synthesis / game theory line

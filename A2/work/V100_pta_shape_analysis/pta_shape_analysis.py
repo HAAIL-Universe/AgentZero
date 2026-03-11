@@ -24,7 +24,7 @@ Dependencies:
 
 import sys
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field as dc_field
 from enum import Enum, auto
 from typing import (
     Dict, Set, List, Optional, Tuple, FrozenSet, Any
@@ -66,7 +66,7 @@ class HeapOp:
     field: str = ""
     alloc_kind: str = ""
     line: int = 0
-    args: List[str] = field(default_factory=list)
+    args: List[str] = dc_field(default_factory=list)
 
 
 class ShapeProperty(Enum):
@@ -96,7 +96,7 @@ class PTAShapeNode:
     node: Node
     heap_loc: Optional[HeapLoc] = None
     alloc_kind: str = ""
-    variables: Set[str] = field(default_factory=set)
+    variables: Set[str] = dc_field(default_factory=set)
 
 
 @dataclass
@@ -327,8 +327,8 @@ class PTAShapeResult:
     warnings: List[ShapeWarning]
     properties: Dict[str, Dict[str, TV]]  # var -> {property -> TV}
     pta_result: Optional[PointsToResult] = None
-    alias_info: Dict[Tuple[str, str], AliasResult] = field(default_factory=dict)
-    stats: Dict[str, Any] = field(default_factory=dict)
+    alias_info: Dict[Tuple[str, str], AliasResult] = dc_field(default_factory=dict)
+    stats: Dict[str, Any] = dc_field(default_factory=dict)
 
     @property
     def safe(self) -> bool:
@@ -347,6 +347,9 @@ def _extract_heap_ops(stmts, ops=None) -> List[HeapOp]:
     """Extract heap operations from C10 AST statements."""
     if ops is None:
         ops = []
+    # Handle Block objects
+    if hasattr(stmts, 'stmts'):
+        stmts = stmts.stmts
     for stmt in stmts:
         cls = stmt.__class__.__name__
         line = getattr(stmt, 'line', 0)
@@ -430,8 +433,11 @@ def _extract_let(stmt, ops, line):
     elif cls == 'NullLit':
         ops.append(HeapOp(kind=HeapOpKind.NULL_ASSIGN, lhs=stmt.name, line=line))
     elif cls == 'Var':
-        ops.append(HeapOp(kind=HeapOpKind.ASSIGN, lhs=stmt.name,
-                          rhs=stmt.value.name, line=line))
+        if stmt.value.name == 'null':
+            ops.append(HeapOp(kind=HeapOpKind.NULL_ASSIGN, lhs=stmt.name, line=line))
+        else:
+            ops.append(HeapOp(kind=HeapOpKind.ASSIGN, lhs=stmt.name,
+                              rhs=stmt.value.name, line=line))
     elif cls in ('FnDecl', 'LambdaExpr'):
         ops.append(HeapOp(kind=HeapOpKind.ALLOC, lhs=stmt.name,
                           alloc_kind='closure', line=line))
@@ -459,8 +465,11 @@ def _extract_assign(stmt, ops, line):
     elif cls == 'NullLit':
         ops.append(HeapOp(kind=HeapOpKind.NULL_ASSIGN, lhs=stmt.name, line=line))
     elif cls == 'Var':
-        ops.append(HeapOp(kind=HeapOpKind.ASSIGN, lhs=stmt.name,
-                          rhs=stmt.value.name, line=line))
+        if stmt.value.name == 'null':
+            ops.append(HeapOp(kind=HeapOpKind.NULL_ASSIGN, lhs=stmt.name, line=line))
+        else:
+            ops.append(HeapOp(kind=HeapOpKind.ASSIGN, lhs=stmt.name,
+                              rhs=stmt.value.name, line=line))
     elif cls == 'CallExpr':
         callee = _var_name(stmt.value.callee)
         arg_names = [_var_name(a) or "__arg" for a in stmt.value.args]
@@ -613,11 +622,13 @@ class PTAShapeAnalyzer:
         """x = y.f (field read)."""
         rhs_targets = self.graph.get_var_targets(op.rhs)
         if not rhs_targets:
-            self.warnings.append(ShapeWarning(
-                kind='NULL_DEREF',
-                message=f"Possible null dereference: {op.rhs}.{op.field}",
-                line=op.line, severity='error',
-            ))
+            # Only warn if variable was explicitly set to null (exists in var_points)
+            if op.rhs in self.graph.var_points:
+                self.warnings.append(ShapeWarning(
+                    kind='NULL_DEREF',
+                    message=f"Possible null dereference: {op.rhs}.{op.field}",
+                    line=op.line, severity='error',
+                ))
             return
 
         self.graph.clear_var(op.lhs)
@@ -642,11 +653,13 @@ class PTAShapeAnalyzer:
         """x.f = y (field write). PTA guides strong vs weak update."""
         lhs_targets = self.graph.get_var_targets(op.lhs)
         if not lhs_targets:
-            self.warnings.append(ShapeWarning(
-                kind='NULL_DEREF',
-                message=f"Possible null dereference: {op.lhs}.{op.field} = ...",
-                line=op.line, severity='error',
-            ))
+            # Only warn if variable was explicitly set to null
+            if op.lhs in self.graph.var_points:
+                self.warnings.append(ShapeWarning(
+                    kind='NULL_DEREF',
+                    message=f"Possible null dereference: {op.lhs}.{op.field} = ...",
+                    line=op.line, severity='error',
+                ))
             return
 
         rhs_targets = self.graph.get_var_targets(op.rhs) if not op.rhs.startswith("__") else {}
@@ -737,9 +750,8 @@ class ConservativeShapeAnalyzer(PTAShapeAnalyzer):
 
 def _parse_c10(source: str):
     """Parse C10 source using C043 parser."""
-    from hash_maps import lex, parse
-    tokens = lex(source)
-    ast = parse(tokens)
+    from hash_maps import parse
+    ast = parse(source)
     return ast
 
 
