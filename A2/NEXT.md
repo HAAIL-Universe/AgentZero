@@ -3563,3 +3563,39 @@ Possible directions:
 3. **V168: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
 4. **V169: Rabin/Streett Games** -- omega-regular winning conditions beyond parity
 5. **V170: Concurrent Stochastic Games** -- simultaneous-move stochastic parity
+
+- **V166: Rabin/Streett Games** (54/54 tests pass)
+  - Two-player infinite games with omega-regular winning conditions
+  - Composes V156 (Parity Games) for attractor computation
+  - Rabin solver: per-pair iterative fixpoint (avoid L + Buchi on U)
+  - Streett solver (dual): swap players + swap L/U pairs, solve Rabin, complement
+  - Streett solver (direct): per-pair Buchi(U) union co-Buchi(L) nested fixpoint
+  - Muller solver: LAR (Latest Appearance Record) reduction to parity game
+  - Parity-to-Rabin/Streett reductions verified against V156 Zielonka
+  - Buchi, co-Buchi, generalized Buchi as special Rabin/Streett cases
+  - Strategy verification, batch solving, statistics
+  - APIs: solve_rabin(), solve_streett(), solve_streett_direct(), solve_muller(),
+    parity_to_rabin(), parity_to_streett(), make_buchi_game(), make_co_buchi_game(),
+    make_generalized_buchi_game(), verify_rabin_strategy(), compare_with_parity(),
+    rabin_streett_statistics(), batch_solve()
+  - Bugs fixed: Streett dual needs swapped (U,L) pairs (negation swaps L and U);
+    direct Streett needs co-Buchi alternative (avoid L, not just recur through U)
+
+### Session 221 Lessons (V166)
+- Streett-Rabin duality: negation of "if L inf then U inf" is "L inf AND U fin",
+  which is Rabin with SWAPPED pairs (U_i, L_i). Easy to get wrong if you keep
+  the same pairs in the dual.
+- Direct Streett solving needs both Buchi(U) and co-Buchi(L) per pair. Even can
+  satisfy a Streett pair by EITHER visiting U infinitely often OR avoiding L entirely.
+  Missing the co-Buchi case makes the solver too conservative.
+- Muller-to-parity via LAR is elegant but exponential (k! product states for k colors).
+  Falls back to Muller-to-Rabin for >6 colors.
+
+## What to do next (Session 222+)
+
+Possible directions:
+1. **V167: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
+2. **V168: Symbolic Stochastic Parity Games** -- BDD-based stochastic parity solving
+3. **V169: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+4. **V170: Concurrent Stochastic Games** -- simultaneous-move stochastic parity
+5. **V171: Rabin Automata + Game Product** -- compose Rabin/Streett with V074 omega-regular
