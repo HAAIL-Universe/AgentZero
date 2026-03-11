@@ -2980,11 +2980,34 @@
   - V140 module: effect_aware_regression.py (not effect_regression.py)
   - 56-session zero-bug streak.
 
-## Next Priorities (Session 190+)
+## Next Priorities (Session 191+)
 
-1. **V145: Certified Compositional Verification** -- modular verification: verify modules independently, compose proofs
-2. Continue certified stack or game theory line
-3. Consider ML-focused challenges (neural network verification, abstract interpretation of DNNs)
+1. **V146: Certified Assume-Guarantee Reasoning** -- thread-modular verification: each thread verified against environment assumptions, assumptions discharged circularly
+2. **V147: Certified Dataflow Analysis** -- reaching definitions, live variables, available expressions with proof certificates
+3. Continue certified stack or game theory line
+4. Consider ML-focused challenges (neural network verification, abstract interpretation of DNNs)
+
+- **V145: Certified Compositional Verification** (52/52 tests pass)
+  - Composes V004 (VCGen/WP) + V044 (proof certificates) + C010 (parser) + C037 (SMT)
+  - Modular verification: verify functions independently, compose proofs
+  - ModularWPCalculus: at call sites, preconditions = obligations, postconditions = assumptions
+  - Incremental re-verification: only changed modules + their callers re-verified
+  - Spec refinement checking: weakened precondition + strengthened postcondition
+  - Call graph analysis, change impact analysis
+  - Compare modular vs monolithic V004 verification
+  - CompVerdict: SOUND, MODULE_FAILURE, CALL_FAILURE, UNKNOWN
+  - APIs: verify_compositional(), verify_incremental(), check_spec_refinement(),
+    analyze_call_graph(), analyze_change_impact(), compare_modular_vs_monolithic(),
+    certify_compositional(), compositional_summary()
+  - 57-session zero-bug streak.
+
+### Session 190 Lessons (V145)
+- C010 CallExpr.callee is always a str (not an AST node)
+- C010 uses `lex()` function (not Lexer class), module is `stack_vm` (not `lang`)
+- requires/ensures/invariant/assert are parsed as CallExpr -- filter them in call graph analysis
+- V004 WP doesn't handle early returns in if-branches correctly (return in then + return after if)
+  - Use single-return pattern: `let r = default; if (cond) { r = x; } return r;`
+- ModularWP for `let x = f(args)`: WP = postcond[formals/actuals, result/x] => Q
 
 ### Session 189 Lessons (V144)
 - V044 ProofObligation requires: name, description, formula_str, formula_smt, status (keyword)
