@@ -130,13 +130,13 @@ def _extract_candidates_from_profile(profile: LoopProfile, ts: TransitionSystem)
 
     # Recurrence-derived bounds
     for rec in profile.recurrences:
-        vname = rec.variable
+        vname = rec.var
         if vname not in var_names:
             continue
         var = ts.var(vname)
 
-        if hasattr(rec, 'bound') and rec.bound is not None:
-            bound_val = int(rec.bound)
+        if rec.condition_bound is not None:
+            bound_val = int(rec.condition_bound)
             candidates.append(LandmarkCandidate(
                 formula=App(Op.LE, [var, IntConst(bound_val)], BOOL),
                 description=f"{vname} <= {bound_val} (recurrence limit)",
@@ -145,8 +145,8 @@ def _extract_candidates_from_profile(profile: LoopProfile, ts: TransitionSystem)
                 priority=8,
             ))
 
-        if hasattr(rec, 'init') and rec.init is not None:
-            init_val = int(rec.init)
+        if rec.init_lower is not None and rec.init_lower != float('-inf'):
+            init_val = int(rec.init_lower)
             candidates.append(LandmarkCandidate(
                 formula=App(Op.GE, [var, IntConst(init_val)], BOOL),
                 description=f"{vname} >= {init_val} (recurrence init)",
@@ -191,7 +191,9 @@ def _extract_candidates_from_analysis(lm_result: LandmarkResult, ts: TransitionS
     # Extract bounds from final polyhedral environment
     env = lm_result.env
     for vname in var_names:
-        lo, hi = env.get_bounds(vname)
+        if vname not in env.var_names:
+            continue
+        lo, hi = env.get_interval(vname)
         var = ts.var(vname)
 
         if lo is not None and lo > float('-inf'):
@@ -394,7 +396,9 @@ def verify_loop_landmark(source: str, property_source: str,
         property_source: Property expression (e.g., "x >= 0")
         max_k: Maximum induction depth
     """
-    ts = extract_loop_ts(source, property_expr=property_source)
+    ts, ts_vars = _extract_loop_ts(source)
+    prop_smt = _parse_property(property_source, ts_vars)
+    ts.set_property(prop_smt)
     return landmark_k_induction(ts, source, max_k)
 
 
@@ -402,7 +406,9 @@ def verify_loop_landmark_with_config(source: str, property_source: str,
                                       config: LandmarkConfig,
                                       max_k: int = 20) -> LandmarkKIndResult:
     """Verify with custom landmark configuration."""
-    ts = extract_loop_ts(source, property_expr=property_source)
+    ts, ts_vars = _extract_loop_ts(source)
+    prop_smt = _parse_property(property_source, ts_vars)
+    ts.set_property(prop_smt)
     return landmark_k_induction(ts, source, max_k, config)
 
 
@@ -411,7 +417,9 @@ def verify_loop_landmark_with_config(source: str, property_source: str,
 def compare_strategies(source: str, property_source: str,
                        max_k: int = 20) -> dict:
     """Compare landmark-guided vs V016 auto vs plain k-induction."""
-    ts = extract_loop_ts(source, property_expr=property_source)
+    ts, ts_vars = _extract_loop_ts(source)
+    prop_smt = _parse_property(property_source, ts_vars)
+    ts.set_property(prop_smt)
 
     # Plain k-induction
     t0 = time.time()
@@ -453,7 +461,9 @@ def compare_strategies(source: str, property_source: str,
 
 def get_landmark_candidates(source: str, property_source: str) -> List[LandmarkCandidate]:
     """Get landmark candidates without running k-induction (for inspection)."""
-    ts = extract_loop_ts(source, property_expr=property_source)
+    ts, ts_vars = _extract_loop_ts(source)
+    prop_smt = _parse_property(property_source, ts_vars)
+    ts.set_property(prop_smt)
     lm_result = landmark_analyze(source)
 
     all_candidates = []

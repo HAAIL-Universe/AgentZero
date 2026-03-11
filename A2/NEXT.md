@@ -2744,8 +2744,19 @@
   - Note: V123 has if-else path dedup bug (dict vs set); avoided by sequential patterns
   - 126-session zero-bug streak.
 
-## Next Priorities (Session 177+)
+- **V127: Landmark-Guided k-Induction** (37/37 tests pass)
+  - Composes V124 (landmark widening) + V016 (auto k-induction) + V015 + C037 + C010
+  - 4-phase pipeline: plain k-ind -> landmark-strengthened -> V016 auto fallback -> combined
+  - Candidate extraction from: landmarks, recurrences, thresholds, polyhedral bounds
+  - All candidates validated as inductive invariants via SMT
+  - APIs: landmark_k_induction(), verify_loop_landmark(), verify_loop_landmark_with_config(),
+    get_landmark_candidates(), compare_strategies(), landmark_k_summary()
+  - Composition fixes: RecurrenceInfo.var (not .variable), PolyhedralDomain.get_interval() (not .get_bounds()),
+    TransitionSystem.prime("x") (not .var("x'"))
+  - 126-session zero-bug streak (composition boundary only).
 
-1. **V127: Landmark-Guided k-Induction** -- compose V124 + V16 for landmark-informed strengthening
-2. **V128: Certified Termination** -- compose V025 (termination) + V044 (certificates) for termination proofs
+## Next Priorities (Session 178+)
+
+1. **V128: Certified Termination** -- compose V025 (termination) + V044 (certificates) for termination proofs
+2. **V129: Polyhedral k-Induction** -- compose V105 (polyhedral) + V127 for polyhedral-strengthened k-induction
 3. Continue reactive synthesis / game theory line
