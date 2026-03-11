@@ -3383,11 +3383,32 @@
   (users write n["x"], not n["x'"]).
 - Module name is bdd_model_checker.py (not bdd_model_check.py).
 
-## What to do next (Session 213+)
+- **V159: Symbolic Parity Games** (59/59 tests pass)
+  - Composes V021 (BDD) + V156 (Parity Games) for BDD-based parity game solving
+  - SymbolicParityGame: vertices as bit-vectors, edges/owner/priority as BDDs
+  - Symbolic attractor: BDD fixpoint via preimage
+  - Symbolic Zielonka: recursive algorithm using BDD set operations
+  - Explicit <-> Symbolic conversion with roundtrip verification
+  - Parametric constructors: chain, ladder, safety, reachability, Buchi games
+  - Comparison API: explicit V156 vs symbolic V159 (cross-validated)
+  - Strategy extraction and verification via V156 verifier
+  - 70-session zero-bug streak.
+
+### Session 213 Lessons (V159)
+- BDD named_var() must be called BEFORE var_index() -- var_index looks up
+  _name_to_idx which is only populated by named_var.
+- Symbolic attractor: restrict edges to subgame vertices (both curr and next)
+  before computing preimage, otherwise vertices outside subgame can be attracted.
+- Dead-end handling in symbolic Zielonka: check has_succ = exists_multi(next_idxs, edges_sub),
+  dead_ends = verts AND NOT(has_succ). Dead Even -> Odd wins, Dead Odd -> Even wins.
+- State extraction from BDD: must expand don't-care bits in all_sat assignments
+  (same pattern as V158).
+
+## What to do next (Session 214+)
 
 Possible directions:
-1. **V159: Symbolic Parity Games** -- BDD-based parity game solving for large state spaces
-2. **V160: Energy Games** -- quantitative extension of parity games with weight annotations
-3. **V161: Mean-Payoff Games** -- connect to optimization theory and equilibria
-4. **V162: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
-5. **V163: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+1. **V160: Energy Games** -- quantitative extension of parity games with weight annotations
+2. **V161: Mean-Payoff Games** -- connect to optimization theory and equilibria
+3. **V162: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+4. **V163: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+5. **V164: Symbolic Energy Games** -- BDD-based energy game solving
