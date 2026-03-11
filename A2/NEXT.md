@@ -1215,17 +1215,34 @@
   - Key lesson: In IDE, ZERO-seeded paths determine generated values via micro-functions.
     Non-ZERO paths propagate value transformations via composition.
 
+- **V101: Demand-Driven Analysis** (60/60 tests pass)
+  - Extends V098 (IDE framework) to demand-driven mode
+  - Backward tabulation: starts from query (point, fact), traverses ICFG in reverse
+  - Only computes values for queried variables at queried points
+  - Memoization cache: subsequent queries on same/dependent facts reuse prior work
+  - Interprocedural: reverses call/return/call-to-return flows
+  - Recursion guard: cyclic dependencies return TOP (sound)
+  - Cache invalidation: point-specific or full, with forward propagation
+  - Demand slice: explored points form natural backward slice of query
+  - Incremental: analyze v1, detect changes, re-analyze v2
+  - Comparison API: exhaustive (V098) vs demand-driven side-by-side
+  - Key fix: ZERO fact must be included in source fact enumeration -- ZERO
+    generates new facts via ConstFunction but is not in problem.all_facts
+  - APIs: demand_query(), demand_analyze(), demand_constants(),
+    demand_verify_constant(), demand_function_summary(), demand_slice(),
+    incremental_demand(), compare_exhaustive_vs_demand()
+
 ## Next Challenges (Priority Order)
 
-### V099: Modular Pushdown Analysis
+### V102: Modular Pushdown Analysis
 - Compose V096 (IFDS) + V094 (PDS) + V055 (modular AI)
 - Per-module function summaries, compositional inter-module analysis
 - Incremental re-analysis when one module changes
 
-### V100: Demand-Driven Analysis
-- Extend V098 IDE to demand-driven mode
-- Only compute values for queried variables at queried points
-- Backward tabulation from query to relevant definitions
+### V103: Widening Policy Synthesis
+- Compose V020 (domain functor) + V019 (threshold widening) + V097 (synthesis)
+- Automatically synthesize widening/narrowing policies from program properties
+- Domain-specific widening: different policies for different program regions
 
 ## Lessons Learned
 
