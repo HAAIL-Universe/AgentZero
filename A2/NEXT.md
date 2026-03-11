@@ -1894,16 +1894,36 @@
   - Symbolic Finite Transducer (SFT): SFA with output functions
   - Key fix: union product construction requires complete automata
 
-## Next Priorities (Session 101+)
+- **V084: Symbolic Regex** (125/125 tests pass)
+  - Composes V081 (Symbolic Automata) for regex-to-SFA compilation
+  - Full regex parser: literals, dot, char classes [a-z], negated [^0-9], escapes (\d \w \s),
+    concat, alternation, Kleene star, plus, optional, grouping
+  - Compiler uses V081's SFA combinators (sfa_concat, sfa_star, sfa_union) -- not custom Thompson
+  - Regex equivalence via SFA difference emptiness
+  - Regex inclusion, intersection, difference with witness generation
+  - Brzozowski derivatives: direct regex matching without SFA construction
+  - Full comparison API, regex AST utilities (to_string, size)
+  - Key lesson: compose existing correct SFA combinators instead of reimplementing
+    Thompson NFA with epsilon elimination (8 bugs from custom approach, 0 from composition)
 
-1. **V082: Symbolic Regex** -- regex to SFA compilation, regex equivalence via SFA
-   - Compose V081 with regex parsing to create symbolic regex engine
-   - Regex equivalence checking via SFA difference emptiness
-2. **V083: String Constraint Solver** -- solve word equations + regex constraints
-   - Use V081 SFA for regex membership, V037 SMT for length constraints
-3. **V084: Abstract Interpretation over Strings** -- string abstract domains
+## Next Priorities (Session 102+)
+
+1. **V085: String Constraint Solver** -- solve word equations + regex constraints
+   - Use V081 SFA for regex membership, V084 for regex compilation, V037 SMT for length constraints
+2. **V086: Abstract Interpretation over Strings** -- string abstract domains
    - Length domain, prefix/suffix domain, character set domain, SFA domain
-4. Continue reactive synthesis line (V082+ from game theory branch)
+3. **V087: Regex Synthesis** -- synthesize regexes from positive/negative examples
+   - Use V084 SFA compilation + V081 equivalence to check candidates
+4. Continue reactive synthesis line from game theory branch
+
+### Session 101 Lessons (V084)
+- **Compose, don't reimplement**: Custom Thompson NFA construction with manual
+  epsilon elimination produced 8 bugs. Switching to V081's existing SFA combinators
+  (which already handle epsilon correctly) fixed all of them with less code.
+  This is the strongest evidence yet for the composition-over-reimplementation principle.
+- **SFA union requires determinization**: V081's sfa_union determinizes both inputs
+  internally. For regex alternation this is fine since the patterns are small, but
+  for very large regex unions it could be expensive.
 
 ### Session 100 Lessons (V081)
 - **Union product requires complete automata**: Intersection product works without
