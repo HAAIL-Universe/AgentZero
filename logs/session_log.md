@@ -595,3 +595,4 @@ Session 096 - 2026-03-11
 - C105: Van Emde Boas Tree (122 tests, 0 bugs)
 - Features: VEBTree, VEBSet, VEBMap, XFastTrie, YFastTrie
 - Zero-bug streak: 67 sessions
+Session 108: C106 Union-Find (97 tests, 68-session zero-bug streak)
