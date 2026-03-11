@@ -38,7 +38,7 @@ from parity_games import (
     ParityGame, ParityResult, Player as PGPlayer,
     BuchiGame, CoBuchiGame, RabinPair, StreettPair,
     buchi_to_parity, cobuchi_to_parity, rabin_to_parity, streett_to_parity,
-    solve as parity_solve, zielonka, small_progress_measures,
+    zielonka, small_progress_measures,
     compress_priorities, attractor, verify_strategy as pg_verify_strategy,
     compare_algorithms, make_game as pg_make_game,
 )
@@ -179,6 +179,22 @@ class OmegaParityResult:
         lines.append(f"Even wins: {len(self.winner_even)} nodes")
         lines.append(f"Odd wins: {len(self.winner_odd)} nodes")
         return "\n".join(lines)
+
+
+# ============================================================
+# Parity solver dispatch (bypass V076 solve() optimization bug)
+# ============================================================
+
+def _solve_parity(pg: ParityGame, algorithm: str = "zielonka") -> ParityResult:
+    """Solve a parity game using the specified algorithm directly.
+
+    Note: V076's solve() has a bug in self-loop removal + attractor
+    recomputation (Phase 4 win0/win1 partition override). We bypass
+    it and call Zielonka/SPM directly.
+    """
+    if algorithm == "spm":
+        return small_progress_measures(pg)
+    return zielonka(pg)
 
 
 # ============================================================
@@ -388,7 +404,7 @@ def solve_omega_regular(arena: GameArena, acc: AcceptanceCondition,
         OmegaParityResult with winning regions and strategies
     """
     pg = reduce_to_parity(arena, acc)
-    result = parity_solve(pg, algorithm=algorithm)
+    result = _solve_parity(pg, algorithm=algorithm)
 
     # Map back to arena nodes
     if acc.acc_type == AccType.MULLER:
@@ -481,6 +497,7 @@ def ltl_to_parity_game(arena: GameArena, formula: LTL,
 
     # Build product arena x NBA
     # Product state: (arena_node, nba_state)
+    # NBA structure: initial is a set, transitions is Dict[state, List[(Label, dst)]]
     state_map = {}  # product_id -> (arena_node, nba_state)
     inv_map = {}    # (arena_node, nba_state) -> product_id
     next_id = 0
@@ -495,9 +512,17 @@ def ltl_to_parity_game(arena: GameArena, formula: LTL,
         return inv_map[key]
 
     # BFS to explore reachable product states
-    initial_prod = get_or_create(initial_state, nba.initial)
-    queue = [initial_prod]
-    visited = {initial_prod}
+    # nba.initial is a set of initial states
+    initial_prods = set()
+    queue = []
+    visited = set()
+    for init_aut in nba.initial:
+        pid = get_or_create(initial_state, init_aut)
+        initial_prods.add(pid)
+        if pid not in visited:
+            visited.add(pid)
+            queue.append(pid)
+
     prod_successors = {}
     prod_accepting = set()
 
@@ -509,18 +534,15 @@ def ltl_to_parity_game(arena: GameArena, formula: LTL,
         # For each arena successor
         for a_succ in arena.successors.get(a_node, set()):
             succ_props = arena.labels.get(a_succ, set())
-            # For each NBA transition from aut_state
-            for (src, label), dsts in nba.transitions.items():
-                if src != aut_state:
-                    continue
+            # NBA transitions: nba.transitions[aut_state] = [(Label, dst), ...]
+            for label, aut_succ in nba.transitions.get(aut_state, []):
                 if not _label_match(label, succ_props):
                     continue
-                for aut_succ in dsts:
-                    succ_pid = get_or_create(a_succ, aut_succ)
-                    prod_successors[pid].add(succ_pid)
-                    if succ_pid not in visited:
-                        visited.add(succ_pid)
-                        queue.append(succ_pid)
+                succ_pid = get_or_create(a_succ, aut_succ)
+                prod_successors[pid].add(succ_pid)
+                if succ_pid not in visited:
+                    visited.add(succ_pid)
+                    queue.append(succ_pid)
 
     # Mark accepting product states (nba accepting)
     for pid in visited:
@@ -552,7 +574,7 @@ def ltl_to_parity_game(arena: GameArena, formula: LTL,
         if not pg.successors.get(pid):
             pg.add_edge(pid, pid)
 
-    return pg, state_map, initial_prod
+    return pg, state_map, initial_prods
 
 
 def solve_ltl_game(arena: GameArena, formula: LTL,
@@ -568,8 +590,8 @@ def solve_ltl_game(arena: GameArena, formula: LTL,
     Returns:
         OmegaParityResult with arena-level winning regions
     """
-    pg, state_map, init_prod = ltl_to_parity_game(arena, formula, initial_state)
-    result = parity_solve(pg, algorithm=algorithm)
+    pg, state_map, init_prods = ltl_to_parity_game(arena, formula, initial_state)
+    result = _solve_parity(pg, algorithm=algorithm)
 
     # Project back to arena nodes
     # A node wins for Even if ANY product state (node, *) wins for Even
@@ -686,7 +708,7 @@ def _conjoin_buchi(arena: GameArena,
                 dst = state_id(succ, next_obl)
                 pg.add_edge(src, dst)
 
-    result = parity_solve(pg)
+    result = _solve_parity(pg)
 
     # Project back
     winner_even = set()
@@ -820,8 +842,8 @@ def disjoin_acceptance(arena: GameArena,
 def compare_reductions(arena: GameArena, acc: AcceptanceCondition) -> Dict:
     """Compare Zielonka vs SPM on the same reduction."""
     pg = reduce_to_parity(arena, acc)
-    r_z = parity_solve(pg, algorithm="zielonka")
-    r_s = parity_solve(pg, algorithm="spm")
+    r_z = _solve_parity(pg, algorithm="zielonka")
+    r_s = _solve_parity(pg, algorithm="spm")
 
     return {
         "parity_game_nodes": len(pg.nodes),
