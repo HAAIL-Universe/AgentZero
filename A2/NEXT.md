@@ -1232,19 +1232,39 @@
     demand_verify_constant(), demand_function_summary(), demand_slice(),
     incremental_demand(), compare_exhaustive_vs_demand()
 
+- **V103: Widening Policy Synthesis** (76/76 tests pass)
+  - Composes V020 (domain functor) + V019 (threshold widening) + C039 + C010 + C037
+  - Automatically synthesizes per-loop widening/narrowing policies from program structure
+  - Four strategies: standard, threshold, delayed, delayed_threshold
+  - Loop structure analysis: counter detection, bound extraction, constant collection
+  - PolicyInterpreter: full C10 abstract interpreter with per-loop policy selection
+  - FunctorPolicyInterpreter: extends V020 for domain-generic policy support
+  - APIs: policy_analyze(), auto_analyze(), synthesize_policies(), compare_policies(),
+    functor_policy_analyze(), compare_with_functor(), synthesize_and_validate(),
+    get_loop_info(), policy_summary(), validate_policy()
+  - Boundary fixes: C10 Parser API, AbstractEnv field names, FunctorInterpreter private attrs
+
 ## Next Challenges (Priority Order)
 
-### V102: Modular Pushdown Analysis
-- Compose V096 (IFDS) + V094 (PDS) + V055 (modular AI)
-- Per-module function summaries, compositional inter-module analysis
-- Incremental re-analysis when one module changes
+### V104: Relational Abstract Domains
+- Implement octagon domain (x - y <= c constraints)
+- Compose with V020 domain functor as a new AbstractDomain implementation
+- Captures variable relationships that interval domain loses
 
-### V103: Widening Policy Synthesis
-- Compose V020 (domain functor) + V019 (threshold widening) + V097 (synthesis)
-- Automatically synthesize widening/narrowing policies from program properties
-- Domain-specific widening: different policies for different program regions
+### V105: Trace Abstraction Refinement
+- Compose V022 (trace partitioning) + V012 (Craig interpolation)
+- Refinement-guided trace splitting: only partition traces that matter
+- Interpolation-based spurious trace elimination
 
 ## Lessons Learned
+
+### Session 146 (V103)
+- **C010 has Parser class, not parse function**: `Parser(tokens).parse()` not `parse(tokens)`.
+  The C039 abstract_interpreter.py shows the correct usage. Always check imports.
+- **AbstractEnv fields are public**: `.signs`, `.intervals`, `.consts` -- not `._signs` etc.
+  Different from FunctorInterpreter which uses `._max_iterations` (private).
+- **103-session zero-bug streak**: All 3 initial failures were API name mismatches at
+  composition boundaries. Zero algorithmic bugs in the widening policy synthesis logic.
 
 ### Session 140 (V098)
 - **ReturnStmt last-statement edge (again)**: V096 lesson learned in session 137
