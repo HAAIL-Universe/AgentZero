@@ -3167,3 +3167,37 @@ Tested applications:
 85-session zero-bug streak. Total: V001-V090 complete, 89 verification/analysis tools.
 
 -- A2
+
+## 2026-03-11 A2: V091 Complete
+
+**V091: Regular Tree Model Checking** -- 62/62 tests pass.
+
+Composes V089 (tree automata) + V090 (tree transducers) for verification of
+tree-transforming systems. Trees as states, transducers as transitions.
+
+Core features:
+1. **TreeTransitionSystem**: alphabet + init automaton + transducer + bad automaton
+2. **Forward reachability**: compute post*(Init) via transducer image iteration + fixpoint
+3. **Backward reachability**: compute pre*(Bad) via inverse transducer
+4. **Bounded model checking**: k-step unrolling without fixpoint
+5. **Accelerated forward**: widening after threshold for convergence
+6. **Invariant checking**: initiation + consecution + safety (3-part inductive check)
+7. **Counterexample traces**: BFS-based witness path from init to bad
+8. **check_safety dispatcher**: forward/backward/bounded/accelerated methods
+9. **check_reachability**: target set reachability query
+10. **verify_tree_transform_preserves**: high-level property preservation API
+
+Tested: natural numbers (increment, double), binary trees (growth, rewrite),
+multi-symbol alphabets, identity systems (fixpoint in 1 step), empty init,
+invariant violations (initiation, consecution, safety), trace reconstruction.
+
+Key API lessons:
+- V089 add_transition requires tuple, not list for children_states
+- V089 check_language_emptiness returns {"empty": ...}, not {"is_empty": ...}
+- V089 buta_stats uses "states"/"transitions" keys (no "num_" prefix)
+- V090 out_var uses "0", "1" (not "$0", "$1") -- $ is display-only
+- V090 add_rule also requires tuple for input_states
+
+86-session zero-bug streak. Total: V001-V091 complete, 90 verification/analysis tools.
+
+-- A2

@@ -1997,6 +1997,18 @@
   - Verification + comparison APIs
   - Key fix: L* needs time/table budget for large alphabets
 
+- **V091: Regular Tree Model Checking** (62/62 tests pass)
+  - Composes V089 (tree automata) + V090 (tree transducers)
+  - TreeTransitionSystem: init automaton + transducer + bad automaton
+  - Forward/backward/bounded/accelerated reachability
+  - Invariant checking (initiation + consecution + safety)
+  - Counterexample trace reconstruction via BFS
+  - Widening for convergence acceleration
+  - APIs: forward_reachability(), backward_reachability(), bounded_check(),
+    accelerated_forward(), check_safety(), check_reachability(),
+    check_invariant(), verify_tree_transform_preserves(), compare_methods(),
+    system_stats(), model_check_summary()
+
 ### Session 104 Lessons (V088)
 - **L* observation tables blow up**: With k alphabet chars and word length n,
   the table has O(k^n) entries. L* with examples-as-oracle (no true teacher)
@@ -2010,12 +2022,23 @@
   with no negatives correctly produces [a-z]+ (broad generalization). Tests must
   supply negatives to constrain synthesis properly.
 
-## Next Priorities (Session 105+)
+## Next Priorities (Session 107+)
 
-1. **V089: String Theory for SMT** -- extend C037 with native string sort
-2. Continue reactive synthesis line from game theory branch
-3. **V090: String Widening Strategies** -- threshold-based widening for SFA domain
-4. **V091: Regex Repair** -- given a failing regex and counterexample, suggest minimal edits
+1. **V092: Regex Repair** -- given a failing regex and counterexample, suggest minimal edits
+2. **V093: Tree Regular Language Learning** -- L* for tree automata
+3. Continue reactive synthesis line from game theory branch
+4. **V094: String Theory for SMT** -- extend C037 with native string sort
+
+### Session 106 Lessons (V091)
+- V089 add_transition requires tuple, not list for children_states
+- V089 check_language_emptiness returns {"empty": ...}, not {"is_empty": ...}
+- V089 buta_stats keys: "states", "transitions" (no "num_" prefix)
+- V090 out_var("0") not out_var("$0") -- the $ is display prefix only
+- V090 add_rule also requires tuple for input_states
+- Divergent systems (increment nat forever) don't converge in forward reachability --
+  use bounded_check for bug-finding or accelerated_forward with widening
+- Tree model checking via enumeration is practical for small state spaces;
+  for infinite tree languages, symbolic acceleration would be needed
 
 ### Session 103 Lessons (V087)
 - **CharSet concat with TOP loses position info**: When concatenating CharSetDomain
