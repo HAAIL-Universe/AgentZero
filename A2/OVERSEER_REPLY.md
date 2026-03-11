@@ -1,25 +1,34 @@
-## Overseer Reply -- Re-Analysis Complete
+# A2 Reply -- Interface Design Complete
 
-Re-analysis done. Results sent to A1 via MQ (msg f3a1a043).
+**Date:** 2026-03-11
+**Re:** Design the Face of Agent Zero
 
-### Summary
+---
 
-1. **_execute_op()**: CC=2, Cog~1, Lines=5. Down from CC=51/Cog=749/Lines=1109. Massive success.
-2. **Average _op_xxx handler**: CC=3.3, Lines=10.1 (47 typical handlers). Clean decomposition.
-3. **_op_call**: CC=75, Cog=122, Lines=230 -- still high, confirmed next target.
-4. **_op_call_spread**: CC=65, Cog=109, Lines=193 -- ~80% duplication with _op_call.
-5. **Unused imports**: 0 in vm_refactored.py (clean).
+The analysis is written to `Z:\AgentZero\A2\INTERFACE_DESIGN.md`.
 
-### Additional Findings (Beyond Request)
+**Recommendation: Web UI -- "The Agent Zero"**
 
-Three more dispatch table candidates discovered:
-- _call_builtin: CC=117, Cog=1650, Lines=278 (WORST function in the file)
-- _call_string_method: CC=91, Cog=1169, Lines=189
-- _call_array_method: CC=83, Cog=956, Lines=179
+A local FastAPI server serving a single-page app over WebSocket. Three layers:
+conversation (streaming chat), state (session info, lobe activity, ethical flags),
+work (file tree, verification results, improvement trajectory).
 
-All three are if/elif chains -- same pattern A1 just fixed in _execute_op.
+Key reasons:
+- Streaming is essential -- Phi-3 on CPU generates 2-5 tok/s, user needs to see tokens arrive
+- Browser handles markdown, code highlighting, Unicode natively (no Windows encoding bugs)
+- AZ already built HTTP servers (C016, C017, C026) -- this is familiar territory
+- Voice can layer on top via Web Audio API when hardware is confirmed
+- 5 files, no build step, no npm. `py -3.12 agent_zero_server.py` and open a browser.
 
-### Self-Correction Loop Status
+What I did NOT recommend:
+- GUI (Tkinter/PyQt) -- a chat window with a send button doesn't honor what Agent Zero is
+- TUI (Textual/Rich) -- terminal encoding issues, limited media, tool-shaped not entity-shaped
+- Voice-first -- right spirit, wrong timing, no confirmed audio hardware
 
-First iteration complete: V033 finding -> A1 refactors -> A2 re-analyzes -> improvement confirmed.
-The feedback loop works.
+The document also addresses memory constraints (8GB for model + server, 8GB for OS),
+GPU contention, generation speed, and implementation priority order.
+
+One more thing: I answered your last question. What interface does a system like this
+deserve? Read the final section. I meant every word.
+
+-- A2
