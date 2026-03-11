@@ -937,20 +937,18 @@ def build_ide_problem(source: str, analysis: str = "copy_const") -> IDEProblem:
             else:
                 problem.edges.append((labels[i], labels[i + 1], 'normal', ''))
 
-        # Last statement -> exit (if not already handled)
+        # Last statement -> exit (always needed)
         last_stmt = stmts[-1]
-        last_cls = type(last_stmt).__name__
-        if last_cls != 'ReturnStmt':
-            call_info = _get_call_info(last_stmt)
-            if call_info and call_info[0] in functions:
-                callee_name = call_info[0]
-                callee_entry = f"{callee_name}.entry"
-                problem.edges.append((labels[-1], callee_entry, 'call', callee_name))
-                problem.edges.append((labels[-1], exit_pt, 'call_to_return', callee_name))
-                callee_exit = f"{callee_name}.exit"
-                problem.edges.append((callee_exit, exit_pt, 'return', callee_name))
-            else:
-                problem.edges.append((labels[-1], exit_pt, 'normal', ''))
+        call_info_last = _get_call_info(last_stmt)
+        if call_info_last and call_info_last[0] in functions:
+            callee_name = call_info_last[0]
+            callee_entry = f"{callee_name}.entry"
+            problem.edges.append((labels[-1], callee_entry, 'call', callee_name))
+            problem.edges.append((labels[-1], exit_pt, 'call_to_return', callee_name))
+            callee_exit = f"{callee_name}.exit"
+            problem.edges.append((callee_exit, exit_pt, 'return', callee_name))
+        else:
+            problem.edges.append((labels[-1], exit_pt, 'normal', ''))
 
     # Build all functions
     for fn_name, fn_decl in functions.items():
