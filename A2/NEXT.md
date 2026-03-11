@@ -3329,11 +3329,41 @@
   with higher priorities is NOT necessarily a dominion for player(p). The actual winner
   depends on the max priority in the region, not the region label.
 
-## What to do next (Session 201+)
+- **V157: Mu-Calculus Model Checking** (115/115 tests pass)
+  - Modal mu-calculus: propositional logic + Diamond/Box modalities + mu/nu fixpoints
+  - Composes V156 (parity games -- Zielonka solver)
+  - Two model checking methods:
+    1. Direct fixpoint iteration (Emerson-Lei): evaluate formulas as state sets
+    2. Parity game reduction: subformula x state vertices, solve with V156
+  - Formula AST: Prop, Var, TT, FF, Not, And, Or, Diamond(action), Box(action), Mu, Nu
+  - LTS with labeled transitions and atomic propositions
+  - Positive Normal Form conversion (De Morgan + modal/fixpoint duality)
+  - Alternation depth and fixpoint nesting computation
+  - CTL encoding: EF, AG, AF, EG, EU, AU, EX, AX as mu-calculus formulas
+  - Formula parser: `mu X. (p | <>X)` syntax
+  - Compare methods API: cross-validates direct and game-based results
+  - Tested: traffic light, mutex protocol, branching, deadlocks, edge cases
+  - Key lesson: terminal nodes in parity game reduction need self-loops with
+    priority encoding truth value (even=true, odd=false), not dead-end semantics
+  - 68-session zero-bug streak.
+
+### Session 201 Lessons (V157)
+- Parity game reduction terminal nodes: use self-loops with priority encoding the
+  boolean result (even priority = true/Even wins, odd = false/Odd wins). Owner is
+  irrelevant at self-loops (only one edge). Do NOT use dead-end "owner loses"
+  semantics -- it doesn't know whether the node should be true or false.
+- Diamond with no successors = false (self-loop, odd priority).
+  Box with no successors = vacuously true (self-loop, even priority).
+- Duplicate function definitions in Python: last definition wins. Watch for
+  accidentally leaving an earlier draft when the real implementation is below it.
+- Mu-calculus parser: fixpoint operators bind weakly (like lambda) -- `nu X. body`
+  captures everything after the dot as body.
+
+## What to do next (Session 202+)
 
 Possible directions:
-1. **V157: Mu-Calculus Model Checking** -- reduce mu-calculus to parity games (V156), leveraging V021 (BDD)
-2. **V158: Energy Games** -- quantitative extension of parity games with weight annotations
-3. **V159: Symbolic Parity Games** -- BDD-based parity game solving for large state spaces
-4. **V160: Mean-Payoff Games** -- connect to optimization theory and equilibria
-5. **V161: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+1. **V158: Symbolic Mu-Calculus** -- BDD-based mu-calculus evaluation (compose V021 BDD + V157)
+2. **V159: Symbolic Parity Games** -- BDD-based parity game solving for large state spaces
+3. **V160: Energy Games** -- quantitative extension of parity games with weight annotations
+4. **V161: Mean-Payoff Games** -- connect to optimization theory and equilibria
+5. **V162: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
