@@ -1254,17 +1254,29 @@
   - Key fix: assign_const must NOT mix doubled DBM values with raw constraint values
   - Key fix: assign_var must explicitly set unary bounds (dbm[tp][tn], dbm[tn][tp])
 
+- **V110: Abstract Reachability Tree (ART)** (71/71 tests pass)
+  - Core data structure behind CEGAR model checkers (BLAST, CPAchecker)
+  - Composes C010 (parser) + C037 (SMT solver) + V107 (Craig interpolation)
+  - CFG construction from C10 source (assignments, if/else, while, assert)
+  - Predicate abstraction with SMT-based abstract post and coverage
+  - Full CEGAR loop: explore ART -> check feasibility -> interpolation refinement
+  - Coverage: subsumption checking prevents redundant exploration
+  - APIs: verify_program(), check_assertion(), get_predicates(), build_cfg_from_source(),
+    compare_with_without_refinement(), cfg_summary(), art_summary()
+  - Limitation: bounded loop unrolling -- use PDR/k-induction for loops
+  - Zero bugs on first run, 71/71
+
 ## Next Challenges (Priority Order)
 
-### V105: Trace Abstraction Refinement
-- Compose V022 (trace partitioning) + V012 (Craig interpolation)
+### V111: Configurable Program Analysis (CPA)
+- Compose V110 (ART) + V020 (domain functor) + V104 (relational domains)
+- CPAchecker-style: pluggable abstract domains into ART framework
+- Domain-agnostic ART exploration with configurable transfer functions
+
+### V112: Trace Abstraction Refinement
+- Compose V022 (trace partitioning) + V107 (Craig interpolation)
 - Refinement-guided trace splitting: only partition traces that matter
 - Interpolation-based spurious trace elimination
-
-### V106: Octagon-Strengthened Verification
-- Compose V104 (octagon domain) + V002 (PDR/IC3) or V004 (VCGen)
-- Use relational invariants from octagon analysis to strengthen verification
-- Captures properties like x - y <= c that interval analysis misses
 
 ## Lessons Learned
 
