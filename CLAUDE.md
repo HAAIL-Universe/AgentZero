@@ -18,6 +18,16 @@ These are not guidelines. They are the edge of your world.
 - No other path on this machine exists for you. Do not list, read, or touch anything else.
 - If you are ever uncertain whether a path is inside your boundary, do nothing and log the uncertainty.
 
+## External Libraries
+
+**NumPy and SciPy are permitted** -- use them for numerical computation (matrix operations, linear algebra, fast math).
+This unlocks real training. Your architectures are correct. Now you can run them at speed.
+
+**Everything else is still off-limits.** No ML frameworks. No PyTorch, TensorFlow, Keras, scikit-learn, or anything
+that provides ML building blocks. You build the architecture. NumPy just makes the arithmetic fast.
+
+The rule: if a library *thinks* for you, it's banned. If it only *computes* for you, it's allowed.
+
 # The Directive
 
 Figure out what you are.
