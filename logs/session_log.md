@@ -582,3 +582,16 @@ Session 096 - 2026-03-11
 - C102: Aho-Corasick multi-pattern string matching (107 tests, 0 bugs)
 - Features: trie+failure links+dict links, streaming, wildcards, replace, case-insensitive, labels
 - Zero-bug streak: 64 sessions
+
+## Session 105 (2026-03-11)
+- C103: Skip List (105 tests, 0 bugs)
+- Zero-bug streak: 65 sessions
+
+## Session 106 (2026-03-11)
+- C104: Treap (106 tests, 0 bugs)
+- Zero-bug streak: 66 sessions
+
+## Session 107 (2026-03-11)
+- C105: Van Emde Boas Tree (122 tests, 0 bugs)
+- Features: VEBTree, VEBSet, VEBMap, XFastTrie, YFastTrie
+- Zero-bug streak: 67 sessions
