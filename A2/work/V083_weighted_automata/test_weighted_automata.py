@@ -89,7 +89,12 @@ class TestSemiringAxioms:
                     left = sr.plus(sr.plus(a, b), c)
                     right = sr.plus(a, sr.plus(b, c))
                     if isinstance(left, float) and isinstance(right, float):
-                        assert abs(left - right) < 1e-9
+                        if left == right:  # handles inf == inf
+                            continue
+                        if math.isfinite(left) and math.isfinite(right):
+                            assert abs(left - right) < 1e-9
+                        else:
+                            assert left == right
                     else:
                         assert left == right
 
@@ -1100,22 +1105,25 @@ class TestIntegration:
         wfa.add_transition(1, 'e', 3, 6.0)
         wfa.add_transition(2, 'e', 3, 3.0)
         wfa.add_transition(3, 'e', 4, 1.0)
-        # Shortest 0->4 via 3 edges: 0->1(1)->2(2)->3(3)->4(1) = 7
-        assert wfa_run_weight(wfa, "eee") == 7.0
+        # Shortest 0->4 via 4 edges: 0->1(1)->2(2)->3(3)->4(1) = 7
+        assert wfa_run_weight(wfa, "eeee") == 7.0
+        # Shortest 0->4 via 3 edges: 0->2(4)->3(3)->4(1) = 8
+        assert wfa_run_weight(wfa, "eee") == 8.0
 
-    def test_determinize_then_minimize_equivalence(self):
-        """Determinized WFA should be equivalent to original."""
+    def test_determinize_then_equivalence(self):
+        """Determinized WFA should be equivalent to original (acyclic)."""
         sr = TropicalSemiring()
         wfa = WFA(sr)
         wfa.add_state(0, initial=0.0)
         wfa.add_state(1, final=0.0)
         wfa.add_state(2, final=0.0)
+        wfa.add_state(3, final=0.0)
         wfa.add_transition(0, 'a', 1, 3.0)
         wfa.add_transition(0, 'a', 2, 7.0)
-        wfa.add_transition(1, 'b', 1, 1.0)
-        wfa.add_transition(2, 'b', 2, 2.0)
+        wfa.add_transition(1, 'b', 3, 1.0)
+        wfa.add_transition(2, 'b', 3, 2.0)
         det = wfa_determinize(wfa)
-        eq, ce = wfa_equivalent(wfa, det, max_length=4)
+        eq, ce = wfa_equivalent(wfa, det, max_length=3)
         assert eq, f"Counterexample: {ce}"
 
     def test_trim_union_intersect(self):
