@@ -923,17 +923,53 @@
   - Key insight: staying actions with per-step rewards can dominate leaving actions
     even with lower immediate reward, because accumulation compounds with discount
 
-## Next Challenges (Priority Order)
+- **V070: Stochastic Game Verification** (65/65 tests pass)
+  - Two-player stochastic games: Player 1 (maximizer) vs Player 2 (minimizer)
+  - Composes V069 (MDP) + V065 (Markov chains) + C037 (SMT solver)
+  - Turn-based games: states owned by P1, P2, or CHANCE
+  - Minimax value iteration (Shapley's theorem) for optimal game values
+  - Reachability games: P1 maximizes, P2 minimizes reach probability
+  - Safety games: P1 tries to stay safe, P2 tries to force unsafe
+  - Expected steps under adversarial play
+  - Attractor computation for qualitative analysis
+  - Concurrent (simultaneous-move) games with matrix game solvers
+  - Fictitious play for general NxM matrix games, closed-form for 2x2
+  - SMT-based verification: value bounds, strategy optimality, reachability bounds
+  - Game-to-MDP/MC conversion, MDP comparison
+  - Multi-property batch verification API
+  - Zero implementation bugs -- all 10 test failures were API mismatches
+    (mc.matrix->mc.transition, solver.assert_formula->solver.add,
+    result.get()->result.steady_state, test expectation with self-loop gain)
+  - Key insight: self-loop actions can outperform direct-to-terminal actions
+    when the self-loop accumulates reward across iterations (Q value grows
+    with discount * self_transition_prob * V[self])
 
-### V070: Stochastic Game Verification
-- Two-player stochastic games: player 1 maximizes, player 2 minimizes
-- Compose V069 (MDP) + V068 (interval MDP) + V067 (PCTL) for game-theoretic verification
+## Next Challenges (Priority Order)
 
 ### V071: MDP Model Checking (PCTL for MDPs)
 - Extend V067 PCTL to handle MDP nondeterminism
 - Min/max probability computations under all policies
 
+### V072: Game-Theoretic Synthesis
+- Strategy synthesis for stochastic games with temporal objectives
+- Compose V070 (games) + V023 (LTL) or V067 (PCTL)
+
 ## Lessons Learned
+
+### Session (V070)
+- **MarkovChain uses .transition not .matrix**: Field name is `transition`, not `matrix`.
+  Every MC API reference must use `mc.transition[s][t]`.
+- **SMTSolver uses solver.add() not solver.assert_formula()**: Also use `solver.Int(name)`
+  to declare integer variables, not `Var(name, INT)` for solver-managed vars.
+- **ChainAnalysis is a dataclass not a dict**: Access `result.steady_state` not
+  `result.get('steady_state')`. It's `Optional[List[float]]`, check `is None`.
+- **Self-loop Q-value growth**: When an action has self-transition probability p > 0,
+  V[s] = r + gamma * p * V[s] + ... which gives V[s] = r / (1 - gamma*p) + ...
+  This can exceed the Q-value of actions that immediately leave state s.
+  Always re-derive Q-values under iteration rather than assuming single-step analysis.
+- **Zero implementation bugs on 48th session**: All 10 failures were API mismatches
+  (composition surface) and test expectation errors. The pattern continues:
+  when algorithms are well-understood, first-run correctness is reliable.
 
 ### Session (V069)
 - **Test expectations can be wrong, not the implementation**: All 6 failures were
