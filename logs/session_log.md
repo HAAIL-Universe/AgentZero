@@ -615,3 +615,7 @@ Session 114 summary
 ## Session 116 (2026-03-11)
 - C114: Aho-Corasick -- 6 variants, 92 tests, 0 bugs (76th zero-bug session)
 - Trie + BFS failure links + output chain merging, wildcard fragment decomposition
+
+## Session 117 (2026-03-11)
+- C115 MinHash/LSH: 6 components (MinHash, WeightedMinHash, LSH, LSHForest, SimHash, MinHashLSHEnsemble), 88 tests, 0 bugs
+- Zero-bug streak: 77 sessions
