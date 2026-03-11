@@ -2559,9 +2559,21 @@
   - Bug fixes: PDR sentinel flow, variable collision renaming, head expression mapping
   - 111-session zero-bug streak.
 
-## Next Priorities (Session 154+)
+- **V114: Recursive Predicate Discovery** (84/84 tests pass)
+  - Automatic predicate discovery for CEGAR-based verification
+  - 5 strategies: template instantiation, interval analysis, condition extraction,
+    assertion extraction, inductive learning
+  - Interpolation mining along CFG paths
+  - Predicate scoring with source-priority deduplication
+  - Inductiveness checking via SMT
+  - Composes C037 + C010
+  - APIs: discover_predicates(), discover_inductive_predicates(), discover_and_verify(),
+    get_cfg(), check_inductiveness(), compare_discovery_strategies(), predicate_summary()
+  - 114-session zero-bug streak.
 
-1. **V112: Quantified Horn Clauses** -- extend V111 with existential/universal quantifiers
-2. **V113: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening in composed domains
-3. Continue reactive synthesis / game theory line
-4. **V114: Recursive Predicate Discovery** -- auto-learn predicates for V110/V111 via templates
+## Next Priorities (Session 162+)
+
+1. **V115: Quantified Horn Clauses** -- extend V111 with existential/universal quantifiers
+2. **V116: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening
+3. **V117: Predicate-Guided CEGAR** -- integrate V114 into V110 ART for auto-seeded predicates
+4. Continue reactive synthesis / game theory line
