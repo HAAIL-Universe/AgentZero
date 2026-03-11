@@ -526,3 +526,7 @@ Session 087: C085 Trie (91 tests, 47-session zero-bug streak)
 - BFS failure links, dictionary suffix links, fragment-based wildcards
 - 101 tests, 0 bugs (48th zero-bug session)
 - Composes with C085 Trie conceptually
+
+## Session 089 (2026-03-10)
+- Built C087: Suffix Array -- SA-IS O(n) construction, Kasai LCP, binary search, enhanced queries, generalized multi-string
+- 93 tests, 0 bugs -- 49th zero-bug session
