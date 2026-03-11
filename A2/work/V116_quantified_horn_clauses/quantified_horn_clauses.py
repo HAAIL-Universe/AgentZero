@@ -69,7 +69,7 @@ class Forall(Quantifier):
         return f'Forall([{vs}], {self.body})'
 
     def __eq__(self, other):
-        return isinstance(other, Forall) and self.variables == other.variables and self.body == other.body
+        return isinstance(other, Forall) and self.variables == other.variables and _term_eq(self.body, other.body)
 
     def __hash__(self):
         return hash(('Forall', self.variables, _term_hash(self.body)))
@@ -93,10 +93,30 @@ class Exists(Quantifier):
         return f'Exists([{vs}], {self.body})'
 
     def __eq__(self, other):
-        return isinstance(other, Exists) and self.variables == other.variables and self.body == other.body
+        return isinstance(other, Exists) and self.variables == other.variables and _term_eq(self.body, other.body)
 
     def __hash__(self):
         return hash(('Exists', self.variables, _term_hash(self.body)))
+
+
+def _term_eq(a, b):
+    """Structural equality for terms (App.__eq__ is overloaded for formula building)."""
+    if type(a) != type(b):
+        return False
+    if isinstance(a, Var):
+        return a.name == b.name and a.sort == b.sort
+    if isinstance(a, IntConst):
+        return a.value == b.value
+    if isinstance(a, BoolConst):
+        return a.value == b.value
+    if isinstance(a, App):
+        return (a.op == b.op and len(a.args) == len(b.args)
+                and all(_term_eq(x, y) for x, y in zip(a.args, b.args)))
+    if isinstance(a, (SelectTerm, StoreTerm, ConstArrayTerm)):
+        return str(a) == str(b)
+    if isinstance(a, (Forall, Exists)):
+        return a.variables == b.variables and _term_eq(a.body, b.body)
+    return str(a) == str(b)
 
 
 def _term_hash(t):
@@ -131,47 +151,74 @@ class ArraySort:
         return f'Array({self.index_sort}, {self.element_sort})'
 
 
+@dataclass(frozen=True)
+class SelectTerm:
+    """Array read: a[i]"""
+    array: Any
+    index: Any
+
+    def __repr__(self):
+        return f'Select({self.array}, {self.index})'
+
+
+@dataclass(frozen=True)
+class StoreTerm:
+    """Array write: a[i] := v, returns new array"""
+    array: Any
+    index: Any
+    value: Any
+
+    def __repr__(self):
+        return f'Store({self.array}, {self.index}, {self.value})'
+
+
+@dataclass(frozen=True)
+class ConstArrayTerm:
+    """Constant array: all elements equal to value."""
+    value: Any
+
+    def __repr__(self):
+        return f'ConstArray({self.value})'
+
+
 def Select(array, index):
     """Array read: a[i]"""
-    return App(Op.CALL, [Var("__select__", INT), array, index], INT)
+    return SelectTerm(array, index)
 
 
 def Store(array, index, value):
-    """Array write: a[i] := v, returns new array"""
-    return App(Op.CALL, [Var("__store__", INT), array, index, value], INT)
+    """Array write: a[i] := v"""
+    return StoreTerm(array, index, value)
 
 
 def ConstArray(value):
-    """Constant array: all elements equal to value."""
-    return App(Op.CALL, [Var("__const_array__", INT), value], INT)
+    """Constant array."""
+    return ConstArrayTerm(value)
 
 
 def _is_select(t):
     """Check if term is an array select."""
-    return (isinstance(t, App) and t.op == Op.CALL and len(t.args) == 3
-            and isinstance(t.args[0], Var) and t.args[0].name == "__select__")
+    return isinstance(t, SelectTerm)
 
 
 def _is_store(t):
     """Check if term is an array store."""
-    return (isinstance(t, App) and t.op == Op.CALL and len(t.args) == 4
-            and isinstance(t.args[0], Var) and t.args[0].name == "__store__")
+    return isinstance(t, StoreTerm)
 
 
 def _is_const_array(t):
     """Check if term is a constant array."""
-    return (isinstance(t, App) and t.op == Op.CALL and len(t.args) == 2
-            and isinstance(t.args[0], Var) and t.args[0].name == "__const_array__")
+    return isinstance(t, ConstArrayTerm)
 
 
 def _get_select_parts(t):
     """Extract (array, index) from Select term."""
-    return (t.args[1], t.args[2])
+    return (t.array, t.index)
 
 
 def _get_store_parts(t):
     """Extract (array, index, value) from Store term."""
-    return (t.args[1], t.args[2], t.args[3])
+    return (t.array, t.index, t.value)
 
 
 # ---------------------------------------------------------------------------
@@ -195,6 +242,13 @@ def collect_free_vars(formula):
         for a in formula.args:
             result |= collect_free_vars(a)
         return result
+    if isinstance(formula, SelectTerm):
+        return collect_free_vars(formula.array) | collect_free_vars(formula.index)
+    if isinstance(formula, StoreTerm):
+        return (collect_free_vars(formula.array) | collect_free_vars(formula.index)
+                | collect_free_vars(formula.value))
+    if isinstance(formula, ConstArrayTerm):
+        return collect_free_vars(formula.value)
     return set()
 
 
@@ -210,6 +264,20 @@ def substitute_quantified(formula, mapping):
         safe_map = {k: v for k, v in mapping.items() if k not in bound}
         new_body = substitute_quantified(formula.body, safe_map)
         return Exists(formula.variables, new_body)
+    # Array terms
+    if isinstance(formula, SelectTerm):
+        return SelectTerm(
+            substitute_quantified(formula.array, mapping),
+            substitute_quantified(formula.index, mapping),
+        )
+    if isinstance(formula, StoreTerm):
+        return StoreTerm(
+            substitute_quantified(formula.array, mapping),
+            substitute_quantified(formula.index, mapping),
+            substitute_quantified(formula.value, mapping),
+        )
+    if isinstance(formula, ConstArrayTerm):
+        return ConstArrayTerm(substitute_quantified(formula.value, mapping))
     # Regular term -- use _substitute
     return _substitute(formula, mapping)
 
@@ -424,12 +492,21 @@ class QuantifierInstantiator:
             return
         if isinstance(t, (IntConst, BoolConst)):
             return
+        if isinstance(t, SelectTerm):
+            if isinstance(t.index, Var) and t.index.name in bound_vars:
+                patterns.append((t.index.name, "select_index"))
+            self._collect_patterns(t.array, bound_vars, patterns)
+            self._collect_patterns(t.index, bound_vars, patterns)
+            return
+        if isinstance(t, StoreTerm):
+            self._collect_patterns(t.array, bound_vars, patterns)
+            self._collect_patterns(t.index, bound_vars, patterns)
+            self._collect_patterns(t.value, bound_vars, patterns)
+            return
+        if isinstance(t, ConstArrayTerm):
+            self._collect_patterns(t.value, bound_vars, patterns)
+            return
         if isinstance(t, App):
-            # If this is a select/store with a bound var as index, it's a pattern
-            if _is_select(t):
-                _, idx = _get_select_parts(t)
-                if isinstance(idx, Var) and idx.name in bound_vars:
-                    patterns.append((idx.name, "select_index"))
             for arg in t.args:
                 self._collect_patterns(arg, bound_vars, patterns)
         if isinstance(t, (Forall, Exists)):
@@ -623,7 +700,7 @@ class QuantifiedCHCSystem:
             self._collect_terms_from(formula.body, terms)
 
     def _eliminate_quantifiers(self, formula, inst, ground_terms):
-        """Eliminate quantifiers by instantiation."""
+        """Eliminate quantifiers by instantiation (recursive into App args)."""
         if isinstance(formula, Forall):
             instances = inst.instantiate_forall(formula, ground_terms)
             if not instances:
@@ -634,6 +711,10 @@ class QuantifiedCHCSystem:
             if not instances:
                 return BoolConst(False)  # No instances = unsatisfied
             return _or(*instances)
+        if isinstance(formula, App):
+            new_args = [self._eliminate_quantifiers(a, inst, ground_terms) for a in formula.args]
+            if any(new_args[i] is not formula.args[i] for i in range(len(new_args))):
+                return App(formula.op, new_args, formula.sort)
         return formula
 
 
@@ -692,12 +773,22 @@ class ArrayAxiomEngine:
         if isinstance(formula, (Forall, Exists)):
             self._collect_array_ops(formula.body, stores, selects)
             return
+        if isinstance(formula, SelectTerm):
+            selects.append(formula)
+            self._collect_array_ops(formula.array, stores, selects)
+            self._collect_array_ops(formula.index, stores, selects)
+            return
+        if isinstance(formula, StoreTerm):
+            stores.append(formula)
+            self._collect_array_ops(formula.array, stores, selects)
+            self._collect_array_ops(formula.index, stores, selects)
+            self._collect_array_ops(formula.value, stores, selects)
+            return
+        if isinstance(formula, ConstArrayTerm):
+            self._collect_array_ops(formula.value, stores, selects)
+            return
         if not isinstance(formula, App):
             return
-        if _is_store(formula):
-            stores.append(formula)
-        if _is_select(formula):
-            selects.append(formula)
         for arg in formula.args:
             self._collect_array_ops(arg, stores, selects)
 
@@ -938,11 +1029,11 @@ def verify_array_property(init_constraint, loop_constraint, property_formula,
             system.declare_array(av)
 
     # Fact: init => Inv(vars)
-    param_vars = [Var(n) for n, _ in var_params]
+    param_vars = [Var(n, s) for n, s in var_params]
     system.add_fact(apply_pred(inv, param_vars), init_constraint)
 
     # Rule: Inv(vars) AND loop_body => Inv(vars')
-    primed_vars = [Var(n + "'") for n, _ in var_params]
+    primed_vars = [Var(n + "'", s) for n, s in var_params]
     system.add_clause(
         head=apply_pred(inv, primed_vars),
         body_preds=[apply_pred(inv, param_vars)],

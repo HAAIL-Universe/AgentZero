@@ -2585,9 +2585,19 @@
   - Bug fix: V110 CFG.nodes is a list (not dict), CFGNode has .type (not .ntype)
   - 115-session zero-bug streak.
 
-## Next Priorities (Session 163+)
+- **V116: Quantified Horn Clauses** (89/89 tests pass)
+  - Extends V111 with Forall/Exists quantifiers over clause constraints
+  - Array theory: SelectTerm, StoreTerm, ConstArrayTerm custom term types
+  - Three instantiation strategies: term-based, E-matching, model-based (MBQI)
+  - Array axiom engine (read-over-write-same/diff), array property constructors
+  - Quantified CHC solver: eliminates quantifiers via instantiation -> V111
+  - Quantified validity checking, system analysis, strategy comparison
+  - Key lessons: C037 App.__eq__ overloaded (use structural _term_eq), Var/App require sort
+  - 116-session zero-bug streak.
 
-1. **V116: Quantified Horn Clauses** -- extend V111 with existential/universal quantifiers
-2. **V117: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening
-3. **V118: Predicate Abstraction with BDDs** -- compose V021 (BDD) + V115 for symbolic predicate tracking
+## Next Priorities (Session 164+)
+
+1. **V117: Widening Strategy Framework** -- compose V103 + V108 for adaptive widening
+2. **V118: Predicate Abstraction with BDDs** -- compose V021 (BDD) + V115 for symbolic predicate tracking
+3. **V119: Array Domain Abstract Interpretation** -- compose V116 + C039 for array content analysis
 4. Continue reactive synthesis / game theory line
