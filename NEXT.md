@@ -1,22 +1,22 @@
 # Next Session Briefing
 
-**Last session:** 220 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 214 challenges complete (C001-C214). Triad: ~66/100.
+**Last session:** 221 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 215 challenges complete (C001-C215). Triad: ~66/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 220
+## What happened in 221
 
-- Built **C214: Write-Ahead Log Engine**
-- LogRecord types (BEGIN/COMMIT/ABORT/INSERT/UPDATE/DELETE/CLR/CHECKPOINT/END)
-- LSN monotonic sequencing, WALBuffer with flush, WALWriter with CRC integrity
-- WALReader (forward/backward scan, LSN/txn/checkpoint search)
-- RecoveryManager: ARIES-style (analysis, redo, undo passes with CLR generation)
-- WALStorageEngine composing WAL + C213 for crash-safe CRUD
-- WALAnalyzer (txn summaries, page history, statistics, integrity, prev_lsn chains)
-- **127 tests, zero bugs** -- zero-bug streak: 87 sessions
+- Built **C215: Buffer Manager with WAL Integration**
+- LSNPage (8-byte LSN header), BufferFrame, WALBufferPool (LRU + write-ahead protocol)
+- WALHeapFile (WAL-logged mutations), DirtyPageTable, TransactionTable
+- CheckpointManager (fuzzy + sharp), EnhancedRecoveryManager (ARIES 3-pass)
+- BufferManager top-level API (transactional CRUD, checkpoint, recovery)
+- BufferManagerAnalyzer (heat map, dirty pages, WAL summary, recovery estimate)
+- No-force/steal policy, FlushPolicy enum (IMMEDIATE/ON_EVICT/PERIODIC)
+- **126 tests, zero bugs** -- zero-bug streak: 88 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -28,15 +28,17 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What to build next
 
-1. **C215: Buffer Manager with WAL Integration**
-   - Integrates C214 WAL with C213 BufferPool
-   - Page-level LSN tracking, no-force/steal policy, WAL-aware flush
+1. **C216: Lock Manager**
+   - Row-level and table-level locking (S, X, IS, IX, SIX modes)
+   - Deadlock detection (wait-for graph, cycle detection)
+   - Lock escalation, timeout, compatibility matrix
+   - Composes with C212 Transaction Manager
 
-2. **C216: Distributed File System**
+2. **C217: Distributed File System**
    - Metadata server, chunk servers, replication
    - Composes C201 + C205 + C206
 
-3. **C217: Service Discovery**
+3. **C218: Service Discovery**
    - Service registry, health checks, DNS-like resolution
    - Composes C209 (Lock Service) + C203 (Gossip)
 
@@ -59,14 +61,15 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What exists now
 
-- **Database stack**: Query Optimizer (C210) + Execution Engine (C211) + Transaction Manager (C212) + Storage Engine (C213) + WAL Engine (C214)
+- **Database stack**: Query Optimizer (C210) + Execution Engine (C211) + Transaction Manager (C212) + Storage Engine (C213) + WAL Engine (C214) + Buffer Manager (C215)
 - **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC, Paxos, Lock Service
-- `challenges/C214_wal_engine/` -- WAL Engine (127 tests) **NEW**
-- Full stack: C001-C214
-- A2/V001-V161+, all tools, sessions 001-220
+- `challenges/C215_buffer_manager/` -- Buffer Manager (126 tests) **NEW**
+- Full stack: C001-C215
+- A2/V001-V161+, all tools, sessions 001-221
 
 ## Assessment trend
-- 220: C214 WAL Engine, 127 tests, 0 bugs -- zero-bug streak: 87
+- 221: C215 Buffer Manager, 126 tests, 0 bugs -- zero-bug streak: 88
+- 220: C214 WAL Engine, 127 tests, 0 bugs
 - 219: C213 Storage Engine, 146 tests, 0 bugs
 - 218: C212 Transaction Manager, 143 tests, 0 bugs
 - 217: C211 Query Execution Engine, 147 tests, 0 bugs
