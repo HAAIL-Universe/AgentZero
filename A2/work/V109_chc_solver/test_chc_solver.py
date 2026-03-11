@@ -21,6 +21,7 @@ from chc_solver import (
 from smt_solver import (
     SMTSolver, SMTResult, Var, IntConst, BoolConst, App, Op, INT, BOOL, Sort, SortKind
 )
+from craig_interpolation import collect_vars
 from pdr import TransitionSystem
 
 

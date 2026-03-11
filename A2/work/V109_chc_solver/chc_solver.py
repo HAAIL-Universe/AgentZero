@@ -1045,12 +1045,48 @@ class InterpCHCSolver:
         return None
 
     def _check_feasibility(self, derivation):
-        """Check if a counterexample derivation is feasible."""
-        # For a leaf derivation, check the constraint alone
+        """
+        Check if a counterexample derivation is feasible.
+        A derivation is feasible if the clause constraint is SAT AND
+        all body predicates can be grounded (traced back to facts).
+        """
         clause = derivation.clause
-        self.stats.smt_queries += 1
-        result, _ = _smt_check(clause.constraint)
-        return result == SMTResult.SAT
+        # For queries: body predicates must be satisfiable via facts
+        if clause.body_preds:
+            for bp in clause.body_preds:
+                pred_name = bp.predicate.name
+                # Check if there exists a fact that can satisfy this predicate
+                # AND the query constraint simultaneously
+                facts = [c for c in self.system.clauses
+                         if c.is_fact and c.head.predicate.name == pred_name]
+                if not facts:
+                    return False  # No facts for this predicate
+                # Check: exists x. fact_constraint(x) AND query_constraint(x)
+                feasible_for_pred = False
+                for fact in facts:
+                    binding = {}
+                    for (pname, _), arg in zip(fact.head.predicate.params, fact.head.args):
+                        if isinstance(arg, Var):
+                            binding[arg.name] = Var(pname, INT)
+                    fact_c = _substitute(fact.constraint, binding)
+                    # Bind body pred args to same vars
+                    bp_binding = {}
+                    for (pname, _), arg in zip(bp.predicate.params, bp.args):
+                        if isinstance(arg, Var):
+                            bp_binding[arg.name] = Var(pname, INT)
+                    query_c = _substitute(clause.constraint, bp_binding)
+                    self.stats.smt_queries += 1
+                    result, _ = _smt_check(_and(fact_c, query_c))
+                    if result == SMTResult.SAT:
+                        feasible_for_pred = True
+                        break
+                if not feasible_for_pred:
+                    return False
+            return True
+        else:
+            self.stats.smt_queries += 1
+            result, _ = _smt_check(clause.constraint)
+            return result == SMTResult.SAT
 
     def _refine_with_interpolation(self, cex, interp):
         """
