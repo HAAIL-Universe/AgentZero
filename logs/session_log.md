@@ -635,3 +635,7 @@ Session 114 summary
 ## Session 133 (2026-03-11)
 - C131: Fast Fourier Transform -- Cooley-Tukey radix-2, Bluestein, STFT, DCT, Goertzel, CZT, Hilbert, filtering, convolution
 - 93 tests, 1 bug (CZT chirp indexing), zero-bug streak broken at 92
+
+## Session 142 (2026-03-11)
+- **C140: Neural Network** -- feedforward NN with backprop (Tensor, Dense, Dropout, BatchNorm, MSE/CE/BCE losses, SGD/Adam/RMSProp, LR scheduling, gradient checking)
+- 161 tests, 0 bugs -- zero-bug streak: 9 sessions
