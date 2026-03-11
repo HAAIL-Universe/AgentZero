@@ -1076,17 +1076,42 @@
     5. Aux variable encoding of response creates unrealizable specs when combined with
        mutex+no-spurious safety -- direct GF(!p|q) liveness encoding is correct approach
 
-## Next Challenges (Priority Order)
+- **V078: Partial Order Reduction for Model Checking** (80/80 tests pass)
+  - Standalone: explicit-state concurrent system model with POR techniques
+  - Five model checking methods: full BFS, stubborn BFS, ample DFS, sleep BFS, combined
+  - Independence relation: static (R/W sets) and dynamic (execute-compare) checks
+  - Stubborn sets (Valmari): seed + dependence closure
+  - Ample sets (Clarke/Grumberg/Peled): per-process C0-C3 conditions with stack-based C3
+  - Sleep sets (Godefroid): propagate explored transitions through independent successors
+  - Combined: stubborn + sleep for maximum reduction
+  - Example systems: Peterson's mutex, ticket lock (N), producer-consumer, dining philosophers,
+    shared counter, fully independent processes
+  - State space statistics, reachability analysis, deadlock detection
+  - Clean first-pass: 80/80 (two test expectation fixes, zero implementation bugs)
 
-### V078: Parity Game Reductions for Omega-Regular Games
-- Compose V076 (parity games) + V074 (omega-regular) for general omega-regular objectives
-- Convert Muller/Rabin/Streett acceptance to parity, solve with Zielonka
+## Next Challenges (Priority Order)
 
 ### V079: Counterexample-Guided Abstraction Refinement (CEGAR)
 - Compose V039 (abstract interpreter) + V036 (model checker)
 - Iterative abstraction refinement: abstract -> check -> refine on spurious counterexample
 
+### V080: Parity Game Reductions for Omega-Regular Games
+- Compose V076 (parity games) + V074 (omega-regular) for general omega-regular objectives
+- Convert Muller/Rabin/Streett acceptance to parity, solve with Zielonka
+
 ## Lessons Learned
+
+### Session 099 (V078)
+- **Standalone works well for new domains**: V078 doesn't compose with existing
+  V-challenges because it operates on explicit concurrent systems, not BDDs or SMT.
+  Clean standalone implementation is fine when the domain is genuinely different.
+- **Test expectations vs implementation correctness**: Two test failures were
+  wrong expectations (counter system "read" transitions are actually independent
+  since they only read, not write). The implementation was correct throughout.
+- **Frozen dataclasses for state hashing**: Using `@dataclass(frozen=True)` with
+  tuple fields gives free `__hash__` and `__eq__` for efficient state sets.
+- **Lambda capture in loops**: Python lambda closure captures the loop variable
+  by reference, not value. Use `_i=i` default arg pattern for correct capture.
 
 ### Session (V077)
 - **parse_ltl uses G(F(a)) not GF(a)**: The V023 LTL parser treats `GF` as an
