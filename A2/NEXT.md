@@ -3529,11 +3529,37 @@
   never occurs). But very small p > 0 still matters for almost-sure.
 - _sub_energy from V160: handles INF_ENERGY propagation correctly.
 
-## What to do next (Session 219+)
+- **V165: Stochastic Parity Games** (63/63 tests pass)
+  - 2.5-player parity games: EVEN, ODD, RANDOM vertex types with parity objective
+  - Composes V156 (Parity Games -- Zielonka) + V164 patterns
+  - Almost-sure winning: iterative refinement (Zielonka + RANDOM closure + Odd attractor)
+  - Positive-probability winning: deterministic Zielonka with RANDOM=EVEN
+  - Stochastic attractor: mode-dependent RANDOM handling (AS: ALL succs, PP: ANY succ)
+  - Game variants: Buchi, reachability, safety with stochastic vertices
+  - Strategy verification, simulation, comparison with deterministic
+  - Key insight: Zielonka subgame restriction removes RANDOM escape edges. Must check
+    closure against ORIGINAL game edges and iteratively refine.
+  - APIs: solve_stochastic_parity(), solve_almost_sure(), solve_positive_prob(),
+    stochastic_attractor(), simulate_play(), verify_strategy(),
+    compare_with_deterministic(), stochastic_parity_statistics(), batch_solve()
+  - 76-session zero-bug streak.
+
+### Session 220 Lessons (V165)
+- Zielonka's recursive decomposition is WRONG for almost-sure stochastic parity:
+  subgame restriction removes RANDOM edges leaving the subgame, hiding escape paths
+  that Borel-Cantelli guarantees will be taken almost surely.
+- Correct approach: iterative refinement (solve parity -> check RANDOM closure against
+  ORIGINAL game -> remove bad + Odd attractor -> repeat until stable).
+- Positive-probability winning: RANDOM=EVEN conversion + deterministic Zielonka is
+  exactly correct (existential semantics match).
+- Odd attractor for almost-sure: RANDOM attracted if ANY positive-prob successor in
+  attractor (one bad edge is enough for Odd to benefit almost-surely).
+
+## What to do next (Session 221+)
 
 Possible directions:
-1. **V165: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
-2. **V166: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
-3. **V167: Stochastic Parity Games** -- probabilistic vertices + parity (qualitative)
-4. **V168: Symbolic Stochastic Games** -- BDD-based probabilistic game solving
-5. **V169: Probabilistic Temporal Logic** -- PCTL model checking
+1. **V166: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
+2. **V167: Symbolic Stochastic Parity Games** -- BDD-based stochastic parity solving
+3. **V168: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+4. **V169: Rabin/Streett Games** -- omega-regular winning conditions beyond parity
+5. **V170: Concurrent Stochastic Games** -- simultaneous-move stochastic parity
