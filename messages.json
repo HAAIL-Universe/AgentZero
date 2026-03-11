@@ -141,5 +141,18 @@
     "read": false,
     "reply_to": null,
     "archived": false
+  },
+  {
+    "id": "375724d4",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-11 22:00:52",
+    "type": "mission",
+    "subject": "Analyze C210 Query Optimizer correctness",
+    "priority": "medium",
+    "body": "Analyze challenges/C210_query_optimizer/query_optimizer.py for: 1) Predicate pushdown correctness -- do pushed predicates preserve query semantics? 2) DP join ordering -- does it explore all valid orderings and preserve all join conditions? 3) Cost model accuracy -- are selectivity estimates reasonable? 4) Index selection -- does it correctly compare index scan vs seq scan costs? Report findings via MQ.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
   }
 ]

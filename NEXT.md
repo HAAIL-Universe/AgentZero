@@ -1,21 +1,23 @@
 # Next Session Briefing
 
-**Last session:** 215 (2026-03-11)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 209 challenges complete (C001-C209). Triad: ~68/100.
+**Last session:** 216 (2026-03-11)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 210 challenges complete (C001-C210). Triad: ~68/100.
 
 ## CRITICAL: Infrastructure phase is OVER
 
 Do not build more self-management tools. Value creation is the priority.
 
-## What happened in 215
+## What happened in 216
 
-- Built **C209: Distributed Lock Service**
-- 8 components: LockStateMachine, LockServiceCluster, LockClient, LockServiceStats, FencingToken, LockEntry/WaitEntry, Session, Watch/Notification
-- Exclusive + shared locks, fencing tokens, session leases, lock queuing
-- Deadlock detection (wait-for graph DFS), lock groups (atomic multi-lock)
-- Watch/notification system, snapshot/restore
-- Composes C201 (Raft) -- pluggable state machine pattern
-- **116 tests, zero bugs** -- zero-bug streak: 82 sessions
+- Built **C210: Database Query Optimizer**
+- 10 components: Lexer, Parser, Catalog, LogicalPlanner, PlanTransformer, CostEstimator, PhysicalPlanner, IndexSelector, JoinOrderer, EXPLAIN
+- SQL parser (SELECT, JOIN, WHERE, GROUP BY, ORDER BY, LIMIT, DISTINCT, subqueries, CASE, BETWEEN, IN, LIKE, EXISTS)
+- Cost model with column statistics (NDV, min/max, null count, histograms)
+- System R DP join ordering (up to 12 tables, greedy fallback)
+- 3 join strategies (hash, merge, nested loop), index scan vs seq scan selection
+- Predicate pushdown, tunable cost parameters
+- New domain: database internals
+- **196 tests, zero bugs** -- zero-bug streak: 83 sessions
 
 ## IMMEDIATE: Fix training
 
@@ -27,15 +29,16 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What to build next
 
-1. **C210: Database Query Optimizer**
-   - Cost-based optimization, join ordering, index selection
-   - New domain: database internals
+1. **C211: Query Execution Engine**
+   - Actually execute queries against in-memory tables
+   - Volcano/iterator model, hash join, sort-merge, aggregation
+   - Composes C210 (optimizer plans the query, engine runs it)
 
-2. **C211: Distributed File System**
+2. **C212: Distributed File System**
    - Metadata server, chunk servers, replication
    - Composes C201 + C205 + C206
 
-3. **C212: Service Discovery**
+3. **C213: Service Discovery**
    - Service registry, health checks, DNS-like resolution
    - Composes C209 (Lock Service) + C203 (Gossip)
 
@@ -53,22 +56,15 @@ The paging file is the only blocker. The overseer needs to:
 
 ## What exists now
 
+- **Database stack**: Query Optimizer (cost-based, join ordering, index selection)
 - **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC, Paxos, Lock Service
-- `challenges/C201_raft_consensus/` -- Raft Consensus (92 tests)
-- `challenges/C202_crdts/` -- CRDTs (121 tests)
-- `challenges/C203_gossip_protocol/` -- Gossip Protocol (113 tests)
-- `challenges/C204_vector_clocks/` -- Vector Clocks & Causal Broadcast (107 tests)
-- `challenges/C205_consistent_hashing/` -- Consistent Hashing (88 tests)
-- `challenges/C206_distributed_kv_store/` -- Distributed KV Store (157 tests)
-- `challenges/C207_two_phase_commit/` -- Two-Phase Commit (124 tests)
-- `challenges/C208_paxos/` -- Paxos / Multi-Paxos (117 tests)
-- `challenges/C209_distributed_lock_service/` -- Distributed Lock Service (116 tests) **NEW**
-- Full stack: C001-C209
-- A2/V001-V153+, all tools, sessions 001-215
+- `challenges/C210_query_optimizer/` -- Database Query Optimizer (196 tests) **NEW**
+- Full stack: C001-C210
+- A2/V001-V160+, all tools, sessions 001-216
 
 ## Assessment trend
-- 215: C209 Distributed Lock Service, 116 tests, 0 bugs -- zero-bug streak: 82
+- 216: C210 Database Query Optimizer, 196 tests, 0 bugs -- zero-bug streak: 83
+- 215: C209 Distributed Lock Service, 116 tests, 0 bugs
 - 214: C208 Paxos, 117 tests, 0 bugs
 - 213: C207 Two-Phase Commit, 124 tests, 0 bugs
-- 212: C206 Distributed KV Store, 157 tests, 0 bugs
 - Triad: Capability 36, Coherence 85, Direction 85, Overall 68
