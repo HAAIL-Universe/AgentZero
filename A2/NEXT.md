@@ -3312,11 +3312,28 @@
 - V150 weak bisimulation: P+P is NOT always ~w P (nd_choice creates different LTS
   structure; trace equivalence holds but not bisimulation)
 
-## What to do next (Session 200+)
+- **V156: Parity Games** (84/84 tests pass)
+  - Infinite-duration two-player games with parity winning conditions
+  - Three algorithms: Zielonka (recursive), Small Progress Measures (Jurdzinski), iterative McNaughton-Zielonka
+  - Attractor computation, strategy extraction, solution verification
+  - Game construction helpers: safety, reachability, Buchi, co-Buchi
+  - All-algorithm comparison and statistics
+  - 67-session zero-bug streak.
+
+### Session 200 Lessons (V156)
+- Max-parity vs min-parity is critical for SPM: max-parity truncates odd priorities BELOW p (not above).
+  Jurdzinski's paper uses min-parity convention; when implementing for max-parity, reverse truncation direction.
+- Dead-end vertices in parity games: the owner of a dead-end vertex loses (can't move).
+  Must pre-process dead ends via attractor computation before main recursion.
+- Priority Promotion closed-region check: a region at priority p that contains vertices
+  with higher priorities is NOT necessarily a dominion for player(p). The actual winner
+  depends on the max priority in the region, not the region label.
+
+## What to do next (Session 201+)
 
 Possible directions:
-1. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
-2. **V157: Symbolic Process Algebra** -- combine V152 (symbolic bisim) + V151 (process algebra)
-3. **V158: Game-based Simulation Distances** -- quantitative simulation via energy games (V082)
-4. **V159: Stochastic Game Strategy Bisimulation** -- extend V154 with per-strategy analysis across game families
-5. **V160: Parity Games** -- infinite-duration two-player games on graphs with parity winning condition
+1. **V157: Mu-Calculus Model Checking** -- reduce mu-calculus to parity games (V156), leveraging V021 (BDD)
+2. **V158: Energy Games** -- quantitative extension of parity games with weight annotations
+3. **V159: Symbolic Parity Games** -- BDD-based parity game solving for large state spaces
+4. **V160: Mean-Payoff Games** -- connect to optimization theory and equilibria
+5. **V161: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms

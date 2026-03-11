@@ -306,42 +306,38 @@ def small_progress_measures(game: ParityGame) -> Solution:
 
     def prog(v, m):
         """
-        Prog(v, m): the least measure >= m (truncated at priority(v)).
-        For even priority p: truncate m at p (zero out components for odd priorities > p).
-        For odd priority p: truncate at p, then ensure component at p is at least m's + something.
+        Prog(v, m) for MAX-PARITY games.
 
-        Actually, the standard definition:
-        - prog(v, m) is the least m' in M such that m' >=_p m
-        where >=_p means: m'[i] >= m[i] for odd priorities i <= p, ignoring higher.
+        In max-parity, higher priorities dominate lower ones. An even priority p
+        "resets" the worry about odd priorities BELOW p (because the even priority
+        will be the max-inf-often, not the lower odd ones).
 
-        For even p: m' = m with components for odd priorities > p set to 0.
-        For odd p: m' = least tuple > m when comparing only components for odd priorities <= p.
+        For even p: zero out odd components for priorities < p (dominated by p).
+        For odd p: zero out odd components for priorities < p, then increment at p.
         """
         if is_top(m):
             return TOP
         p = game.priority[v]
 
-        # Truncate: zero out components for priorities > p
+        # Truncate: zero out components for odd priorities BELOW p
+        # (In max-parity, higher even priority resets lower odd worries)
         result = list(m)
         for i, op in enumerate(odd_priorities):
-            if op > p:
+            if op < p:
                 result[i] = 0
 
         if p % 2 == 0:
             # Even priority: just truncate (no increment needed)
             return tuple(result)
         else:
-            # Odd priority: need the LEAST tuple that is STRICTLY GREATER than
-            # the truncated m, comparing only up to position of p.
+            # Odd priority: increment at this priority's position
             idx = prio_to_idx[p]
-            # Increment at position idx
             result[idx] += 1
-            # Handle overflow
+            # Handle overflow: cascade to HIGHER odd priority positions
             if result[idx] > bounds[idx]:
-                # Cascade upward
                 result[idx] = 0
                 carry = True
-                for i in range(idx - 1, -1, -1):
+                for i in range(idx + 1, dim):
                     if carry:
                         result[i] += 1
                         if result[i] > bounds[i]:
@@ -405,13 +401,16 @@ def small_progress_measures(game: ParityGame) -> Solution:
 
 def priority_promotion(game: ParityGame) -> Solution:
     """
-    Priority Promotion algorithm (Benerecetti, Dell'Erba, Mogavero 2018).
+    McNaughton-Zielonka style iterative algorithm.
 
-    Runs in O(n^2 * m) time. Based on dominion detection via region promotion.
+    An alternative iterative formulation of parity game solving:
+    Process priorities from highest to lowest. For the current max priority p,
+    compute the attractor for player(p) of all vertices with priority p.
+    Recursively solve the remainder. If the opponent wins nothing -> player(p) wins all.
+    Otherwise remove the opponent's winning attractor and restart.
 
-    Idea: maintain a "region" function mapping vertices to their current region
-    (a priority). Promote regions when they can't be closed (when the opponent
-    can escape). Eventually, regions stabilize into dominions.
+    This is equivalent to Zielonka but expressed iteratively with a worklist,
+    which can be more efficient when dominions are found early.
     """
     if not game.vertices:
         return Solution()
@@ -421,109 +420,62 @@ def priority_promotion(game: ParityGame) -> Solution:
 
     while remaining:
         sub = game.subgame(remaining)
-        dominion, player = _find_dominion(sub, remaining)
-        if dominion is None:
-            break
 
-        # The dominion is won by player
-        dom_attr = attractor(sub, dominion, player, remaining)
-        if player == Player.EVEN:
-            sol.win_even |= dom_attr
+        # Handle dead ends
+        dead_even = {v for v in remaining
+                     if game.owner.get(v) == Player.EVEN
+                     and not (game.edges.get(v, set()) & remaining)}
+        dead_odd = {v for v in remaining
+                    if game.owner.get(v) == Player.ODD
+                    and not (game.edges.get(v, set()) & remaining)}
+        if dead_even:
+            attr_set = attractor(sub, dead_even, Player.ODD, remaining)
+            sol.win_odd |= attr_set
+            remaining -= attr_set
+            continue
+        if dead_odd:
+            attr_set = attractor(sub, dead_odd, Player.EVEN, remaining)
+            sol.win_even |= attr_set
+            remaining -= attr_set
+            continue
+
+        # Find max priority in remaining
+        max_p = max(game.priority[v] for v in remaining)
+        player = Player.EVEN if max_p % 2 == 0 else Player.ODD
+        opponent = player.opponent
+
+        # Attractor of max-priority vertices
+        target = {v for v in remaining if game.priority[v] == max_p}
+        attr_set = attractor(sub, target, player, remaining)
+
+        # Solve remainder
+        rest = remaining - attr_set
+        rest_sol = Solution()
+        if rest:
+            rest_sub = game.subgame(rest)
+            # Recursive call via zielonka on remainder
+            _zielonka_rec(game, rest, rest_sol)
+
+        opp_win = rest_sol.win_odd if player == Player.EVEN else rest_sol.win_even
+
+        if not opp_win:
+            # Player wins everything
+            if player == Player.EVEN:
+                sol.win_even |= remaining
+            else:
+                sol.win_odd |= remaining
+            remaining = set()
         else:
-            sol.win_odd |= dom_attr
-        remaining -= dom_attr
+            # Opponent wins some -- expand with attractor
+            opp_attr = attractor(sub, opp_win, opponent, remaining)
+            if opponent == Player.EVEN:
+                sol.win_even |= opp_attr
+            else:
+                sol.win_odd |= opp_attr
+            remaining -= opp_attr
 
     _compute_strategies(game, sol)
     return sol
-
-
-def _find_dominion(game: ParityGame, verts: Set[int]) -> Tuple[Optional[Set[int]], Optional[Player]]:
-    """Find a dominion in the game using region promotion."""
-    if not verts:
-        return None, None
-
-    # Region assignment: initially each vertex's region is its priority
-    region = {v: game.priority[v] for v in verts}
-
-    max_iterations = len(verts) * (game.max_priority() + 2)
-    for _ in range(max_iterations):
-        # Try to close each region (from highest to lowest)
-        priorities = sorted(set(region[v] for v in verts), reverse=True)
-
-        promoted = False
-        for p in priorities:
-            player = Player.EVEN if p % 2 == 0 else Player.ODD
-            region_verts = {v for v in verts if region[v] == p}
-
-            if not region_verts:
-                continue
-
-            # Check if this region is closed (a dominion)
-            # A region R at priority p owned by player is closed if:
-            # - For player's vertices in R: at least one successor in R or lower-priority region of same player
-            # - For opponent's vertices in R: all successors in R or lower-priority region of same player
-
-            # Actually: check if player can keep the play in this region
-            open_verts = set()
-            for v in region_verts:
-                succs = game.edges.get(v, set()) & verts
-                if game.owner[v] == player:
-                    # Player's vertex: needs at least one successor in region_verts
-                    if not (succs & region_verts):
-                        open_verts.add(v)
-                else:
-                    # Opponent's vertex: if any successor escapes, it's open
-                    if succs - region_verts:
-                        open_verts.add(v)
-
-            if not open_verts:
-                # Closed region = dominion!
-                return region_verts, player
-            else:
-                # Promote open vertices: raise their region to the next higher
-                # priority of the opponent
-                for v in open_verts:
-                    # Find the min region among successors outside this region
-                    succs = game.edges.get(v, set()) & verts
-                    escape_regions = {region[w] for w in succs if w not in region_verts}
-                    if escape_regions:
-                        new_region = max(escape_regions)
-                        if new_region > region[v]:
-                            region[v] = new_region
-                            promoted = True
-
-        if not promoted:
-            # No promotions happened -> check for any closed regions
-            for p in priorities:
-                player = Player.EVEN if p % 2 == 0 else Player.ODD
-                region_verts = {v for v in verts if region[v] == p}
-                if not region_verts:
-                    continue
-                # Check closure
-                closed = True
-                for v in region_verts:
-                    succs = game.edges.get(v, set()) & verts
-                    if game.owner[v] == player:
-                        if not (succs & region_verts):
-                            closed = False
-                            break
-                    else:
-                        if succs - region_verts:
-                            closed = False
-                            break
-                if closed:
-                    return region_verts, player
-            break
-
-    # Fallback: use Zielonka on remaining vertices
-    sub = game.subgame(verts)
-    zsol = Solution()
-    _zielonka_rec(game, verts, zsol)
-    if zsol.win_even:
-        return zsol.win_even, Player.EVEN
-    if zsol.win_odd:
-        return zsol.win_odd, Player.ODD
-    return None, None
 
 
 # =============================================================================
