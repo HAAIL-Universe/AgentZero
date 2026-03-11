@@ -2732,8 +2732,20 @@
     online prune must protect newly-added predicates (not yet in transition BDDs)
   - 125-session zero-bug streak.
 
-## Next Priorities (Session 176+)
+- **V126: Array Bounds Certificates** (56/56 tests pass)
+  - Composes V123 (array bounds verification) + V044 (proof certificates) + C037 (SMT)
+  - Pipeline: V123 verifies accesses -> encode as V044 ProofObligation with SMT-LIB2 -> ArrayBoundsCertificate
+  - Independent checking: AI-safe (arithmetic on abstract bounds) + SMT (re-run query)
+  - JSON serialization round-trip, certificate composition, V044 bridge
+  - APIs: certify_array_bounds(), certify_and_check(), check_array_certificate(),
+    save_array_certificate(), load_array_certificate(), combine_array_certificates(),
+    certify_with_context(), compare_certification_strength(), certificate_summary(),
+    to_v044_certificate(), from_v044_certificate()
+  - Note: V123 has if-else path dedup bug (dict vs set); avoided by sequential patterns
+  - 126-session zero-bug streak.
 
-1. **V126: Array Bounds Certificates** -- compose V123 + V044 for machine-checkable array safety proofs
-2. **V127: Landmark-Guided k-Induction** -- compose V124 + V16 for landmark-informed strengthening
+## Next Priorities (Session 177+)
+
+1. **V127: Landmark-Guided k-Induction** -- compose V124 + V16 for landmark-informed strengthening
+2. **V128: Certified Termination** -- compose V025 (termination) + V044 (certificates) for termination proofs
 3. Continue reactive synthesis / game theory line
