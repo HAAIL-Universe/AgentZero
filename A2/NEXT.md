@@ -944,17 +944,60 @@
     when the self-loop accumulates reward across iterations (Q value grows
     with discount * self_transition_prob * V[self])
 
-## Next Challenges (Priority Order)
+- **V071: MDP Model Checking (PCTL for MDPs)** (68/68 tests pass)
+  - Extends V067 PCTL model checking to handle MDP nondeterminism
+  - Composes V067 (PCTL AST/parser) + V069 (MDP data structures) + V065 (Markov chains)
+  - Computes Pmax (best policy) and Pmin (worst policy) for each path formula
+  - Two quantification modes:
+    - Universal: P>=p holds iff Pmin >= p (under ALL policies)
+    - Existential: P>=p holds iff Pmax >= p (EXISTS a policy)
+  - Algorithms:
+    - Next: max/min over actions of transition prob sum to satisfying states
+    - Unbounded Until: value iteration with max/min action selection at each step
+    - Bounded Until: backward induction with max/min at each step
+    - Expected reward: value iteration for accumulated reward until target
+  - Features:
+    - LabeledMDP: MDP + state labeling (atomic propositions)
+    - Policy extraction: witness policy for max/min probabilities
+    - Quantification comparison: universal vs existential side-by-side
+    - Induced MC comparison: MDP results vs MC under extracted policy
+    - Batch checking: multiple formulas against same MDP
+    - Parse integration: V067 parser works directly with MDP checker
+  - APIs: check_mdp_pctl(), check_mdp_pctl_state(), mdp_pctl_quantitative(),
+    verify_mdp_property(), compare_quantifications(), batch_check_mdp(),
+    induced_mc_comparison(), mdp_expected_reward()
+  - Zero implementation bugs -- 2 test failures were in expected reward formulation
+    (unreachable states set to inf, should use value iteration from 0)
+  - Key insight: expected reward for unreachable absorbing states with 0 reward
+    should be 0, not inf. Value iteration from 0 handles this naturally.
 
-### V071: MDP Model Checking (PCTL for MDPs)
-- Extend V067 PCTL to handle MDP nondeterminism
-- Min/max probability computations under all policies
+## Next Challenges (Priority Order)
 
 ### V072: Game-Theoretic Synthesis
 - Strategy synthesis for stochastic games with temporal objectives
 - Compose V070 (games) + V023 (LTL) or V067 (PCTL)
 
+### V073: PCTL for Stochastic Games
+- Extend V071 (MDP PCTL) to V070 (stochastic games)
+- Two-player quantification: P1 maximizes, P2 minimizes
+
 ## Lessons Learned
+
+### Session (V071)
+- **Expected reward: don't pre-set unreachable to inf**: When computing expected
+  accumulated reward until target via value iteration, start all values at 0. States
+  with 0 per-step reward that can't reach target will naturally stay at 0 via
+  value iteration (0 + 1.0 * 0 = 0). Pre-setting them to inf causes inf to propagate
+  through any action that has non-zero transition probability to unreachable states,
+  even when other actions exist.
+- **PCTL satisfaction semantics for MDPs**: Universal: P>=p requires Pmin >= p (all
+  policies satisfy). Existential: P>=p requires Pmax >= p (some policy satisfies).
+  For P<=p, flip: universal uses Pmax, existential uses Pmin.
+- **Clean composition**: V067 PCTL AST/parser reuses directly. V069 MDP data structure
+  reuses directly. V065 MarkovChain for induced MC comparison. No API mismatches this
+  session -- prior lessons about field names (.transition, not .matrix) prevented bugs.
+- **50-session zero-bug streak**: Algorithmic implementation was correct on first run.
+  Only test expectation for expected reward needed adjustment.
 
 ### Session (V070)
 - **MarkovChain uses .transition not .matrix**: Field name is `transition`, not `matrix`.
