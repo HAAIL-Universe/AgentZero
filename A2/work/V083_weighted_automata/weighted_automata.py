@@ -597,7 +597,8 @@ def wfa_accepts(wfa: WFA, word: str) -> bool:
 
 def shortest_distance(wfa: WFA, source: Optional[int] = None) -> Dict[int, Any]:
     """Compute shortest distance from source (or initial states) to all states.
-    Works for tropical and similar semirings with monotonic weights."""
+    Uses BFS-style single-pass for idempotent semirings (tropical, viterbi),
+    and queue-based relaxation with change tracking for others."""
     sr = wfa.semiring
 
     dist = {s: sr.zero() for s in wfa.states}
@@ -608,23 +609,60 @@ def shortest_distance(wfa: WFA, source: Optional[int] = None) -> Dict[int, Any]:
         for s, w in wfa.initial_weight.items():
             dist[s] = w
 
-    # Bellman-Ford style relaxation (works for all semirings)
-    changed = True
-    iterations = 0
-    max_iter = len(wfa.states) + 1
-    while changed and iterations < max_iter:
-        changed = False
-        iterations += 1
+    if isinstance(sr, (TropicalSemiring, MaxPlusSemiring, MinMaxSemiring, ViterbiSemiring)):
+        # Idempotent semiring: Bellman-Ford converges
+        changed = True
+        iterations = 0
+        max_iter = len(wfa.states)
+        while changed and iterations < max_iter:
+            changed = False
+            iterations += 1
+            for s in wfa.states:
+                if sr.is_zero(dist[s]):
+                    continue
+                for label, dst, w in wfa.transitions.get(s, []):
+                    new_w = sr.times(dist[s], w)
+                    old = dist[dst]
+                    combined = sr.plus(old, new_w)
+                    if combined != old:
+                        dist[dst] = combined
+                        changed = True
+    else:
+        # Non-idempotent (probability, counting, log): single-pass topological relaxation
+        # Compute topological order via BFS from sources
+        in_degree = {s: 0 for s in wfa.states}
+        for s, tlist in wfa.transitions.items():
+            for label, dst, w in tlist:
+                if dst != s:  # ignore self-loops for ordering
+                    in_degree[dst] = in_degree.get(dst, 0) + 1
+
+        queue = [s for s in wfa.states if in_degree[s] == 0]
+        order = []
+        visited = set()
+        while queue:
+            s = queue.pop(0)
+            if s in visited:
+                continue
+            visited.add(s)
+            order.append(s)
+            for label, dst, w in wfa.transitions.get(s, []):
+                if dst != s and dst not in visited:
+                    in_degree[dst] -= 1
+                    if in_degree[dst] <= 0:
+                        queue.append(dst)
+
+        # Add any remaining states (cycles)
         for s in wfa.states:
+            if s not in visited:
+                order.append(s)
+
+        # Single-pass relaxation in topological order
+        for s in order:
             if sr.is_zero(dist[s]):
                 continue
             for label, dst, w in wfa.transitions.get(s, []):
                 new_w = sr.times(dist[s], w)
-                old = dist[dst]
-                combined = sr.plus(old, new_w)
-                if combined != old:
-                    dist[dst] = combined
-                    changed = True
+                dist[dst] = sr.plus(dist[dst], new_w)
 
     return dist
 
@@ -890,8 +928,9 @@ def wfa_determinize(wfa: WFA) -> WFA:
 
     queue = [init_config]
     counter = 1
+    max_states = 10000  # Safety limit
 
-    while queue:
+    while queue and counter < max_states:
         config = queue.pop(0)
         src = state_map[config]
         combined_initial = sr.plus_n(w for _, w in config)
