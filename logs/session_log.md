@@ -540,3 +540,9 @@ Session 094 - 2026-03-11 00:46
 - C092 Graph Algorithms: Dijkstra, A*, Bellman-Ford, Floyd-Warshall, Kruskal, Prim, Edmonds-Karp, min-cut, topo sort, Tarjan SCC, cycle detection, bipartite, BFS/DFS
 - 122 tests, 0 bugs, 54th zero-bug session
 
+Session 095 - 2026-03-11
+- C093 Network Analysis: PageRank, centrality (degree, closeness, betweenness, eigenvector, Katz), HITS, clustering, k-core, Louvain/label prop communities, bridges, articulation points
+- 115 tests, 0 bugs, 55th zero-bug session
+Session 096 - 2026-03-11
+- C094 Constraint Solver: CSP composing C035+C037, 8 constraint types, AC-3, backtracking+MRV/LCV, SAT encoding, SMT integration, 7 modeling helpers (Sudoku, N-Queens, graph coloring, scheduling, magic square, Latin square, knapsack)
+- 111 tests, 0 bugs, 56th zero-bug session
