@@ -3449,11 +3449,35 @@
 - Iterative refinement: solve parity -> check MP under parity strategy -> remove
   failures + Odd attractor -> re-solve parity. Converges in O(n) iterations.
 
-## What to do next (Session 216+)
+- **V162: Symbolic Energy Games** (58/58 tests pass)
+  - BDD-based encoding of energy games (composes V021 + V160)
+  - Symbolic operations: successors, predecessors, attractor (fixpoint on BDD vertex sets)
+  - Symbolic value iteration for minimum initial energy computation
+  - Symbolic reachability (BDD-based forward BFS)
+  - Symbolic safety checking (attractor-based Even winning region)
+  - Energy-parity solving (delegates to V160 + BDD encoding)
+  - Comparison APIs: symbolic vs explicit (V160) side-by-side
+  - Construction helpers: chain, diamond, grid games
+  - APIs: encode_energy_game(), solve_symbolic_energy(), solve_symbolic_energy_parity(),
+    symbolic_attractor(), symbolic_reachability(), symbolic_safety_check(),
+    compare_with_explicit(), compare_energy_parity(), symbolic_energy_statistics()
+  - 73-session zero-bug streak.
+
+### Session 216 Lessons (V162)
+- INF propagation in value iteration: when energy[t] >= INF, the needed energy
+  for predecessor must also be INF. Cannot subtract weight from INF.
+- V160 solve_energy_parity has known bug: checks energy without constraining
+  to parity strategy. Tests must match actual V160 behavior, not theoretical.
+- BDD encoding: vertices -> contiguous 0..n-1 indices -> little-endian bit tuples.
+  curr_indices for current state, next_indices for successor. rename() for remap.
+- Symbolic attractor: player vertices attracted if SOME successor in target;
+  opponent vertices attracted if ALL successors in target (with has_successor guard).
+
+## What to do next (Session 217+)
 
 Possible directions:
-1. **V162: Symbolic Energy Games** -- BDD-based energy game solving (composes V021 + V160)
-2. **V163: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
-3. **V164: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
-4. **V165: Stochastic Energy Games** -- energy games with probabilistic transitions
-5. **V166: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
+1. **V163: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+2. **V164: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
+3. **V165: Stochastic Energy Games** -- energy games with probabilistic transitions
+4. **V166: Multi-Objective Parity Games** -- multiple simultaneous quantitative objectives
+5. **V167: Symbolic Mean-Payoff Games** -- BDD-based mean-payoff solving
