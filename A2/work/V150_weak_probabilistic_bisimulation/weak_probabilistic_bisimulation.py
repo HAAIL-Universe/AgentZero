@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V148_probabili
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V067_pctl_model_checking'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'V065_markov_chain_analysis'))
 
-from probabilistic_bisimulation import (
+from prob_bisimulation import (
     BisimVerdict, BisimResult, DistanceResult,
     compute_bisimulation, check_bisimilar, bisimulation_quotient,
     compute_bisimulation_distance, verify_bisimulation_smt,

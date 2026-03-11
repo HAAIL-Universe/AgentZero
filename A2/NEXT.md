@@ -3176,11 +3176,59 @@
 - MDP bisim is strictly finer than MC bisim under any policy: MDP requires
   matching ALL actions, MC only sees the single chosen action.
 
-## What to do next (Session 195+)
+- **V150: Weak Probabilistic Bisimulation** (83/83 tests pass)
+  - Abstracts away internal (tau) transitions in probabilistic systems
+  - Composes V148 (prob bisim) + V065 (Markov chains) + V067 (labeled MCs)
+  - LabeledProbTS: transition system with named actions (including tau)
+  - Tau closure: iterative fixpoint for tau* reachability distributions
+  - Weak transitions: tau* ; action ; tau* composition
+  - Weak bisimulation via partition refinement on weak transitions
+  - Branching bisimulation (preserves branching structure, finer than weak)
+  - Divergence detection + divergence-sensitive bisimulation
+  - Weak bisimulation distance (discounted Kantorovich on weak transitions)
+  - Cross-system, quotient, comparison (strong vs branching vs weak)
+  - APIs: compute_weak_bisimulation(), check_weakly_bisimilar(),
+    compute_branching_bisimulation(), check_branching_bisimilar(),
+    weak_bisimulation_quotient(), branching_bisimulation_quotient(),
+    check_cross_weak_bisimulation(), compute_weak_simulation(),
+    detect_divergence(), compute_divergence_sensitive_bisimulation(),
+    compute_weak_bisimulation_distance(), compare_strong_vs_weak(),
+    minimize_weak(), minimize_branching(), weak_bisimulation_summary(),
+    lmc_to_prob_ts(), prob_ts_to_lmc(), make_labeled_prob_ts()
+  - Zero implementation bugs. 62-session zero-bug streak.
+
+- **V151: Probabilistic Process Algebra** (74/74 tests pass)
+  - CCS-style process algebra with probabilistic choice
+  - Composes V150 (weak probabilistic bisimulation)
+  - Process AST: stop, prefix, prob_choice, nd_choice, parallel, restrict, relabel, recursion
+  - SOS rules for all operators, CCS synchronization (a/~a -> tau)
+  - LTS generation via BFS exploration with state limit
+  - Process equivalence via weak bisimulation (initial-state focused)
+  - Trace set, deadlock freedom, action set, process summary
+  - Parser for text syntax
+  - APIs: stop(), prefix(), tau_prefix(), prob_choice(), nd_choice(), parallel(),
+    restrict(), relabel(), recvar(), recdef(), generate_lts(),
+    check_process_equivalence(), trace_set(), deadlock_free(), action_set(),
+    process_summary(), parse_proc()
+  - 62-session zero-bug streak.
+
+### Session 195 Lessons (V150 + V151)
+- V148 module name: prob_bisimulation.py (not probabilistic_bisimulation.py)
+- LTS state labels must reflect BEHAVIOR, not AST structure:
+  derive from transitions (has transitions = active, none = deadlock),
+  NOT from process kind. relabel(stop(), ...) has kind RELABEL but behaves as deadlock.
+- Cross-system bisimulation checks must compare initial states (state 0 of each system),
+  not just check if ANY cross-pair exists. A shared deadlock state is trivially cross-bisimilar.
+- Weak bisimulation on LabeledProbTS requires precomputing all weak transitions
+  (tau* ; a ; tau*) before partition refinement -- can't compute lazily.
+- Branching bisimulation: tau transitions that stay entirely within the same block
+  are stuttering and should be ignored in the signature.
+
+## What to do next (Session 196+)
 
 Possible directions:
-1. **V150: Weak Probabilistic Bisimulation** -- abstract away internal (tau) transitions
-2. **V151: Probabilistic Process Algebra** -- CCS/CSP with probabilistic choice
-3. **V152: Symbolic Bisimulation** -- BDD-based bisimulation for large state spaces
-4. **V153: Game-based Bisimulation** -- bisimulation as a two-player game
-5. **V154: Bisimulation for Stochastic Games** -- extend V149 to V070 stochastic games
+1. **V152: Symbolic Bisimulation** -- BDD-based bisimulation for large state spaces
+2. **V153: Game-based Bisimulation** -- bisimulation as a two-player game
+3. **V154: Bisimulation for Stochastic Games** -- extend V149 to V070 stochastic games
+4. **V155: Process Algebra Verification** -- verify properties of V151 processes using V150 bisim + PCTL
+5. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
