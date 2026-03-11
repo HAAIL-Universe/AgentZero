@@ -1141,14 +1141,30 @@
   - Key lesson: WFA.add_state(state, initial=..., final=...) not initial_weight/final_weight.
     Transitions are tuples (label, dst, weight) not WFATransition objects.
 
+- **V089: Tree Automata** (90/90 tests pass)
+  - New domain: automata over ranked trees (ASTs, terms, XML)
+  - Bottom-Up Tree Automaton (BUTA): run, accept, emptiness, witness, determinize,
+    complete, complement, union, intersection, difference, inclusion, equivalence,
+    minimization, enumeration
+  - Top-Down Tree Automaton (TDTA): bidirectional conversion with BUTA
+  - TreePattern: wildcards, variable capture, consistency checking
+  - TermRewriteSystem: leftmost-outermost normalization
+  - Schema automaton: XML-like validation
+  - Key fix: complement needs completion (sink state for missing transitions)
+
 ## Next Challenges (Priority Order)
 
-### V086: Weighted Timed Automata
-- Extend V083 (weighted automata) with clock constraints
-- Compose V083 (weighted automata) + V081 (symbolic automata predicates)
-- Applications: real-time system verification with costs
+### V090: Tree Transducers
+- Extend V089 (tree automata) with output
+- Top-down and bottom-up tree transducers for verified tree transformations
+- Applications: verified AST transformations, compiler pass verification
 
-### V087: Probabilistic Automata Equivalence
+### V091: Pushdown Systems
+- Context-free verification via pushdown automata + model checking
+- Compose V089 (tree automata) for tree-width bounded systems
+- Applications: call-stack-aware program verification
+
+### V092: Probabilistic Automata Equivalence
 - Compose V083 (probability semiring WFA) + V065 (Markov chains)
 - Language equivalence for probabilistic automata via Markov chain analysis
 - Applications: stochastic system equivalence checking
