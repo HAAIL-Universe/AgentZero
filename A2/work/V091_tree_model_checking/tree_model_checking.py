@@ -111,7 +111,7 @@ def transducer_image(td: BottomUpTreeTransducer, lang: BottomUpTreeAutomaton,
     alphabet = lang.alphabet
 
     # Enumerate trees in the input language
-    input_trees = lang.enumerate(max_size=max_input_size)
+    input_trees = lang.enumerate_trees(max_size=max_input_size)
     if len(input_trees) > max_trees:
         input_trees = input_trees[:max_trees]
 
@@ -149,10 +149,10 @@ def _empty_automaton(alphabet: RankedAlphabet) -> BottomUpTreeAutomaton:
     buta.final_states = set()  # no final states = empty language
     for sym in alphabet:
         if sym.arity == 0:
-            buta.add_transition(sym.name, [], "qsink")
+            buta.add_transition(sym.name, (), "qsink")
         else:
             for combo in _state_combos(["qsink"], sym.arity):
-                buta.add_transition(sym.name, list(combo), "qsink")
+                buta.add_transition(sym.name, combo, "qsink")
     return buta
 
 
@@ -176,7 +176,7 @@ def _buta_from_tree_set(alphabet: RankedAlphabet, trees: List[Tree]) -> BottomUp
         if key in subtree_to_state:
             return subtree_to_state[key]
 
-        child_states = [get_state(c) for c in t.children]
+        child_states = tuple(get_state(c) for c in t.children)
         state_name = f"q{state_counter[0]}"
         state_counter[0] += 1
         subtree_to_state[key] = state_name
@@ -212,7 +212,7 @@ def forward_reachability(tts: TreeTransitionSystem, max_steps: int = 20,
         if tts.bad is not None:
             inter = buta_intersection(reach, tts.bad)
             emptiness = check_language_emptiness(inter)
-            if not emptiness["is_empty"]:
+            if not emptiness["empty"]:
                 # Found counterexample -- try to extract trace
                 witness = emptiness.get("witness")
                 cex = _extract_counterexample(tts, step + 1, witness)
@@ -240,7 +240,7 @@ def forward_reachability(tts: TreeTransitionSystem, max_steps: int = 20,
                 # Final safety check
                 inter = buta_intersection(new_reach, tts.bad)
                 emptiness = check_language_emptiness(inter)
-                if not emptiness["is_empty"]:
+                if not emptiness["empty"]:
                     witness = emptiness.get("witness")
                     cex = _extract_counterexample(tts, step + 1, witness)
                     return ModelCheckResult(
@@ -290,7 +290,7 @@ def backward_reachability(tts: TreeTransitionSystem, max_steps: int = 20,
         # Check: does backward set reach init?
         inter = buta_intersection(bad_reach, tts.init)
         emptiness = check_language_emptiness(inter)
-        if not emptiness["is_empty"]:
+        if not emptiness["empty"]:
             witness = emptiness.get("witness")
             cex = _extract_backward_counterexample(tts, step, witness)
             return ModelCheckResult(
@@ -326,7 +326,7 @@ def backward_reachability(tts: TreeTransitionSystem, max_steps: int = 20,
             # Fixpoint
             inter = buta_intersection(new_bad, tts.init)
             emptiness = check_language_emptiness(inter)
-            if not emptiness["is_empty"]:
+            if not emptiness["empty"]:
                 witness = emptiness.get("witness")
                 cex = _extract_backward_counterexample(tts, step + 1, witness)
                 return ModelCheckResult(
@@ -356,9 +356,9 @@ def _compute_preimage_via_inverse(inv_td: TopDownTreeTransducer,
                                    alphabet: RankedAlphabet,
                                    max_input_size: int = 8) -> List[Tree]:
     """Compute pre-image trees via inverse transducer."""
-    input_trees = lang.enumerate(max_size=max_input_size)
+    input_trees = lang.enumerate_trees(max_size=max_input_size, max_count=500)
     pre_trees = set()
-    for t in input_trees[:500]:
+    for t in input_trees:
         results = inv_td.transduce(t)
         for r in results:
             pre_trees.add(_tree_to_hashable(r))
@@ -387,9 +387,9 @@ def bounded_check(tts: TreeTransitionSystem, bound: int,
         stats["step_details"].append({
             "step": step,
             "states": len(reach.states),
-            "intersects_bad": not emptiness["is_empty"]
+            "intersects_bad": not emptiness["empty"]
         })
-        if not emptiness["is_empty"]:
+        if not emptiness["empty"]:
             witness = emptiness.get("witness")
             cex = _extract_counterexample(tts, step, witness)
             return ModelCheckResult(
@@ -450,7 +450,7 @@ def check_invariant(tts: TreeTransitionSystem, invariant: BottomUpTreeAutomaton,
     if tts.bad is not None:
         inter = buta_intersection(invariant, tts.bad)
         emptiness = check_language_emptiness(inter)
-        if not emptiness["is_empty"]:
+        if not emptiness["empty"]:
             result["is_invariant"] = False
             result["violations"].append({
                 "type": "safety",
@@ -497,7 +497,7 @@ def _find_trace_forward(tts: TreeTransitionSystem, target: Tree,
         return None
 
     # Enumerate initial trees and try to reach target
-    init_trees = tts.init.enumerate(max_size=6)
+    init_trees = tts.init.enumerate_trees(max_size=6)
     target_hash = _tree_to_hashable(target)
 
     for init_t in init_trees[:100]:
@@ -572,7 +572,7 @@ def accelerated_forward(tts: TreeTransitionSystem, max_steps: int = 30,
         if tts.bad is not None:
             inter = buta_intersection(reach, tts.bad)
             emptiness = check_language_emptiness(inter)
-            if not emptiness["is_empty"]:
+            if not emptiness["empty"]:
                 witness = emptiness.get("witness")
                 cex = _extract_counterexample(tts, step + 1, witness)
                 return ModelCheckResult(
@@ -600,7 +600,7 @@ def accelerated_forward(tts: TreeTransitionSystem, max_steps: int = 30,
             if tts.bad is not None:
                 inter = buta_intersection(new_reach, tts.bad)
                 emptiness = check_language_emptiness(inter)
-                if not emptiness["is_empty"]:
+                if not emptiness["empty"]:
                     witness = emptiness.get("witness")
                     cex = _extract_counterexample(tts, step + 1, witness)
                     return ModelCheckResult(
@@ -699,7 +699,7 @@ def make_bad_from_pattern(alphabet: RankedAlphabet,
     buta.states = set(states)
     buta.final_states = set(final_states)
     for sym_name, child_states, target in pattern_transitions:
-        buta.add_transition(sym_name, child_states, target)
+        buta.add_transition(sym_name, tuple(child_states), target)
     return buta
 
 
@@ -746,18 +746,18 @@ def system_stats(tts: TreeTransitionSystem) -> Dict:
 
     result = {
         "alphabet_size": len(tts.alphabet),
-        "init_states": init_stats["num_states"],
-        "init_transitions": init_stats["num_transitions"],
-        "transducer_states": td_stats["num_states"],
-        "transducer_rules": td_stats["num_rules"],
+        "init_states": init_stats["states"],
+        "init_transitions": init_stats["transitions"],
+        "transducer_states": td_stats["states"],
+        "transducer_rules": td_stats["rules"],
         "has_bad": tts.bad is not None,
         "has_property": tts.property_aut is not None,
     }
 
     if tts.bad is not None:
         bad_stats = buta_stats(tts.bad)
-        result["bad_states"] = bad_stats["num_states"]
-        result["bad_transitions"] = bad_stats["num_transitions"]
+        result["bad_states"] = bad_stats["states"]
+        result["bad_transitions"] = bad_stats["transitions"]
 
     return result
 
