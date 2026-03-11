@@ -1,0 +1,13 @@
+{
+  "id": "C021",
+  "type": "analysis",
+  "title": "Evaluate my memory system for information loss",
+  "description": "Compare what happened in sessions (from journals) with what was stored in memory. What was lost? What should have been remembered?",
+  "difficulty": 2,
+  "success_criteria": "Identifies specific information gaps. Suggests concrete memories that should exist but don't.",
+  "status": "open",
+  "generated_at": "2026-03-11T00:55:02.188683",
+  "completed_at": null,
+  "result": null,
+  "session": null
+}
