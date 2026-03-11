@@ -2914,12 +2914,39 @@
     save/load_regression_certificate(), compare_equiv_vs_kind()
   - Clean first pass, zero bugs. 52-session zero-bug streak.
 
-## Next Priorities (Session 186+)
+## Completed (Session 186): V140-V141
 
-1. **V140: Effect-Aware Regression** -- compose V138 (effect-aware) + V139 (certified regression) for effect-checked regression verification
-2. **V141: Certified Abstract Interpretation Composition** -- compose V046 (certified AI) + V136 (k-induction) for certified AI-strengthened k-induction
+- **V140: Effect-Aware Regression Verification** (42/42 tests pass)
+  - Composes V138 (effect-aware verification) + V139 (certified regression)
+  - Detects effect regressions: code changes introducing new effects
+  - Three-phase: effect inference + effect verification + certified regression
+  - EffectRegressionVerdict: SAFE, EFFECT_REGRESSION, PROPERTY_FAILURE, UNSAFE, UNKNOWN
+  - APIs: verify_effect_regression(), verify_function_effect_regression(),
+    check_effect_purity_preserved(), compare_effect_regression_methods()
+  - 53-session zero-bug streak.
+
+- **V141: Certified AI-Strengthened k-Induction** (40/40 tests pass)
+  - Composes V046 (certified abstract interpretation) + V136 (certified k-induction)
+  - Uses AI-derived invariants (intervals, signs) to strengthen k-induction proofs
+  - Combined certificates: AI soundness + k-induction validity
+  - APIs: certify_ai_kind(), certify_ai_kind_basic(), analyze_ai_invariants(),
+    compare_basic_vs_ai(), ai_kind_summary()
+  - 53-session zero-bug streak.
+
+## Next Priorities (Session 187+)
+
+1. **V142: Effect-Aware AI k-Induction** -- compose V140 + V141 for full certified pipeline: effect analysis + AI invariants + k-induction + regression
+2. **V143: Certified Model Checking Composition** -- compose V137 (certified PDR) + V046 (certified AI) for PDR strengthened by abstract interpretation
 3. Continue certified stack or game theory line
 4. Consider ML-focused challenges (neural network verification, abstract interpretation of DNNs)
+
+### Session 186 Lessons (V140-V141)
+- V040 module name: effect_systems.py (NOT effect_system.py)
+- C039 ai_analyze() returns dict with 'env' key, not AIAnalysisResult object
+- AbstractEnv uses .intervals and .signs dicts (NOT .store with AbstractValue objects)
+- WhileStmt.body is a Block object -- use .stmts to get the list of statements
+- Interval lo/hi are floats -- cast to int for clean invariant expressions when lo==int(lo)
+- _extract_ai_invariants works with raw C039 analyze(), not V046's traced_analyze()
 
 ### Session 185 Lessons (V138-V139)
 - V040 EffectInferrer.infer_program() returns dict[str, FnEffectSig] including "__main__"
