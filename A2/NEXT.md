@@ -2647,9 +2647,20 @@
     need guard encoding, assume transitions need feasibility guards
   - 119-session zero-bug streak.
 
-## Next Priorities (Session 166+)
+- **V120: Array Domain Abstract Interpretation** (119/119 tests pass)
+  - Self-contained array abstract interpreter with per-element interval tracking
+  - ArrayAbstractValue: per-element intervals + smash + interval length
+  - Strong updates (concrete index) + weak updates (abstract index)
+  - Composes V020 IntervalDomain for scalar and element values
+  - Out-of-bounds, div-by-zero, assertion checking with dead branch elimination
+  - Array property inference: sortedness, boundedness, constant, initialized
+  - APIs: array_analyze(), check_bounds(), check_assertions(), get_array_info(),
+    get_variable_range(), infer_properties(), compare_analyses(), array_summary()
+  - 120-session zero-bug streak.
 
-1. **V120: Array Domain Abstract Interpretation** -- compose V116 + C039 for array content analysis
-2. **V121: Fixpoint Acceleration** -- compose V117 + V105 for polyhedral widening with extrapolation
-3. **V122: Symbolic Predicate Minimization** -- compose V119 + V021 BDD minimization for predicate set reduction
+## Next Priorities (Session 167+)
+
+1. **V121: Fixpoint Acceleration** -- compose V117 + V105 for polyhedral widening with extrapolation
+2. **V122: Symbolic Predicate Minimization** -- compose V119 + V021 BDD minimization for predicate set reduction
+3. **V123: Array Bounds Verification** -- compose V120 + C037 for SMT-verified array safety proofs
 4. Continue reactive synthesis / game theory line
