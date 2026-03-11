@@ -2409,8 +2409,24 @@
     - V105 leq() is syntactic -- use vertex containment for soundness checking
   - 106-session zero-bug streak.
 
-## Next Priorities (Session 149+)
+- **V107: Craig Interpolation** (60/60 tests pass)
+  - Computes Craig interpolants for A AND B = UNSAT: find I s.t. A=>I, I AND B UNSAT, vars(I) in shared
+  - Composes C037 (SMT solver)
+  - Iterative strengthening: extract implied bounds, equalities, relations on shared variables
+  - Binary search for tight bounds (upper/lower/equality) via SMT queries
+  - Model-based interpolation with generalization (relax equalities to inequalities)
+  - Sequence interpolation: A1...An -> I0...In chain
+  - Tree interpolation: tree-structured partitions -> per-node interpolants
+  - Interpolant verification: checks A=>I, I^B UNSAT, variable restriction
+  - Simplification: flatten AND/OR, constant folding, double negation elimination
+  - Applications: CEGAR refinement, PDR/IC3 generalization, predicate discovery
+  - APIs: craig_interpolate(), sequence_interpolate(), tree_interpolate(),
+    verify_interpolant(), interpolation_summary()
+  - Test design fix (not logic bug): one test had satisfiable A^B, fixed constraint setup
+  - 107-session zero-bug streak.
 
-1. **V107: Regex Fuzzing** -- adversarial input generation for regex
-2. **V108: Abstract Domain Composition Framework** -- auto-reduce product of domains
+## Next Priorities (Session 150+)
+
+1. **V108: Abstract Domain Composition Framework** -- auto-reduce product of domains
+2. **V109: CEGAR Loop** -- compose V107 (interpolation) + V010 (predicate abstraction) for full CEGAR
 3. Continue reactive synthesis / game theory line
