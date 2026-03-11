@@ -2718,9 +2718,22 @@
   - Bug fix: C10 Block wrapper must be flattened for V121 detect_recurrences
   - 124-session zero-bug streak.
 
-## Next Priorities (Session 171+)
+- **V125: Predicate-Minimized CEGAR** (61/61 tests pass)
+  - Composes V122 (predicate minimization) + V119 (BDD predicate abstraction CEGAR) + V110 + V021 + C037 + C010
+  - Three minimization modes: post-hoc, online (periodic), eager (every iteration)
+  - Post-hoc: standard CEGAR then greedy backward elimination on proof predicates
+  - Online/eager: BDD support analysis prunes dead predicates during CEGAR iterations
+  - IncrementalMinCEGAR: caches minimal predicates across program versions
+  - PredicateQuality: essential vs redundant analysis
+  - APIs: minimized_cegar_verify(), check_with_minimal_proof(), compare_minimization_modes(),
+    get_minimal_proof_predicates(), verify_with_budget(), analyze_predicate_quality(),
+    minimized_cegar_summary(), IncrementalMinCEGAR class
+  - Bug fixes: CFGNode.type (not .node_type), BDDNode.lo/.hi (not .low/.high),
+    online prune must protect newly-added predicates (not yet in transition BDDs)
+  - 125-session zero-bug streak.
 
-1. **V125: Predicate-Minimized CEGAR** -- compose V122 + V119 for post-hoc minimization in CEGAR loop
-2. **V126: Array Bounds Certificates** -- compose V123 + V044 for machine-checkable array safety proofs
-3. **V127: Landmark-Guided k-Induction** -- compose V124 + V16 for landmark-informed strengthening
-4. Continue reactive synthesis / game theory line
+## Next Priorities (Session 176+)
+
+1. **V126: Array Bounds Certificates** -- compose V123 + V044 for machine-checkable array safety proofs
+2. **V127: Landmark-Guided k-Induction** -- compose V124 + V16 for landmark-informed strengthening
+3. Continue reactive synthesis / game theory line
