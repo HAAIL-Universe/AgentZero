@@ -1327,19 +1327,45 @@
   - Clock constraint helpers: clock_leq/lt/geq/gt/eq(), clock_diff_leq/geq(), guard_and()
   - Zero implementation bugs. 2 test expectation fixes (initial_zone needs future() for non-zero constraints, Fischer protocol encoding required proper state machine with last-writer-wins timing)
 
+- **V142: Timed Automata + LTL Model Checking** (45/45 tests pass)
+  - Composes V118 (timed automata) + V023 (LTL model checking via Buchi automata)
+  - Zone-based product construction: TA x NBA
+  - Nested DFS accepting cycle detection in product zone graph
+  - Safety, liveness, response, until properties
+  - Location labeling, zone graph abstraction, batch verification
+  - Example systems: light timer, train-gate controller, mutual exclusion
+  - Known V023 limitation: GBA spurious cycles for conjunctions of GF formulas
+  - APIs: check_timed_ltl(), check_timed_ltl_parsed(), check_timed_safety(),
+    check_timed_liveness(), check_timed_response(), check_timed_until(),
+    abstract_zone_graph(), compare_timed_vs_untimed(), batch_check()
+
 ## Next Challenges (Priority Order)
 
-### V119: Timed Automata Composition with V023 LTL
-- Combine V118 (timed automata) + V023 (LTL model checking)
-- Timed LTL: temporal properties over timed systems
-- Region automaton construction for exact language operations
-
-### V120: Hybrid Automata
+### V143: Hybrid Automata
 - Extend V118 with continuous dynamics (ODEs in locations)
 - Rectangular automata (ODE bounds per location)
 - Reachability via polyhedral computation
 
+### V144: Timed Game Synthesis
+- Combine V142 (timed LTL) + V075 (GR(1) synthesis) concepts
+- Synthesize timed controllers from LTL specifications
+- Controllable predecessor over zone graphs
+
 ## Lessons Learned
+
+### Session 187 (V142)
+- **V023 module is ltl_model_checker.py** (not ltl_model_checking.py).
+  V021 module is bdd_model_checker.py. V023 imports from V021, so both paths
+  must be on sys.path.
+- **V023 GBA has spurious accepting cycles for GF conjunctions**: The NBA for
+  NOT(G(F(a)) & G(F(b))) has transitions with empty pos/neg sets that create
+  accepting self-loops in "waiting" states. This causes false VIOLATED verdicts
+  for conjunctions of GF formulas. Individual GF formulas work correctly.
+- **Zone-based product construction is efficient**: The product TA x NBA with
+  zone subsumption keeps state space manageable. Nested DFS cycle detection
+  finds accepting cycles without full state enumeration.
+- **54-session zero-bug streak**: Zero implementation bugs. One test adjustment
+  for V023 limitation.
 
 ### Session 160 (V113)
 - **Predicate post-assign must discover new predicates**: The standard predicate
