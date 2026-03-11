@@ -2690,9 +2690,23 @@
   - Composition boundary fixes: art module name, mgr attribute, BDDPredicateManager() no args
   - 122-session zero-bug streak.
 
-## Next Priorities (Session 169+)
+- **V123: Array Bounds Verification** (68/68 tests pass)
+  - Composes V120 (Array Domain AI) + C037 (SMT solver)
+  - SMT-verified proof obligations for every array access (lower + upper bounds)
+  - Pipeline: abstract interpretation -> access extraction -> SMT bounds checking
+  - BoundsTrackingInterpreter: extends V120 to record abstract state at each access
+  - SMTEncoder: encodes interval constraints, checks bounds via C037
+  - Proof certificates: serializable, independently re-verifiable
+  - Three proof tiers: AI_SAFE (abstract alone), SAFE (SMT), UNSAFE (counterexample)
+  - APIs: verify_bounds(), find_unsafe_accesses(), certify_bounds(), check_certificate(),
+    compare_ai_vs_smt(), bounds_summary(), verify_with_context(), check_access_safe()
+  - Bug fixes: _interpret_array_write override (not _exec_stmt), s.Int() for model,
+    context joining for loop dedup
+  - 123-session zero-bug streak.
 
-1. **V123: Array Bounds Verification** -- compose V120 + C037 for SMT-verified array safety proofs
-2. **V124: Polyhedral Widening with Landmarks** -- compose V121 + V105 for landmark-based widening
-3. **V125: Predicate-Minimized CEGAR** -- compose V122 + V119 for post-hoc minimization in CEGAR loop
+## Next Priorities (Session 170+)
+
+1. **V124: Polyhedral Widening with Landmarks** -- compose V121 + V105 for landmark-based widening
+2. **V125: Predicate-Minimized CEGAR** -- compose V122 + V119 for post-hoc minimization in CEGAR loop
+3. **V126: Array Bounds Certificates** -- compose V123 + V044 for machine-checkable array safety proofs
 4. Continue reactive synthesis / game theory line

@@ -189,9 +189,10 @@ class SMTEncoder:
 
         # SMT check: is there an assignment where index < 0?
         s = SMTSolver()
-        idx = Var("__idx", INT)
+        idx = s.Int("__idx")  # Register to get in model
         self._add_interval_constraint(s, "__idx", index_interval)
         for name, interval in context_constraints:
+            s.Int(name)  # Register
             self._add_interval_constraint(s, name, interval)
 
         # Check: idx < 0
@@ -204,10 +205,10 @@ class SMTEncoder:
             model = s.model()
             ce = {}
             for k, v in model.items():
-                if not k.startswith("__"):
-                    ce[k] = v
-                else:
+                if k == "__idx":
                     ce["index"] = v
+                elif not k.startswith("__"):
+                    ce[k] = v
             return Verdict.UNSAFE, ce
         else:
             return Verdict.UNKNOWN, None
@@ -230,11 +231,12 @@ class SMTEncoder:
 
         # SMT check: is there an assignment where index >= length?
         s = SMTSolver()
-        idx = Var("__idx", INT)
-        length = Var("__len", INT)
+        idx = s.Int("__idx")
+        length = s.Int("__len")
         self._add_interval_constraint(s, "__idx", index_interval)
         self._add_interval_constraint(s, "__len", length_interval)
         for name, interval in context_constraints:
+            s.Int(name)
             self._add_interval_constraint(s, name, interval)
 
         # Check: idx >= length
@@ -303,8 +305,7 @@ class BoundsTrackingInterpreter(ArrayInterpreter):
             if isinstance(expr.array, VarExpr):
                 arr_name = expr.array.name
             if arr_name and arr_name in env.arrays:
-                index_val = self._eval_expr(expr.index, env)
-                # Record access context
+                # Record access context before parent eval
                 self.access_contexts.append(AccessInfo(
                     line=expr.line,
                     array_name=arr_name,
@@ -315,19 +316,17 @@ class BoundsTrackingInterpreter(ArrayInterpreter):
                 ))
         return super()._eval_expr(expr, env)
 
-    def _exec_stmt(self, stmt, env: ArrayEnv) -> ArrayEnv:
-        if isinstance(stmt, ArrayWriteStmt):
-            if stmt.array in env.arrays:
-                index_val = self._eval_expr(stmt.index, env)
-                self.access_contexts.append(AccessInfo(
-                    line=stmt.line,
-                    array_name=stmt.array,
-                    index_expr=stmt.index,
-                    is_read=False,
-                    context_vars={k: v for k, v in env.scalars.items()},
-                    context_arrays={k: v.copy() for k, v in env.arrays.items()},
-                ))
-        return super()._exec_stmt(stmt, env)
+    def _interpret_array_write(self, stmt: ArrayWriteStmt, env: ArrayEnv) -> ArrayEnv:
+        if stmt.array in env.arrays:
+            self.access_contexts.append(AccessInfo(
+                line=stmt.line,
+                array_name=stmt.array,
+                index_expr=stmt.index,
+                is_read=False,
+                context_vars={k: v for k, v in env.scalars.items()},
+                context_arrays={k: v.copy() for k, v in env.arrays.items()},
+            ))
+        return super()._interpret_array_write(stmt, env)
 
 
 # ===========================================================================
@@ -426,20 +425,39 @@ class ArrayBoundsVerifier:
         obligations: List[BoundsObligation] = []
         access_infos: List[AccessInfo] = []
 
-        # Deduplicate accesses by (line, array_name, is_read) to avoid
-        # duplicates from multiple loop iterations
-        seen = set()
+        # Deduplicate accesses by (line, array_name, is_read).
+        # For loop accesses seen multiple times, join the index contexts
+        # to get the union of all possible values at that access point.
+        seen: Dict[Tuple, int] = {}  # key -> index in access_infos
 
         for ctx in access_contexts:
             key = (ctx.line, ctx.array_name, ctx.is_read)
             if key in seen:
-                # Update context to widened version (later iteration = more general)
-                for i, ai in enumerate(access_infos):
-                    if (ai.line, ai.array_name, ai.is_read) == key:
-                        access_infos[i] = ctx
-                        break
+                # Join contexts: union of variable ranges (covers all iterations)
+                idx = seen[key]
+                old = access_infos[idx]
+                merged_vars = {}
+                all_keys = set(old.context_vars.keys()) | set(ctx.context_vars.keys())
+                for k in all_keys:
+                    v1 = old.context_vars.get(k, IntervalDomain(NEG_INF, INF))
+                    v2 = ctx.context_vars.get(k, IntervalDomain(NEG_INF, INF))
+                    merged_vars[k] = v1.join(v2)
+                merged_arrays = {}
+                arr_keys = set(old.context_arrays.keys()) | set(ctx.context_arrays.keys())
+                for k in arr_keys:
+                    v1 = old.context_arrays.get(k, ArrayAbstractValue.top())
+                    v2 = ctx.context_arrays.get(k, ArrayAbstractValue.top())
+                    merged_arrays[k] = v1.join(v2)
+                access_infos[idx] = AccessInfo(
+                    line=ctx.line,
+                    array_name=ctx.array_name,
+                    index_expr=ctx.index_expr,
+                    is_read=ctx.is_read,
+                    context_vars=merged_vars,
+                    context_arrays=merged_arrays,
+                )
                 continue
-            seen.add(key)
+            seen[key] = len(access_infos)
             access_infos.append(ctx)
 
         # Also check raw accesses not captured by the interpreter
