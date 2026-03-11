@@ -2871,12 +2871,41 @@
     compare_with_unrestricted(), effect_synthesis_summary()
   - 129-session zero-bug streak.
 
-## Next Priorities (Session 184+)
+- **V136: Certified k-Induction** (49/49 tests pass)
+  - Composes V015 (k-induction) + V044 (proof certificates)
+  - Machine-checkable certificates: base case + inductive step + strengthening obligations
+  - SMT-LIB2 scripts for independent verification (parse, re-check UNSAT)
+  - Source-level: certify_loop(), certify_loop_with_invariants()
+  - JSON round-trip, V044 bridge, comparison API
+  - Key bug: C037 sort constants are 'Bool'/'Int' (capital), not 'bool'/'int'
+  - Key bug: SMTResult is an enum, compare with SMTResult.UNSAT not 'unsat'
+  - 130-session zero-bug streak.
 
-1. **V136: Certified k-Induction** -- compose V015/V016 (k-induction) + V044 (certificates) for certified inductive proofs
-2. **V137: Certified PDR** -- compose V002 (PDR/IC3) + V044 (certificates) for certified invariant proofs
-3. **V138: Effect-Aware Verification** -- compose V040 (effects) + V098/C098 (program verifier) for effect-typed Hoare logic
-4. Continue certified stack or game theory line
+- **V137: Certified PDR** (37/37 tests pass)
+  - Composes V002 (PDR/IC3) + V044 (proof certificates) + V136 (k-induction)
+  - Wraps V044's generate_pdr_certificate() with richer PDRCertificate
+  - Combined strategy: certify_combined() tries k-induction first, then PDR
+  - Source-level: certify_pdr_loop()
+  - Comparison: compare_pdr_vs_kind(), compare_certified_vs_uncertified()
+  - JSON round-trip, V044 bridge
+  - Clean first-pass: 37/37, zero bugs. 130-session zero-bug streak.
+
+## Next Priorities (Session 185+)
+
+1. **V138: Effect-Aware Verification** -- compose V040 (effects) + V004/C098 (program verifier) for effect-typed Hoare logic
+2. **V139: Certified Equivalence + k-Induction** -- compose V134 (certified equiv) + V136 (certified k-induction) for certified regression verification
+3. Continue certified stack or game theory line
+4. Consider certified abstract interpretation (V132 + V136 composition)
+
+### Session 184 Lessons (V136-V137)
+- C037 sort constants: BOOL = 'Bool', INT = 'Int' (capital B/I). Using lowercase 'bool'/'int'
+  causes _encode_comparison to never match (term.sort == BOOL fails silently).
+- SMTResult is an enum class. Compare with SMTResult.UNSAT, SMTResult.SAT, not strings.
+- V015 k-induction uses formula-based TransitionSystem (init_formula, trans_formula, prop_formula)
+  with primed variables (x' for next state), NOT dict-based init/transition.
+- TransitionSystem API: add_int_var(name) -> Var, prime(name) -> Var, set_init/set_trans/set_property(formula)
+- V044's generate_pdr_certificate() already works well; V137 wraps it with richer data structure.
+- V015 imports _apply_formula_at_step, _apply_trans_at_step, _negate, _step_vars.
 
 ### Session 183 Lessons (V134-V135)
 - V006 module name: equiv_check.py (NOT equivalence_checking.py)
