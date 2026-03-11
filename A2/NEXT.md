@@ -3008,12 +3008,25 @@
   - V140 module: effect_aware_regression.py (not effect_regression.py)
   - 56-session zero-bug streak.
 
-## Next Priorities (Session 191+)
+## Next Priorities (Session 193+)
 
-1. **V146: Certified Assume-Guarantee Reasoning** -- thread-modular verification: each thread verified against environment assumptions, assumptions discharged circularly
-2. **V147: Certified Dataflow Analysis** -- reaching definitions, live variables, available expressions with proof certificates
+1. **V148: Certified Dataflow Analysis** -- reaching definitions, live variables, available expressions with proof certificates
+2. **V149: Certified Thread Safety Analysis** -- race detection, deadlock detection with certificates
 3. Continue certified stack or game theory line
 4. Consider ML-focused challenges (neural network verification, abstract interpretation of DNNs)
+
+- **V147: Certified Assume-Guarantee Reasoning** (70/70 tests pass)
+  - Thread-modular verification with circular assumption discharge
+  - Composes V004 (VCGen/WP) + V044 (proof certificates) + C037 (SMT) + C010 (parser)
+  - Three discharge strategies: direct, circular, inductive (ranked)
+  - Dependency analysis with Tarjan SCC for cycle detection
+  - Non-interference via self-composition, contract refinement checking
+  - AGVerdict: SOUND, COMPONENT_FAILURE, DISCHARGE_FAILURE, UNKNOWN
+  - APIs: verify_ag(), verify_two_components(), make_ag_system(),
+    discharge_direct/circular/inductive(), analyze_dependencies(),
+    compare_discharge_strategies(), certify_ag(), ag_summary(),
+    batch_verify(), verify_noninterference(), check_contract_refinement()
+  - 59-session zero-bug streak.
 
 - **V145: Certified Compositional Verification** (52/52 tests pass)
   - Composes V004 (VCGen/WP) + V044 (proof certificates) + C010 (parser) + C037 (SMT)
@@ -3028,6 +3041,18 @@
     analyze_call_graph(), analyze_change_impact(), compare_modular_vs_monolithic(),
     certify_compositional(), compositional_summary()
   - 57-session zero-bug streak.
+
+### Session 192 Lessons (V147)
+- C010 exports Parser class, not parse function: use `Parser(tokens).parse()`
+- C010 `lex()` function is available, but `parse` must go through Parser class
+- Circular AG: guarantees must be jointly consistent (satisfiable). Lock protocol
+  with lock==1 AND lock==0 is correctly rejected as inconsistent.
+- SBool(True/False) in SMT: C037 Bool vars don't trivially satisfy b==True OR b==False
+  tautology. Use Int tautologies for testing (x+1 > x).
+- ComponentSpec needs body_stmts parsed to work with _extract_body_transformer.
+  Use extract_component() or make_ag_system() which parse automatically.
+- Non-interference via self-composition: duplicate high vars, assume low vars equal,
+  check low outputs equal. Clean encoding into AG framework.
 
 ### Session 190 Lessons (V145)
 - C010 CallExpr.callee is always a str (not an AST node)

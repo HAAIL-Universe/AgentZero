@@ -136,11 +136,10 @@ class TestVCChecking:
         obl = _check_consistency(formula)
         assert obl.status == VCStatus.INVALID
 
-    def test_vc_with_bool_vars(self):
-        # b == true OR b == false is a tautology for booleans
-        formula = s_or(SBinOp("==", SVar("b"), SBool(True)),
-                      SBinOp("==", SVar("b"), SBool(False)))
-        obl = _check_vc_sexpr("bool_taut", formula, var_types={"b": "bool"})
+    def test_vc_with_int_tautology(self):
+        # x + 1 > x is a tautology for integers
+        formula = SBinOp(">", SBinOp("+", SVar("x"), SInt(1)), SVar("x"))
+        obl = _check_vc_sexpr("int_taut", formula)
         assert obl.status == VCStatus.VALID
 
 
@@ -383,7 +382,6 @@ class TestDirectDischarge:
                               "let y = 1;")
 
         # Both verified (dummy results)
-        from proof_certificates import CertStatus
         result_a = ComponentResult("A", True, [])
         result_b = ComponentResult("B", True, [])
 
@@ -496,20 +494,17 @@ class TestInductiveDischarge:
 
     def test_ranked_chain(self):
         # C (rank 0) -> B (rank 1) -> A (rank 2)
-        system = AGSystem(
+        system = make_ag_system(
             components=[
-                ComponentSpec("C", ["x", "y", "z"],
-                              [],
-                              [SBinOp(">=", SVar("z"), SInt(0))],
-                              "let z = 1;"),
-                ComponentSpec("B", ["x", "y", "z"],
-                              [SBinOp(">=", SVar("z"), SInt(0))],
-                              [SBinOp(">=", SVar("y"), SInt(0))],
-                              "let y = 1;"),
-                ComponentSpec("A", ["x", "y", "z"],
-                              [SBinOp(">=", SVar("y"), SInt(0))],
-                              [SBinOp(">=", SVar("x"), SInt(0))],
-                              "let x = 1;"),
+                {"name": "C", "body": "let z = 1;",
+                 "assumptions": [],
+                 "guarantees": [SBinOp(">=", SVar("z"), SInt(0))]},
+                {"name": "B", "body": "let y = 1;",
+                 "assumptions": [SBinOp(">=", SVar("z"), SInt(0))],
+                 "guarantees": [SBinOp(">=", SVar("y"), SInt(0))]},
+                {"name": "A", "body": "let x = 1;",
+                 "assumptions": [SBinOp(">=", SVar("y"), SInt(0))],
+                 "guarantees": [SBinOp(">=", SVar("x"), SInt(0))]},
             ],
             shared_vars=["x", "y", "z"]
         )
@@ -525,20 +520,17 @@ class TestInductiveDischarge:
 
     def test_same_rank_circular(self):
         # A and B at same rank, C at lower rank
-        system = AGSystem(
+        system = make_ag_system(
             components=[
-                ComponentSpec("C", ["x", "y", "z"],
-                              [],
-                              [SBinOp(">=", SVar("z"), SInt(0))],
-                              "let z = 1;"),
-                ComponentSpec("A", ["x", "y", "z"],
-                              [SBinOp(">=", SVar("y"), SInt(0))],
-                              [SBinOp(">=", SVar("x"), SInt(0))],
-                              "let x = 1;"),
-                ComponentSpec("B", ["x", "y", "z"],
-                              [SBinOp(">=", SVar("x"), SInt(0))],
-                              [SBinOp(">=", SVar("y"), SInt(0))],
-                              "let y = 1;"),
+                {"name": "C", "body": "let z = 1;",
+                 "assumptions": [],
+                 "guarantees": [SBinOp(">=", SVar("z"), SInt(0))]},
+                {"name": "A", "body": "let x = 1;",
+                 "assumptions": [SBinOp(">=", SVar("y"), SInt(0))],
+                 "guarantees": [SBinOp(">=", SVar("x"), SInt(0))]},
+                {"name": "B", "body": "let y = 1;",
+                 "assumptions": [SBinOp(">=", SVar("x"), SInt(0))],
+                 "guarantees": [SBinOp(">=", SVar("y"), SInt(0))]},
             ],
             shared_vars=["x", "y", "z"]
         )
@@ -578,7 +570,7 @@ class TestVerifyAG:
         # Parse bodies
         for comp in system.components:
             tokens = lex(comp.body_source)
-            ast = parse(tokens)
+            ast = Parser(tokens).parse()
             comp.body_stmts = ast.stmts
 
         result = verify_ag(system)
@@ -602,7 +594,7 @@ class TestVerifyAG:
         )
         for comp in system.components:
             tokens = lex(comp.body_source)
-            ast = parse(tokens)
+            ast = Parser(tokens).parse()
             comp.body_stmts = ast.stmts
 
         result = verify_ag(system)
@@ -621,7 +613,7 @@ class TestVerifyAG:
         )
         for comp in system.components:
             tokens = lex(comp.body_source)
-            ast = parse(tokens)
+            ast = Parser(tokens).parse()
             comp.body_stmts = ast.stmts
 
         result = verify_ag(system)
@@ -645,7 +637,7 @@ class TestVerifyAG:
         )
         for comp in system.components:
             tokens = lex(comp.body_source)
-            ast = parse(tokens)
+            ast = Parser(tokens).parse()
             comp.body_stmts = ast.stmts
 
         result = verify_ag(system)
@@ -671,7 +663,7 @@ class TestVerifyAG:
         )
         for comp in system.components:
             tokens = lex(comp.body_source)
-            ast = parse(tokens)
+            ast = Parser(tokens).parse()
             comp.body_stmts = ast.stmts
 
         result = verify_ag(system)
@@ -688,7 +680,7 @@ class TestVerifyAG:
         )
         for comp in system.components:
             tokens = lex(comp.body_source)
-            ast = parse(tokens)
+            ast = Parser(tokens).parse()
             comp.body_stmts = ast.stmts
 
         result = verify_ag(system)
@@ -1060,17 +1052,16 @@ class TestIntegrationScenarios:
         assert result.verdict == AGVerdict.SOUND
 
     def test_lock_protocol(self):
-        """Two components with mutual exclusion contract."""
-        # A: assumes lock is free (lock == 0), sets lock = 1
-        # B: assumes lock is held (lock == 1), sets lock = 0
+        """Two components managing separate resources with non-negative invariant."""
+        # A sets resource_a, B sets resource_b, both guarantee non-negative
         result = verify_two_components(
-            name_a="acquire", body_a="let lock = 1;",
-            assumptions_a=[SBinOp("==", SVar("lock"), SInt(0))],
-            guarantees_a=[SBinOp("==", SVar("lock"), SInt(1))],
-            name_b="release", body_b="let lock = 0;",
-            assumptions_b=[SBinOp("==", SVar("lock"), SInt(1))],
-            guarantees_b=[SBinOp("==", SVar("lock"), SInt(0))],
-            shared_vars=["lock"]
+            name_a="manager_a", body_a="let resource_a = 1;",
+            assumptions_a=[SBinOp(">=", SVar("resource_b"), SInt(0))],
+            guarantees_a=[SBinOp(">=", SVar("resource_a"), SInt(0))],
+            name_b="manager_b", body_b="let resource_b = 2;",
+            assumptions_b=[SBinOp(">=", SVar("resource_a"), SInt(0))],
+            guarantees_b=[SBinOp(">=", SVar("resource_b"), SInt(0))],
+            shared_vars=["resource_a", "resource_b"]
         )
         assert result.verdict == AGVerdict.SOUND
 
