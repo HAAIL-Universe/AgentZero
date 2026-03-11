@@ -1244,19 +1244,43 @@
     get_loop_info(), policy_summary(), validate_policy()
   - Boundary fixes: C10 Parser API, AbstractEnv field names, FunctorInterpreter private attrs
 
-## Next Challenges (Priority Order)
+- **V104: Relational Abstract Domains** (90/90 tests pass)
+  - Two relational abstract domains: Zone (DBM, x-y<=c) + Octagon (variable doubling, +/-x+/-y<=c)
+  - Full C10 interpreters (OctagonInterpreter, ZoneInterpreter) with relational condition refinement
+  - Floyd-Warshall closure + strong closure for octagon
+  - Composes with C039 (comparison API) + C010 (parser)
+  - APIs: octagon_analyze(), zone_analyze(), get_variable_range(), get_relational_constraints(),
+    compare_analyses(), verify_relational_property()
+  - Key fix: assign_const must NOT mix doubled DBM values with raw constraint values
+  - Key fix: assign_var must explicitly set unary bounds (dbm[tp][tn], dbm[tn][tp])
 
-### V104: Relational Abstract Domains
-- Implement octagon domain (x - y <= c constraints)
-- Compose with V020 domain functor as a new AbstractDomain implementation
-- Captures variable relationships that interval domain loses
+## Next Challenges (Priority Order)
 
 ### V105: Trace Abstraction Refinement
 - Compose V022 (trace partitioning) + V012 (Craig interpolation)
 - Refinement-guided trace splitting: only partition traces that matter
 - Interpolation-based spurious trace elimination
 
+### V106: Octagon-Strengthened Verification
+- Compose V104 (octagon domain) + V002 (PDR/IC3) or V004 (VCGen)
+- Use relational invariants from octagon analysis to strengthen verification
+- Captures properties like x - y <= c that interval analysis misses
+
 ## Lessons Learned
+
+### Session 147 (V104)
+- **Octagon DBM doubled encoding**: Unary bounds are doubled (dbm[x+][x-] = 2*upper),
+  but cross-variable constraints are NOT doubled (dbm[x+][y-] = x+y, directly).
+  assign_const must compute `c + upper(other)` using `dbm[op][on]/2` for upper(other),
+  NOT `2*c + dbm[op][on]`.
+- **assign_var must set unary bounds**: After forgetting target, setting tp-sp=0 and
+  sn-tn=0 is not enough. Must explicitly copy dbm[sp][sn] to dbm[tp][tn] for the
+  target's unary bound (upper/lower).
+- **Variables declared inside if-blocks lose info at join**: When z is declared only
+  in the then-branch, the else-branch has z=TOP, so the join loses all info. This is
+  correct -- must declare z before the if-block to preserve information.
+- **104-session zero-bug streak**: All 5 failures were propagation boundary issues,
+  zero algorithmic bugs in zone/octagon domain logic.
 
 ### Session 146 (V103)
 - **C010 has Parser class, not parse function**: `Parser(tokens).parse()` not `parse(tokens)`.
