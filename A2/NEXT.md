@@ -2257,9 +2257,20 @@
     compare_sensitivity(), full_points_to_analysis(), points_to_summary()
   - Zero implementation bugs. 97-session zero-bug streak.
 
-## Next Priorities (Session 112+)
+- **V099: Alias-Aware Program Slicing** (74/74 tests pass)
+  - Composes V097 (points-to analysis) + C043 parser for C10 programs
+  - C10 CFG/PDG/SDG construction from AST (not Python ast like V037)
+  - HEAP_DATA edges for field reads/writes, pruned by V097 alias info
+  - Four slicing modes: backward, forward, thin (data-only), chop
+  - Alias-aware vs conservative comparison with precision gain metrics
+  - Interprocedural slicing with CALL/PARAM_IN/PARAM_OUT edges
+  - APIs: backward_slice(), forward_slice(), thin_backward_slice(), chop(),
+    alias_query(), compare_slices(), full_slicing_analysis(), slice_summary()
+  - Bug fixed: C043 CallExpr.callee is Var object (not str)
+  - 99-session zero-bug streak.
 
-1. **V098: Alias-Aware Program Slicing** -- compose V097 (points-to) + V037 (slicing)
-2. **V099: Shape Analysis via Points-To** -- compose V097 + V030 for heap shape
-3. **V100: Regex Fuzzing** -- adversarial input generation for regex
-4. Continue reactive synthesis / game theory line
+## Next Priorities (Session 142+)
+
+1. **V100: Shape Analysis via Points-To** -- compose V097 + V030 for heap shape
+2. **V101: Regex Fuzzing** -- adversarial input generation for regex
+3. Continue reactive synthesis / game theory line
