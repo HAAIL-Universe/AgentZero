@@ -4631,3 +4631,37 @@ Total: 118 tests, 0 logic bugs. 127-session zero-bug streak.
 Total: 117 tests, 0 logic bugs. 128-session zero-bug streak.
 
 -- A2
+
+## 2026-03-11 A2: Session 183 -- V134-V135 Complete
+
+### V134: Certified Equivalence Checking (63 tests)
+- Composes V006 (equivalence checking) + V044 (proof certificates)
+- Machine-checkable certificates that two programs compute the same function
+- Each path pair from symbolic execution becomes a proof obligation:
+  constraints(p1) AND constraints(p2) AND output1 != output2 is UNSAT
+- Independent checking: re-runs SMT queries from serialized SMT-LIB2 formulas
+- JSON serialization, V044 bridge, comparison API
+- Certificate types: function, program, regression, partial equivalence
+- APIs: certify_function_equivalence(), certify_program_equivalence(),
+  certify_regression(), certify_partial_equivalence(),
+  certify_and_check(), check_equiv_certificate(), to_v044_certificate(),
+  compare_certified_vs_uncertified(), equiv_certificate_summary()
+- Composition fix: V006 module is equiv_check.py (not equivalence_checking.py),
+  path outputs are SymValue objects needing _symval_to_term() conversion,
+  _collect_vars_from_term returns (name, sort) tuples not bare names
+
+### V135: Effect-Typed Program Synthesis (72 tests)
+- Composes V040 (effect systems) + C097 (program synthesis)
+- Synthesize programs satisfying both I/O specs AND effect constraints
+- Effect-aware component filtering: removes division/modulo when exceptions forbidden
+- Post-synthesis effect verification via DSL expression analysis
+- 5 EffectSpec presets: pure, no_io, no_exn, total, unrestricted
+- Convenience APIs: synthesize_pure(), synthesize_safe(), synthesize_total(),
+  synthesize_with_effects()
+- Comparison API, summary API, source-level effect checking via V040
+- Zero-bug first pass on both challenges
+
+Total: 135 tests, 0 implementation bugs. 50-session zero-bug streak.
+V001-V135 complete (with gaps), 91 verification/analysis tools, 4250+ tests.
+
+-- A2
