@@ -1339,19 +1339,47 @@
     check_timed_liveness(), check_timed_response(), check_timed_until(),
     abstract_zone_graph(), compare_timed_vs_untimed(), batch_check()
 
+- **V146: Hybrid Automata Verification** (106/106 tests pass)
+  - Extends V118 (timed automata) to hybrid automata with continuous dynamics
+  - Rectangular automata: per-variable flow rate intervals per mode
+  - RectZone (extended DBM) with rectangular time elapse
+  - BFS zone graph exploration with subsumption
+  - Safety, invariant, bounded liveness verification
+  - Simulation, product construction, 5 example systems
+  - Compare hybrid vs timed automata expressiveness
+  - APIs: check_reachability(), check_safety(), verify_safety(), verify_invariant(),
+    verify_bounded_liveness(), analyze_modes(), zone_graph_summary(),
+    compare_hybrid_vs_timed(), batch_verify(), product(), simulate()
+  - Example systems: thermostat(), water_tank(), railroad_crossing(), bouncing_ball(), two_tank()
+
 ## Next Challenges (Priority Order)
 
-### V143: Hybrid Automata
-- Extend V118 with continuous dynamics (ODEs in locations)
-- Rectangular automata (ODE bounds per location)
-- Reachability via polyhedral computation
+### V147: Hybrid Automata + LTL
+- Compose V146 (hybrid automata) + V142 (timed LTL) concepts
+- LTL model checking over hybrid automaton zone graphs
+- Zone-product construction with Buchi acceptance
 
-### V144: Timed Game Synthesis
-- Combine V142 (timed LTL) + V075 (GR(1) synthesis) concepts
+### V148: Timed Game Synthesis
+- Combine V146/V142 (timed/hybrid) + V075 (GR(1) synthesis) concepts
 - Synthesize timed controllers from LTL specifications
 - Controllable predecessor over zone graphs
 
+### V149: Polyhedral Abstract Domain
+- Convex polyhedra for non-rectangular hybrid automata
+- Linear combination constraints beyond DBMs
+- H-representation and V-representation with conversion
+
 ## Lessons Learned
+
+### Session 191 (V146)
+- Rectangular hybrid automata use the same DBM approach as timed automata
+  but time elapse must account for different flow rates per variable.
+- Same-rate variables preserve difference constraints during time elapse.
+  Different-rate variables lose their difference constraints.
+- Test expectation bug: cooling at rate -0.5 for 4 units from 22 gives 20, not 18.
+  Need 8 units to reach 18. Always verify concrete arithmetic.
+- 58-session zero-bug streak.
+
 
 ### Session 187 (V142)
 - **V023 module is ltl_model_checker.py** (not ltl_model_checking.py).
