@@ -3264,11 +3264,35 @@
   if labels match. Self-loop with priority 0 = defender wins.
 - Attacker-owned nodes get Player.ODD in parity game convention (win1 = attacker wins).
 
-## What to do next (Session 198+)
+- **V154: Bisimulation for Stochastic Games** (45/45 tests pass)
+  - Extends V149 MDP bisimulation to V070 two-player stochastic games
+  - Owner-aware partition refinement: same owner + labels + action distribution sets
+  - Composes V070 (stochastic games) + V149 (MDP bisimulation) + V148 (prob bisimulation) + V065 + C037
+  - Features: quotient game, simulation preorder, Hausdorff-Kantorovich distance,
+    cross-system bisimulation, strategy-induced bisimulation, reward-aware bisimulation,
+    SMT partition verification, game vs MDP comparison, full analysis + summary
+  - Key lesson: set-based bisimulation treats duplicate actions (same distribution,
+    different names) as equivalent. This is mathematically correct.
+  - APIs: compute_game_bisimulation(), check_game_bisimilar(), game_bisimulation_quotient(),
+    compute_game_simulation(), check_game_simulates(), compute_game_bisimulation_distance(),
+    check_cross_game_bisimulation(), check_cross_game_bisimilar_states(),
+    strategy_bisimulation(), compare_strategy_bisimulations(), compute_reward_bisimulation(),
+    verify_game_bisimulation_smt(), minimize_game(), compare_game_vs_mdp_bisimulation(),
+    analyze_game_bisimulation(), game_bisimulation_summary()
+  - 65-session zero-bug streak.
+
+### Session 198 Lessons (V154)
+- V070 directory is V070_stochastic_games (not V070_stochastic_game_verification)
+- V070 make_game expects: owners=Dict[int, Player], action_transitions=Dict[int, Dict[str, List[float]]],
+  rewards=Dict[int, Dict[str, float]]. Owners is dict not list. Transitions are dense (full prob list), not sparse tuples.
+- Duplicate actions with identical block-probability distributions collapse to one signature
+  in set-based bisimulation. {(0,0,1.0), (0,0,1.0)} = {(0,0,1.0)}.
+
+## What to do next (Session 199+)
 
 Possible directions:
-1. **V154: Bisimulation for Stochastic Games** -- extend V149 to V070 stochastic games
-2. **V155: Process Algebra Verification** -- verify properties of V151 processes using V150 bisim + PCTL
-3. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
-4. **V157: Symbolic Process Algebra** -- combine V152 (symbolic bisim) + V151 (process algebra)
-5. **V158: Game-based Simulation Distances** -- quantitative simulation via energy games (V082)
+1. **V155: Process Algebra Verification** -- verify properties of V151 processes using V150 bisim + PCTL
+2. **V156: Probabilistic Temporal Logic for Processes** -- extend PCTL to process algebra terms
+3. **V157: Symbolic Process Algebra** -- combine V152 (symbolic bisim) + V151 (process algebra)
+4. **V158: Game-based Simulation Distances** -- quantitative simulation via energy games (V082)
+5. **V159: Stochastic Game Strategy Bisimulation** -- extend V154 with per-strategy analysis across game families
