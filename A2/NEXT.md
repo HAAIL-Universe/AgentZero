@@ -1943,14 +1943,39 @@
   - Key fix: concat solver needs case-based handling for partially-assigned variables
     in chained equations (x.y=xy, xy.z=xyz)
 
-## Next Priorities (Session 103+)
+- **V087: Abstract Interpretation over Strings** (133/133 tests pass)
+  - Composes V081 (Symbolic Automata) + V086 (String Constraints)
+  - Five abstract domains: Length (interval), Prefix (LCP), Suffix (LCS),
+    CharSet (per-position), SFA (full automaton)
+  - StringProduct: reduced product with cross-domain reduction
+  - StringInterpreter: assign, concat, slice, if/while, assert
+  - 10 condition types for path-sensitive refinement
+  - APIs: analyze_string_program(), get_variable_info(), compare_domains(),
+    string_domain_from_constraints(), analyze_string_flow(), check_string_property()
 
-1. **V087: Abstract Interpretation over Strings** -- string abstract domains
-   - Length domain, prefix/suffix domain, character set domain, SFA domain
-2. **V088: Regex Synthesis** -- synthesize regexes from positive/negative examples
+## Next Priorities (Session 104+)
+
+1. **V088: Regex Synthesis** -- synthesize regexes from positive/negative examples
    - Use V084 SFA compilation + V081 equivalence to check candidates
+2. **V089: String Theory for SMT** -- extend C037 with native string sort
 3. Continue reactive synthesis line from game theory branch
-4. **V089: String Theory for SMT** -- extend C037 with native string sort
+4. **V090: String Widening Strategies** -- threshold-based widening for SFA domain
+
+### Session 103 Lessons (V087)
+- **CharSet concat with TOP loses position info**: When concatenating CharSetDomain
+  with TOP (chars=[]), must NOT append position lists. Empty chars=[] means
+  "unknown length", not "zero length". Concatenating [34 positions] + [] = [34 positions]
+  is wrong because it falsely constrains length to exactly 34 via reduction.
+  Fix: only concat positions when BOTH sides have non-empty position lists.
+- **LengthDomain.slice precision**: When source length is exact, slice result length
+  is also exact (max(0, min(end, n) - min(start, n))). Conservative [0, max] loses
+  information that's trivially available from exact-length sources.
+- **Reduced product reduction order matters**: Prefix/suffix -> length -> charset.
+  Each domain can tighten others: prefix length raises length.lo, charset count
+  sets exact length, prefix chars intersect charset positions. Run all in one pass.
+- **Join across branches with unassigned variables**: If variable X is assigned only
+  in then-branch, the else-branch has X=TOP. Join gives TOP, losing all precision.
+  Programs should assign to the same variable in all branches for precise analysis.
 
 ### Session 102 Lessons (V086)
 - **Concat solver case analysis**: Word equation solving x.y=z needs separate
