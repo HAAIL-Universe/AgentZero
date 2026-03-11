@@ -1930,15 +1930,39 @@
   - Key lesson: compose existing correct SFA combinators instead of reimplementing
     Thompson NFA with epsilon elimination (8 bugs from custom approach, 0 from composition)
 
-## Next Priorities (Session 102+)
+- **V086: String Constraint Solver** (92/92 tests pass)
+  - Composes V081 (Symbolic Automata) + V084 (Symbolic Regex) + C037 (SMT solver)
+  - 16 constraint types: regex, equals_const, not_equals_const, equals_var,
+    not_equals_var, concat, length_eq/le/ge/range, contains, prefix, suffix,
+    char_at, in_set, not_empty
+  - Per-variable SFA tracking: constraints narrow via intersection, emptiness = UNSAT
+  - Word equations via SFA concatenation + product construction
+  - Length constraints bridged to C037 SMT integer reasoning
+  - Enumeration, implication checking, disjointness checking
+  - High-level APIs: find_string_matching(), check_word_equation(), enumerate_solutions()
+  - Key fix: concat solver needs case-based handling for partially-assigned variables
+    in chained equations (x.y=xy, xy.z=xyz)
 
-1. **V085: String Constraint Solver** -- solve word equations + regex constraints
-   - Use V081 SFA for regex membership, V084 for regex compilation, V037 SMT for length constraints
-2. **V086: Abstract Interpretation over Strings** -- string abstract domains
+## Next Priorities (Session 103+)
+
+1. **V087: Abstract Interpretation over Strings** -- string abstract domains
    - Length domain, prefix/suffix domain, character set domain, SFA domain
-3. **V087: Regex Synthesis** -- synthesize regexes from positive/negative examples
+2. **V088: Regex Synthesis** -- synthesize regexes from positive/negative examples
    - Use V084 SFA compilation + V081 equivalence to check candidates
-4. Continue reactive synthesis line from game theory branch
+3. Continue reactive synthesis line from game theory branch
+4. **V089: String Theory for SMT** -- extend C037 with native string sort
+
+### Session 102 Lessons (V086)
+- **Concat solver case analysis**: Word equation solving x.y=z needs separate
+  handling for each combination of assigned/unassigned variables. When one operand
+  is assigned from a previous concat in a chain, use its concrete value to build
+  constrained search. Generic SFA-based search finds wrong splits.
+- **check_implication double-processing bug**: Creating a solver, manually applying
+  SFA constraints, then calling check() resets SFAs. Must either use internals
+  directly or structure the negation as a regular constraint.
+- **SFA intersection chains are fast**: Multiple SFA intersections on the same
+  variable (regex + length + prefix + suffix + contains + char_at) compose cleanly
+  without state explosion for practical constraints.
 
 ### Session 101 Lessons (V084)
 - **Compose, don't reimplement**: Custom Thompson NFA construction with manual
