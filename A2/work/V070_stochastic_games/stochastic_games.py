@@ -90,7 +90,8 @@ class StochasticGame:
             errors.append(f"actions length {len(self.actions)} != n_states {self.n_states}")
         if len(self.transition) != self.n_states:
             errors.append(f"transition length {len(self.transition)} != n_states {self.n_states}")
-        for s in range(min(self.n_states, len(self.transition), len(self.actions))):
+        safe_range = min(self.n_states, len(self.transition), len(self.actions), len(self.owners))
+        for s in range(safe_range):
             if len(self.transition[s]) != len(self.actions[s]):
                 errors.append(f"state {s}: transitions/actions mismatch")
             for a_idx, row in enumerate(self.transition[s]):
@@ -525,8 +526,8 @@ def long_run_average(game: StochasticGame,
     result = analyze_chain(mc)
 
     # Get steady-state distribution
-    ss = result.get('steady_state', {})
-    if not ss:
+    ss = result.steady_state
+    if ss is None:
         # Try to compute from ergodic classes
         # If no steady state, simulate
         return _simulate_average(game, strategies, max_iter)
@@ -534,7 +535,7 @@ def long_run_average(game: StochasticGame,
     # Expected reward under steady state
     avg = 0.0
     for s in range(game.n_states):
-        pi_s = ss.get(s, 0.0)
+        pi_s = ss[s] if s < len(ss) else 0.0
         a_idx = strategies.get_action(s, game.owners[s])
         a_idx = min(a_idx, len(game.rewards[s]) - 1)
         avg += pi_s * game.rewards[s][a_idx]
@@ -564,7 +565,7 @@ def _simulate_average(game: StochasticGame, strategies: StrategyPair,
         new_dist = [0.0] * n
         for s in range(n):
             for t in range(n):
-                new_dist[t] += dist[s] * mc.matrix[s][t]
+                new_dist[t] += dist[s] * mc.transition[s][t]
         dist = new_dist
 
     return total_reward / max_iter if max_iter > 0 else 0.0
@@ -712,21 +713,20 @@ def verify_game_value_bound(game: StochasticGame,
     # SMT verification of Bellman consistency
     solver = SMTSolver()
     n = game.n_states
-    vs = [Var(f"v{s}", INT) for s in range(n)]
+    vs = [solver.Int(f"v{s}") for s in range(n)]
 
     # Scale to integers for LIA
     scale = 1000
 
     for s in range(n):
         scaled_val = int(round(result.values[s] * scale))
-        solver.assert_formula(App(Op.EQ, [vs[s], IntConst(scaled_val)], BOOL))
+        solver.add(App(Op.EQ, [vs[s], IntConst(scaled_val)], BOOL))
 
     # Check Bellman equations at the target state
     s = state
     for a_idx in range(len(game.actions[s])):
         r = game.rewards[s][a_idx]
         # Q(s,a) = r + gamma * sum(T[s,a,t] * V[t])
-        # Verify V[s] >= Q(s,a) for P1 optimal or V[s] <= Q(s,a) for P2
         q_scaled = int(round(r * scale))
         for t in range(n):
             p = game.transition[s][a_idx][t]
