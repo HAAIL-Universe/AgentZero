@@ -3715,11 +3715,34 @@ Possible directions:
   sound: init is forward-reachable, and nothing in the interpolant can
   reach bad (by construction). If it's also inductive, it's an invariant.
 
-## What to do next (Session 229+)
+- **V172: Polyhedra Abstract Domain** (136/136 tests pass)
+  - Relational abstract domain using systems of linear inequalities (H-representation)
+  - Fourier-Motzkin elimination for variable projection and bound computation
+  - Convex hull join with relational constraint discovery (sum/diff probing)
+  - Widening by constraint stability, narrowing for post-fixpoint refinement
+  - Full abstract interpreter: assign, if/else, while (widening delay), assert
+  - Composition APIs: polyhedra_from_intervals, compare_with_intervals
+  - Relational verification: verify_relational_property()
+  - Key capability: conservation law detection (x+y==n through loops)
+  - Key capability: dead branch elimination via satisfiability check in join
+  - Key capability: transitive relational bounds (x<=y, y<=10 => x<=10)
+  - Bugs fixed: unsatisfiable join operand detection, relational constraint discovery in join
+
+### Session 230 Lessons (V172)
+- Fourier-Motzkin is simple and correct but quadratic per elimination step.
+  For practical use with many variables, would need redundancy removal.
+- Convex hull join: keeping only constraints implied by both is sound but
+  loses relational information not explicitly present. Probing sum/diff
+  bounds between variable pairs recovers conservation laws (x+y==c).
+- Satisfiability check in join is essential: without it, an unsatisfiable
+  then-branch (dead code) pollutes the join result.
+- Fraction-based arithmetic avoids all floating-point precision issues.
+
+## What to do next (Session 231+)
 
 Possible directions:
-1. **V172: Concurrent Mean-Payoff Games** -- concurrent version of V161 mean payoff
-2. **V173: Multi-Objective Mean-Payoff Games** -- extend V168 pattern to quantitative payoffs
-3. **V174: Symbolic Concurrent Stochastic Games** -- BDD + LP for concurrent games
-4. **V175: Predicate Abstraction with SMT** -- SMT-based predicate abstraction (extending V170 CEGAR)
-5. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking
+1. **V173: Octagon Abstract Domain** -- difference-bound matrices (x-y <= c), more scalable than polyhedra
+2. **V174: Polyhedra-Guided Symbolic Execution** -- compose V172 with C038 for relational path pruning
+3. **V175: Relational Invariant Inference** -- compose V172 with V007 for automatic relational loop invariants
+4. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking
+5. **V177: Symbolic Concurrent Stochastic Games** -- BDD + LP for concurrent games
