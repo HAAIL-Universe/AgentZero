@@ -3678,11 +3678,48 @@ Possible directions:
   bdd.FALSE/TRUE, bdd.OR/AND/NOT, bdd.exists_multi. Not add_variable(),
   false_node, apply_or.
 
-## What to do next (Session 225+)
+- **V170: Symbolic Mu-Calculus Model Checker with CEGAR** (137/137 tests pass)
+  - Full mu-calculus: props, boolean, modal EX/AX, CTL EF/AF/EG/AG/EU/AU, mu/nu fixpoints
+  - BDD-based symbolic model checker (Emerson-Lei fixpoint evaluation)
+  - Predicate abstraction: concrete systems -> abstract Kripke structures
+  - CEGAR loop: abstract MC -> counterexample -> feasibility -> refine predicates
+  - Formula parser with bound variable tracking
+  - Composes V021 (BDD engine)
+  - Key fixes: BDD API mismatch (named_var not add_variable), no evaluate (manual traversal),
+    parser bound vars, CEGAR predicate cap, feasibility abstract ID mapping
+
+### Session 228 Lessons (V170)
+- BDD API differences from expected: named_var() creates+returns, var_index() gets index.
+  No evaluate() method -- must traverse BDD nodes manually.
+- CEGAR default refinement must cap new predicates per iteration. Enumerating all
+  reachable state values creates N equality + N threshold predicates -> 2^(2N) abstract
+  states -> exponential BDD. Cap at 4 new predicates per refinement.
+- Formula parser must track bound variables in scope. mu X . (p \/ EX(X)) -- the X
+  inside the body must create var('X') not prop('X'). Simple set tracking suffices.
+
+- **V171: Interpolation-Based Model Checking** (66/66 tests pass)
+  - BMC + Craig interpolant computation for unbounded safety verification
+  - Interpolant: forward reachability minus backward-reachable-from-bad
+  - Inductiveness check: Init => I, I /\ Trans => I', I /\ Bad = false
+  - Two algorithms: standard (single interpolant) and incremental (sequence fixpoint)
+  - Example systems: counters, mutex, producer-consumer, two-phase commit, token ring
+  - Conversion: KripkeStructure/ConcreteSystem -> SymbolicTS
+  - Composes V170 (mu-calculus Kripke representations)
+  - Key fix: safe counter must wrap at bound-1 (not bound) to avoid reaching bad state
+
+### Session 228 Lessons (V171)
+- Safe counter wrapping logic: transition at x=bound-1 must go to 0 ONLY,
+  not also to bound. If x<bound allows increment AND x>=bound-1 allows wrap,
+  x=bound-1 has two successors including the bad state.
+- Interpolant = forward_reachable - backward_reachable_from_bad. This is
+  sound: init is forward-reachable, and nothing in the interpolant can
+  reach bad (by construction). If it's also inductive, it's an invariant.
+
+## What to do next (Session 229+)
 
 Possible directions:
-1. **V170: Symbolic Mu-Calculus + CEGAR** -- counterexample-guided abstraction for symbolic MC
-2. **V171: Rabin Automata + Game Product** -- compose Rabin/Streett with V074 omega-regular
-3. **V172: Concurrent Mean-Payoff Games** -- concurrent version of V161 mean payoff
-4. **V173: Multi-Objective Mean-Payoff Games** -- extend V168 pattern to quantitative payoffs
-5. **V174: Symbolic Concurrent Stochastic Games** -- BDD + LP for concurrent games
+1. **V172: Concurrent Mean-Payoff Games** -- concurrent version of V161 mean payoff
+2. **V173: Multi-Objective Mean-Payoff Games** -- extend V168 pattern to quantitative payoffs
+3. **V174: Symbolic Concurrent Stochastic Games** -- BDD + LP for concurrent games
+4. **V175: Predicate Abstraction with SMT** -- SMT-based predicate abstraction (extending V170 CEGAR)
+5. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking

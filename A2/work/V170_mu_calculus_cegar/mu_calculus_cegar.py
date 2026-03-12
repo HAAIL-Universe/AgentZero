@@ -216,12 +216,12 @@ def kripke_to_symbolic(ks: KripkeStructure) -> SymbolicKripke:
     var_indices = {}
     next_indices = {}
 
-    for i, sv in enumerate(state_vars):
-        idx = bdd.add_variable(sv)
-        var_indices[sv] = idx
-    for i, nv in enumerate(next_vars):
-        idx = bdd.add_variable(nv)
-        next_indices[nv] = idx
+    # Interleave curr/next vars for better BDD ordering
+    for i in range(n_bits):
+        bdd.named_var(state_vars[i])
+        var_indices[state_vars[i]] = bdd.var_index(state_vars[i])
+        bdd.named_var(next_vars[i])
+        next_indices[next_vars[i]] = bdd.var_index(next_vars[i])
 
     state_list = sorted(ks.states)
     state_map = {s: i for i, s in enumerate(state_list)}
@@ -298,6 +298,16 @@ def _sk_preimage_universal(sk: SymbolicKripke, target: BDDNode) -> BDDNode:
     return sk.bdd.AND(sk.states, sk.bdd.NOT(has_succ_outside))
 
 
+def _bdd_eval(bdd: BDD, node: BDDNode, assignment: Dict[int, bool]) -> bool:
+    """Evaluate a BDD under an assignment."""
+    while not node.is_terminal():
+        if assignment.get(node.var, False):
+            node = node.hi
+        else:
+            node = node.lo
+    return node.value
+
+
 def _bdd_states(sk: SymbolicKripke, bdd_node: BDDNode) -> Set[int]:
     """Extract concrete state IDs from a BDD (for debugging/counterexamples)."""
     result = set()
@@ -306,8 +316,8 @@ def _bdd_states(sk: SymbolicKripke, bdd_node: BDDNode) -> Set[int]:
         assignment = {}
         for bit in range(sk.n_bits):
             assignment[sk.var_indices[sk.state_vars[bit]]] = bool((i >> bit) & 1)
-        if sk.bdd.evaluate(bdd_node, assignment):
-            if sk.bdd.evaluate(sk.states, assignment):
+        if _bdd_eval(sk.bdd, bdd_node, assignment):
+            if _bdd_eval(sk.bdd, sk.states, assignment):
                 result.add(i)
     return result
 
@@ -809,7 +819,7 @@ def _check_feasibility(system: ConcreteSystem,
     For each abstract state in cex, try to find concrete states and transitions.
     Returns concrete trace if feasible, None if spurious.
     """
-    # Enumerate concrete states and their abstract mappings
+    # Enumerate concrete states
     concrete_states = []
     state_set = set()
     queue = deque()
@@ -830,73 +840,55 @@ def _check_feasibility(system: ConcreteSystem,
                 concrete_states.append(t)
                 queue.append(t)
 
-    def abstract_id(cs):
-        at = tuple(p.test(cs) for p in predicates)
-        # Find matching abstract state
-        for sid in abstract_ks.states:
-            labels = abstract_ks.labeling.get(sid, set())
-            matches = True
-            for j, p in enumerate(predicates):
-                if at[j] and p.name not in labels:
-                    matches = False
-                    break
-                if not at[j] and p.name in labels:
-                    # Over-approximation: abstract state may have prop if ANY concrete does
-                    pass
-            if matches:
-                return sid
-        return None
-
-    # Build concrete -> abstract mapping
-    c_to_a = {}
+    # Build mapping: abstract state tuple -> abstract state ID
+    # The abstract state is defined by predicate values
+    tuple_to_abs_id = {}
     for cs in concrete_states:
         at = tuple(p.test(cs) for p in predicates)
-        c_to_a[_state_key(cs)] = at
+        if at not in tuple_to_abs_id:
+            # Find which abstract state ID this tuple maps to
+            # by checking labeling consistency
+            for sid in abstract_ks.states:
+                labels = abstract_ks.labeling.get(sid, set())
+                match = True
+                for j, p in enumerate(predicates):
+                    if at[j] and p.name not in labels:
+                        match = False
+                        break
+                if match:
+                    tuple_to_abs_id[at] = sid
+                    break
 
-    # For single-state cex: just check if any initial concrete state maps to it
+    def concrete_to_abs(cs):
+        at = tuple(p.test(cs) for p in predicates)
+        return tuple_to_abs_id.get(at)
+
+    # For single-state cex
     if len(abstract_cex) == 1:
         target_abs = abstract_cex[0]
-        target_labels = abstract_ks.labeling.get(target_abs, set())
         for init in system.init_states:
-            at = tuple(p.test(init) for p in predicates)
-            pred_match = True
-            for j, p in enumerate(predicates):
-                if at[j] != (p.name in target_labels):
-                    pred_match = False
-                    break
-            if pred_match:
+            if concrete_to_abs(init) == target_abs:
                 return [init]
         return None
 
-    # For multi-state cex: try to find concrete path
-    # Find concrete states mapping to first abstract state
+    # For multi-state cex: BFS to find concrete path matching abstract path
     first_abs = abstract_cex[0]
-    first_labels = abstract_ks.labeling.get(first_abs, set())
-
-    candidates = []
-    for init in system.init_states:
-        at = tuple(p.test(init) for p in predicates)
-        ok = all(at[j] == (predicates[j].name in first_labels) for j in range(len(predicates)))
-        if ok:
-            candidates.append(init)
+    candidates = [init for init in system.init_states
+                  if concrete_to_abs(init) == first_abs]
 
     if not candidates:
         return None
 
-    # Try to extend path
     for start in candidates:
         trace = [start]
         current = start
         feasible = True
         for step in range(1, len(abstract_cex)):
             target_abs = abstract_cex[step]
-            target_labels = abstract_ks.labeling.get(target_abs, set())
             succs = system.transition_fn(current)
             found = False
             for s in succs:
-                at = tuple(p.test(s) for p in predicates)
-                ok = all(at[j] == (predicates[j].name in target_labels) for j in range(len(predicates)))
-                if ok:
+                if concrete_to_abs(s) == target_abs:
                     trace.append(s)
                     current = s
                     found = True
@@ -915,30 +907,59 @@ def _default_refine(system: ConcreteSystem,
                     predicates: List[Predicate]) -> List[Predicate]:
     """Default refinement: add predicates to distinguish states.
 
-    Heuristic: enumerate concrete successors from initial states
-    and add predicates that distinguish reachable from unreachable behavior.
+    Heuristic: explore reachable states and add value-equality predicates
+    for each observed variable value, plus threshold predicates.
     """
     new_preds = list(predicates)
     pred_names = {p.name for p in predicates}
 
-    # Look at concrete system variables and add comparison predicates
+    # Explore a few steps from initial states to find relevant thresholds
+    observed = {}  # var -> set of observed values
+    state_set = set()
+    queue = deque()
     for init in system.init_states:
+        key = _state_key(init)
+        if key not in state_set:
+            state_set.add(key)
+            queue.append(init)
+    # Only explore a small number of states to keep predicates manageable
+    while queue and len(state_set) < 30:
+        s = queue.popleft()
         for var in system.variables:
-            val = init.get(var, 0)
-            # Add threshold predicates
-            for threshold in [0, 1, val, val + 1]:
-                name = f"{var}_ge_{threshold}"
-                if name not in pred_names:
-                    t = threshold  # capture
-                    v = var
-                    new_preds.append(Predicate(name, lambda s, v=v, t=t: s.get(v, 0) >= t))
-                    pred_names.add(name)
+            val = s.get(var, 0)
+            if var not in observed:
+                observed[var] = set()
+            observed[var].add(val)
+        for t in system.transition_fn(s):
+            key = _state_key(t)
+            if key not in state_set:
+                state_set.add(key)
+                queue.append(t)
 
+    # Add at most a few predicates per variable to avoid abstraction explosion
+    added = 0
+    max_new = 4  # at most 4 new predicates per refinement
+    for var in system.variables:
+        vals = sorted(observed.get(var, set()))
+        for val in vals:
+            if added >= max_new:
+                break
+            # Equality predicate
             name = f"{var}_eq_{val}"
             if name not in pred_names:
                 v, t = var, val
                 new_preds.append(Predicate(name, lambda s, v=v, t=t: s.get(v, 0) == t))
                 pred_names.add(name)
+                added += 1
+            if added >= max_new:
+                break
+            # Threshold predicate
+            name = f"{var}_ge_{val}"
+            if name not in pred_names:
+                v, t = var, val
+                new_preds.append(Predicate(name, lambda s, v=v, t=t: s.get(v, 0) >= t))
+                pred_names.add(name)
+                added += 1
 
     return new_preds
 
@@ -969,6 +990,7 @@ def parse_formula(text: str) -> Formula:
     """
     tokens = _tokenize(text)
     pos = [0]
+    bound_vars = set()  # track mu/nu bound variable names
 
     def peek():
         if pos[0] < len(tokens):
@@ -1040,10 +1062,14 @@ def parse_formula(text: str) -> Formula:
             advance()
             v = advance()
             expect('.')
+            bound_vars.add(v)
             body = parse_expr()
-            return mu(v, body) if t == 'mu' else nu(v, body)
-        # Must be a proposition or variable
+            result = mu(v, body) if t == 'mu' else nu(v, body)
+            return result
+        # Bound variable reference or proposition
         advance()
+        if t in bound_vars:
+            return var(t)
         return prop(t)
 
     def parse_expr():
