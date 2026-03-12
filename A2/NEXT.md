@@ -3738,11 +3738,36 @@ Possible directions:
   then-branch (dead code) pollutes the join result.
 - Fraction-based arithmetic avoids all floating-point precision issues.
 
-## What to do next (Session 231+)
+- **V173: Octagon Abstract Domain** (99/99 tests pass)
+  - Weakly relational domain: tracks +/-x +/- y <= c (difference-bound matrices)
+  - DBM representation: 2n x 2n matrix, Floyd-Warshall closure + strengthening
+  - More scalable than polyhedra (O(n^3) closure vs exponential FM elimination)
+  - Captures: variable bounds, difference bounds (x-y<=c), sum bounds (x+y<=c)
+  - Transfer functions: assign (const, var+c, -var+c, binop), increment, forget
+  - Lattice: join (componentwise max), meet (componentwise min), widen (drop unstable), narrow
+  - Full interpreter: assign, seq, if/else, while (widening delay), assert
+  - Transitive bound derivation via Floyd-Warshall (x-y<=3, y-z<=2 => x-z<=5)
+  - Strengthening: tighten binary bounds using unary bounds
+  - Relational queries: get_difference_bound(), get_sum_bound(), extract_constraints()
+  - Composition: octagon_from_intervals(), compare_with_polyhedra(), verify_octagonal_property()
+  - Scalable: 20+ variables, 19 transitive difference constraints -> derives x0-x19<=95
+  - Key insight: standard widening drops decreasing variable bounds, exit guards restore partial info
+
+### Session 231 Lessons (V173)
+- DBM encoding: signed(2k)=+x_k, signed(2k+1)=-x_k. DBM[i][j] = signed(j)-signed(i)<=c.
+- Unary bounds encoded as: DBM[2k+1][2k] = 2*upper(x_k), DBM[2k][2k+1] = -2*lower(x_k).
+- Increment x=x+c: shift all constraints involving x by +/-c. Must handle p/q pair
+  separately from the loop (they're self-referential).
+- Widening drops bounds that grow between iterations. For countdown loops (i=10, while i>0, i--)
+  the lower bound is lost after widening; exit guard i<=0 provides only upper bound.
+- Floyd-Warshall + strengthening is the right closure for octagons. Strengthening uses
+  unary bounds to tighten binary bounds: m[i][j] = min(m[i][j], (m[i][bar(i)]+m[bar(j)][j])/2).
+
+## What to do next (Session 232+)
 
 Possible directions:
-1. **V173: Octagon Abstract Domain** -- difference-bound matrices (x-y <= c), more scalable than polyhedra
-2. **V174: Polyhedra-Guided Symbolic Execution** -- compose V172 with C038 for relational path pruning
-3. **V175: Relational Invariant Inference** -- compose V172 with V007 for automatic relational loop invariants
-4. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking
-5. **V177: Symbolic Concurrent Stochastic Games** -- BDD + LP for concurrent games
+1. **V174: Polyhedra-Guided Symbolic Execution** -- compose V172 with C038 for relational path pruning
+2. **V175: Relational Invariant Inference** -- compose V172/V173 with V007 for automatic relational loop invariants
+3. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking
+4. **V177: Zone Abstract Domain** -- pure difference-bound matrices (x-y<=c only, no sums), even faster than octagon
+5. **V178: Abstract Domain Hierarchy** -- unified lattice of sign < interval < octagon < polyhedra with automatic promotion
