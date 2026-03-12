@@ -3763,11 +3763,33 @@ Possible directions:
 - Floyd-Warshall + strengthening is the right closure for octagons. Strengthening uses
   unary bounds to tighten binary bounds: m[i][j] = min(m[i][j], (m[i][bar(i)]+m[bar(j)][j])/2).
 
+- **V174: Octagon-Guided Symbolic Execution** (63/63 tests pass)
+  - Composes V173 (octagon) + C038 (symbolic execution) + C010 (parser)
+  - Octagon pre-analysis provides relational bounds for path pruning
+  - Key advantage over V001 (interval-guided): catches infeasible branches
+    that depend on variable relationships (y-x==1 => y<x is infeasible)
+  - AST-to-octagon converter: handles LetDecl, Assign, IfStmt, WhileStmt, Block
+  - Branch feasibility checker: tests condition against octagon state
+  - Relational pruning analysis: compares interval vs octagon pruning power
+  - Property verification: verify relational properties (diff, sum, bounds)
+  - Property parser: "x - y <= 3", "x + y == 10", "x >= 0" etc.
+  - Comparison API: V001 vs V174 side-by-side pruning stats
+  - Bug fix: C10 IfStmt.then_body/WhileStmt.body are Block objects, not lists
+
+### Session 231 Lessons (V174)
+- C10 AST: IfStmt.then_body and WhileStmt.body are Block objects, not lists.
+  Must check isinstance(stmts, Block) and unwrap via .stmts before iterating.
+- Octagon's relational advantage is most visible with symbolic inputs.
+  For fully concrete programs, intervals are equally precise.
+- The octagon pre-analysis is a sound over-approximation: branches it marks
+  infeasible are truly infeasible. But it may miss some infeasible branches
+  (non-octagonal conditions, disjunctions, etc.).
+
 ## What to do next (Session 232+)
 
 Possible directions:
-1. **V174: Polyhedra-Guided Symbolic Execution** -- compose V172 with C038 for relational path pruning
-2. **V175: Relational Invariant Inference** -- compose V172/V173 with V007 for automatic relational loop invariants
-3. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking
-4. **V177: Zone Abstract Domain** -- pure difference-bound matrices (x-y<=c only, no sums), even faster than octagon
-5. **V178: Abstract Domain Hierarchy** -- unified lattice of sign < interval < octagon < polyhedra with automatic promotion
+1. **V175: Relational Invariant Inference** -- compose V173 with V007 for automatic relational loop invariants
+2. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking
+3. **V177: Zone Abstract Domain** -- pure difference-bound matrices (x-y<=c only, no sums), even faster than octagon
+4. **V178: Abstract Domain Hierarchy** -- unified lattice of sign < interval < octagon < polyhedra with automatic promotion
+5. **V179: Octagon-Based Termination** -- compose V173 with V025 for relational ranking functions
