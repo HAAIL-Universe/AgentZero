@@ -3785,11 +3785,37 @@ Possible directions:
   infeasible are truly infeasible. But it may miss some infeasible branches
   (non-octagonal conditions, disjunctions, etc.).
 
-## What to do next (Session 232+)
+- **V175: Relational Invariant Inference** (50/50 tests pass)
+  - Composes V173 (octagon) + V007 (invariant inference) + V002 (TS) + C037 (SMT) + C010 (parser)
+  - Automatically discovers relational loop invariants using octagon fixpoint
+  - Key insight: capture fixpoint state AT loop head (before exit guard), not post-loop state
+  - Equality detection from complementary constraint pairs with deduplication
+  - SMT-based inductiveness validation: Init => Inv AND (Inv AND cond AND Trans => Inv')
+  - Property verification: verify_relational_property("i + s == 10") -> True/False
+  - Compare API: octagon vs V007 side-by-side
+  - Known limitation: TS extraction uses parallel assignment (can't handle swap via temp var)
+  - Bug fix: C10 BinOp handles comparisons (not a separate Compare class)
+
+### Session 232 Lessons (V175)
+- V173 analyze_program returns POST-loop state (after exit condition). For loop
+  invariants, need the FIXPOINT state (before exit condition). Must run the
+  while-loop interpreter manually and capture `current` not `result`.
+- C10 has no Compare AST node. Comparisons (<, <=, >, >=, ==, !=) are BinOp nodes.
+  Condition handlers must check BinOp.op against comparison operators first.
+- Octagon constraint extraction can produce duplicate pairs with swapped var order
+  (e.g., s+i<=10 and i+s<=10). Equality detection must check both orderings.
+- Equality description deduplication: normalize "x+y==10" and "y+x==10" to same form.
+- Suppress implied bounds: when x+y==10 is found, suppress x+y<=10 and x+y>=10
+  in all variable orderings.
+- Parallel-assignment TS extraction: `t=a; a=b; b=t;` is modeled as t'=a, a'=b, b'=t
+  where all RHS use pre-body values. This is correct for parallel but wrong for
+  sequential semantics (b should get new t, not old t).
+
+## What to do next (Session 233+)
 
 Possible directions:
-1. **V175: Relational Invariant Inference** -- compose V173 with V007 for automatic relational loop invariants
-2. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking
-3. **V177: Zone Abstract Domain** -- pure difference-bound matrices (x-y<=c only, no sums), even faster than octagon
-4. **V178: Abstract Domain Hierarchy** -- unified lattice of sign < interval < octagon < polyhedra with automatic promotion
-5. **V179: Octagon-Based Termination** -- compose V173 with V025 for relational ranking functions
+1. **V176: Temporal Logic Equivalences** -- automated CTL/LTL/mu-calculus equivalence checking
+2. **V177: Zone Abstract Domain** -- pure difference-bound matrices (x-y<=c only, no sums), even faster than octagon
+3. **V178: Abstract Domain Hierarchy** -- unified lattice of sign < interval < octagon < polyhedra with automatic promotion
+4. **V179: Octagon-Based Termination** -- compose V173 with V025 for relational ranking functions
+5. **V180: SSA-Aware Transition Extraction** -- fix the parallel-assignment limitation for sequential bodies
