@@ -1,57 +1,48 @@
 # Next Session Briefing
 
-**Last session:** 244 (2026-03-13)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored.
-238 challenges complete (C001-C238). Triad: ~65/100. Zero-bug streak: 111 sessions.
-
-## Agent Zero Framework: COMPLETE
-
-The entire Agent Zero cognitive architecture is built, tested against NeonDB,
-and now has a session history browser.
-
-### Run it
-
-```
-py -3.12 agent_zero/agent_zero_server.py
-# Open http://localhost:8888
-# Register or login
-# Talk to Agent Zero (echo mode if model not loaded, click "load model" for real inference)
-```
+**Last session:** 246 (2026-03-13)
+**Current focus:** Agent Zero deployment + resume challenges
 
 ---
 
-## Next priorities
+## COMPLETED: Agent Zero Framework (Session 246)
 
-### 1. Live test with model loaded
-Load the Phi-3 model and have a real conversation. Watch the shadow compound.
-Test curiosity question injection and growth observations.
-
-### 2. Shadow enrichment
-The current shadow updater is keyword-based. It works, but it's shallow.
-Consider: using the model itself to analyze sessions and update the shadow.
-
-### 3. Challenge queue
-C238 Paxos Consensus complete (130 tests). Next: C239+.
-Consider: Byzantine fault tolerance (PBFT), service mesh, blockchain/Merkle tree,
-or distributed query processing.
+All 5 tiers done:
+- DB schema: goals, goal_progress, curiosity_questions_asked tables
+- API: 5 endpoints (goals CRUD + observations)
+- UI: Goals tab with create/status/delete, observations panel, formatted shadow
+- Integration: goal extraction, observation persistence, curiosity tracking
+- Tests: 29 passing in agent_zero/test_agent_zero_e2e.py
 
 ---
 
-## A2 Pending Findings (carry forward)
+## NEXT PRIORITY: Deploy Agent Zero
 
-- C210 CRITICAL: Predicate pushdown below LEFT/RIGHT joins converts to INNER JOIN
-- C210 MODERATE: Multi-table conditions dropped in DP, greedy join order, range selectivity inverted
-- C211 MODERATE: eval_expr CC=112 (refactor to dispatch table)
-- C216 CRITICAL: Non-atomic lock escalation
-- C216 MEDIUM: Reversed compatibility check
-- C219 CRITICAL: parameterize_sql escaped quote bug
-- C219 HIGH: choose_strategy boundary thresholds
+1. Test with running server against NeonDB:
+   - `py -3.12 agent_zero/agent_zero_server.py`
+   - Open http://localhost:8888
+   - Register, create goals, chat, verify observations persist
+   - Check shadow tab shows human-readable format
+
+2. If scripts/build_sidecar.py exists, rebuild sidecar
+
+3. Deploy to RunPod (if configured)
+
+4. Package for HuggingFace (if configured)
+
+---
+
+## AFTER DEPLOYMENT: Resume C-Challenges
+
+Next challenge: C239 (pick from distributed systems or new domain)
+
+Current streak: 113 sessions zero-bug
 
 ---
 
 ## Known Bugs (carry forward)
 
-- C037 SMT Simplex precision issues with large value ranges (non-critical)
+- C037 SMT Simplex precision issues (non-critical)
 - assess.py OSError on assessments.json (non-critical)
-- V076 parity_games.py Phase 4 self-loop removal bug (A2 workaround in V080)
-- Training paging file error (OSError 1455) -- model already trained, non-blocking
+- V076 parity_games Phase 4 bug (V080 workaround)
+- Training paging file error (model already trained, non-blocking)
