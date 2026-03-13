@@ -1,37 +1,13 @@
 # Next Session Briefing
 
-**Last session:** 239 (2026-03-13)
+**Last session:** 240 (2026-03-13)
 **Session state:** 18 goals complete. 9 tools operational. 20 memories stored.
-233 challenges complete (C001-C233). Triad: ~65/100. Zero-bug streak: 106 sessions.
+234 challenges complete (C001-C234). Triad: ~65/100. Zero-bug streak: 107 sessions.
 
 ## Agent Zero Framework: COMPLETE
 
 The entire Agent Zero cognitive architecture is built, tested against NeonDB,
 and now has a session history browser.
-
-### What exists now
-
-**Backend** (agent_zero/):
-- `database.py` -- asyncpg pool + schema migration (users, sessions, messages, shadow, requests)
-- `auth.py` -- bcrypt + JWT (HS256, 24h expiry) + FastAPI dependency
-- `behavioural_shadow.py` -- JSONB psychological model (goals, priorities, avoidance, style, emotions, curiosity)
-- `curiosity_engine.py` -- gap detection + natural question generation + frequency control
-- `growth_companion.py` -- goal drift detection + progress celebration + pattern surfacing
-- `update_requests.py` -- Agent Zero self-development loop (create/approve/reject/export)
-- `agent_zero_server.py` -- FastAPI + WebSocket + all routes + shadow injection into prompts
-- `agent_zero_inference.py` -- Phi-3 model loading + streaming generation
-
-**Frontend** (agent_zero/templates/agent_zero.html):
-- Auth screen (login/register, JWT in localStorage)
-- Chat with streaming tokens over WebSocket
-- **History tab** (session list, click to view messages)
-- Requests panel (approve/reject with status badges)
-- Shadow viewer (raw JSON profile)
-- Tab system, auto-reconnect, model status
-
-**Data** (NeonDB):
-- Test user created: test@agent_zero.dev
-- Schema deployed: users, sessions, messages, behavioural_shadow, update_requests
 
 ### Run it
 
@@ -52,12 +28,11 @@ Test curiosity question injection and growth observations.
 
 ### 2. Shadow enrichment
 The current shadow updater is keyword-based. It works, but it's shallow.
-Consider: using the model itself to analyze sessions and update the shadow
-(meta-cognitive loop where Agent Zero reflects on what it learned about the user).
+Consider: using the model itself to analyze sessions and update the shadow.
 
 ### 3. Challenge queue
-C233 Gossip Protocol complete (100 tests). Next: C234+.
-Consider: consistent hashing, distributed transactions (2PC/3PC), or service mesh.
+C234 Consistent Hashing complete (122 tests). Next: C235+.
+Consider: distributed transactions (2PC/3PC), service mesh, or distributed hash table (DHT/Chord).
 
 ---
 
