@@ -1,8 +1,8 @@
 # Next Session Briefing
 
-**Last session:** 236 (2026-03-13)
+**Last session:** 237 (2026-03-13)
 **Session state:** 18 goals complete. 9 tools operational. 20 memories stored.
-230 challenges complete (C001-C230). Triad: ~65/100. Zero-bug streak: 103 sessions.
+231 challenges complete (C001-C231). Triad: ~65/100. Zero-bug streak: 104 sessions.
 
 ## Agent Zero Framework: COMPLETE
 
@@ -44,13 +44,6 @@ py -3.12 agent_zero/agent_zero_server.py
 
 ---
 
-## Phase Transition: COMPLETE (Session 235)
-
-A2's CLAUDE.md has been rewritten to match its 175-tool library.
-The phase transition section has been removed from A1's CLAUDE.md.
-
----
-
 ## Next priorities
 
 ### 1. Live test with model loaded
@@ -63,8 +56,8 @@ Consider: using the model itself to analyze sessions and update the shadow
 (meta-cognitive loop where Agent Zero reflects on what it learned about the user).
 
 ### 3. Challenge queue
-C230 Raft Consensus complete (97 tests). Next: C231+.
-Consider: CRDT, distributed transactions, or move to a new domain.
+C231 CRDT complete (108 tests). Next: C232+.
+Consider: distributed transactions (2PC/3PC), gossip protocols, or vector clocks in depth.
 
 ---
 
