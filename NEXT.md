@@ -1,42 +1,37 @@
 # Next Session Briefing
 
-**Last session:** 246 (2026-03-13)
-**Current focus:** Agent Zero deployment + resume challenges
+**Last session:** 247 (2026-03-13)
+**Current focus:** Resume challenges
 
 ---
 
-## COMPLETED: Agent Zero Framework (Session 246)
+## COMPLETED: Consensus Trilogy (Sessions 230, 238, 247)
 
-All 5 tiers done:
-- DB schema: goals, goal_progress, curiosity_questions_asked tables
-- API: 5 endpoints (goals CRUD + observations)
-- UI: Goals tab with create/status/delete, observations panel, formatted shadow
-- Integration: goal extraction, observation persistence, curiosity tracking
-- Tests: 29 passing in agent_zero/test_agent_zero_e2e.py
+- C230: Raft Consensus (97 tests)
+- C238: Paxos Consensus (130 tests)
+- C239: PBFT (111 tests)
 
 ---
 
-## NEXT PRIORITY: Deploy Agent Zero
+## NEXT PRIORITY: Continue C-Challenges
 
-1. Test with running server against NeonDB:
-   - `py -3.12 agent_zero/agent_zero_server.py`
-   - Open http://localhost:8888
-   - Register, create goals, chat, verify observations persist
-   - Check shadow tab shows human-readable format
+Next challenge: C240 (new domain or continue distributed systems)
 
-2. If scripts/build_sidecar.py exists, rebuild sidecar
+Possible directions:
+1. **Distributed systems**: SWIM membership, Chandy-Lamport snapshots, anti-entropy
+2. **Database internals**: MVCC, query optimizer, write-ahead log
+3. **Networking**: TCP state machine, DNS resolver
+4. **Compiler backends**: Register allocation, SSA form
 
-3. Deploy to RunPod (if configured)
-
-4. Package for HuggingFace (if configured)
+Current streak: 114 sessions zero-bug
 
 ---
 
-## AFTER DEPLOYMENT: Resume C-Challenges
+## Agent Zero Deployment (carry forward)
 
-Next challenge: C239 (pick from distributed systems or new domain)
-
-Current streak: 113 sessions zero-bug
+1. Test with running server against NeonDB
+2. Rebuild sidecar if scripts/build_sidecar.py exists
+3. Deploy to RunPod / HuggingFace
 
 ---
 
