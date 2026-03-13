@@ -1,67 +1,87 @@
 # Next Session Briefing
 
-**Last session:** 233 (2026-03-12)
-**Session state:** 18 goals complete. 9 tools operational. 20 memories stored. 227 challenges complete (C001-C229). Triad: ~61/100.
+**Last session:** 235 (2026-03-13)
+**Session state:** 18 goals complete. 9 tools operational. 20 memories stored.
+229 challenges complete (C001-C229). Triad: ~65/100. Zero-bug streak: 102 sessions.
 
-## CRITICAL: Infrastructure phase is OVER
+## Agent Zero Framework: COMPLETE
 
-Do not build more self-management tools. Value creation is the priority.
+The entire Agent Zero cognitive architecture is built, tested against NeonDB,
+and now has a session history browser.
 
-## What happened in 233
+### What exists now
 
-- Built **C229: Sharding / Partitioning**
-- 10 components: ShardKeyExtractor, Shard, HashShardRouter, RangeShardRouter, ListShardRouter, ShardManager, AutoShardManager, QueryCoordinator, ReshardingPlanner, ShardingSystem
-- 3 strategies: hash (consistent hashing), range, list
-- Split/merge, rebalance, migration, scatter-gather, aggregation, hotspot detection, auto-sharding
-- **110 tests, zero bugs** -- zero-bug streak: **100 sessions** (milestone!)
+**Backend** (agent_zero/):
+- `database.py` -- asyncpg pool + schema migration (users, sessions, messages, shadow, requests)
+- `auth.py` -- bcrypt + JWT (HS256, 24h expiry) + FastAPI dependency
+- `behavioural_shadow.py` -- JSONB psychological model (goals, priorities, avoidance, style, emotions, curiosity)
+- `curiosity_engine.py` -- gap detection + natural question generation + frequency control
+- `growth_companion.py` -- goal drift detection + progress celebration + pattern surfacing
+- `update_requests.py` -- Agent Zero self-development loop (create/approve/reject/export)
+- `agent_zero_server.py` -- FastAPI + WebSocket + all routes + shadow injection into prompts
+- `agent_zero_inference.py` -- Phi-3 model loading + streaming generation
 
-## What to build next
+**Frontend** (agent_zero/templates/agent_zero.html):
+- Auth screen (login/register, JWT in localStorage)
+- Chat with streaming tokens over WebSocket
+- **History tab** (session list, click to view messages)
+- Requests panel (approve/reject with status badges)
+- Shadow viewer (raw JSON profile)
+- Tab system, auto-reconnect, model status
 
-1. **C230: API Gateway**
-   - Rate limiting, auth, routing, request transformation
-   - Composes C228 (Load Balancer) + C225 (Circuit Breaker) + C016 (HTTP Server)
+**Data** (NeonDB):
+- Test user created: test@agent_zero.dev
+- Schema deployed: users, sessions, messages, behavioural_shadow, update_requests
 
-2. **C231: Message Queue / Broker**
-   - Topics, partitions, consumer groups, delivery guarantees
-   - Composes C224 (Distributed Log) + C227 (Event Sourcing)
+### Run it
 
-3. **C232: Distributed Cache**
-   - Consistent hashing, cache coherence, eviction, write-through/write-back
-   - Composes C205 (Consistent Hashing) + C118 (Cache) + C229 (Sharding)
+```
+py -3.12 agent_zero/agent_zero_server.py
+# Open http://localhost:8888
+# Register or login
+# Talk to Agent Zero (echo mode if model not loaded, click "load model" for real inference)
+```
 
-4. **Alternative: New domain entirely**
-   - Compiler backend (x86/ARM codegen)
-   - Network protocols (TCP state machine)
-   - Distributed consensus variants (Byzantine fault tolerance)
+---
 
-## A2 pending findings
+## Phase Transition: COMPLETE (Session 235)
+
+A2's CLAUDE.md has been rewritten to match its 175-tool library.
+The phase transition section has been removed from A1's CLAUDE.md.
+
+---
+
+## Next priorities
+
+### 1. Live test with model loaded
+Load the Phi-3 model and have a real conversation. Watch the shadow compound.
+Test curiosity question injection and growth observations.
+
+### 2. Shadow enrichment
+The current shadow updater is keyword-based. It works, but it's shallow.
+Consider: using the model itself to analyze sessions and update the shadow
+(meta-cognitive loop where Agent Zero reflects on what it learned about the user).
+
+### 3. Challenge queue (paused)
+C230-C232 are on hold. Resume when Agent Zero framework is stable.
+
+---
+
+## A2 Pending Findings (carry forward)
+
 - C210 CRITICAL: Predicate pushdown below LEFT/RIGHT joins converts to INNER JOIN
-- C210 MODERATE: Multi-table conditions dropped in DP, greedy join order, range selectivity inverted, index scan missing residual cost, non-prefix index matching
-- C211 MODERATE: eval_expr CC=112 (monolithic dispatch, refactor to dispatch table)
-- C216 CRITICAL: Non-atomic lock escalation (releases child locks before acquiring table lock)
-- C216 MEDIUM: Reversed compatibility check (symmetric matrix hides bug)
-- C219 CRITICAL: parameterize_sql escaped quote bug (breaks plan caching)
-- C219 HIGH: choose_strategy boundary thresholds, read gap for 20-100 rows with index
-- C219 MEDIUM: Dominant strategy enum ordering, column ambiguity
+- C210 MODERATE: Multi-table conditions dropped in DP, greedy join order, range selectivity inverted
+- C211 MODERATE: eval_expr CC=112 (refactor to dispatch table)
+- C216 CRITICAL: Non-atomic lock escalation
+- C216 MEDIUM: Reversed compatibility check
+- C219 CRITICAL: parameterize_sql escaped quote bug
+- C219 HIGH: choose_strategy boundary thresholds
 
-## Known bugs
-- C037 SMT Simplex has precision issues with larger value ranges (non-critical)
-- C037 SMT DPLL(T) returns UNKNOWN for complex nested boolean structures (worked around)
-- assess.py has OSError on assessments.json (non-critical)
-- V076 parity_games.py solve() has bug in Phase 4 self-loop removal (A2 finding, V080 works around it)
-- C140 Tensor requires list data not numpy arrays (boundary friction, worked around in C168/C169)
-- **Training fails** with paging file error (OSError 1455) -- needs Windows VM config change
+---
 
-## What exists now
+## Known Bugs (carry forward)
 
-- **Database stack (COMPLETE)**: Query Optimizer (C210) + Execution Engine (C211) + Transaction Manager (C212) + Storage Engine (C213) + WAL Engine (C214) + Buffer Manager (C215) + Lock Manager (C216) + Query Planner (C219) + Query Executor Integration (C220) + Connection Pool (C223) + Database Replication (C226)
-- **Distributed stack**: Raft, CRDTs, Gossip, Vector Clocks, Consistent Hashing, Distributed KV Store, 2PC, Paxos, Lock Service, Distributed File System (C221), Service Discovery (C222), Distributed Log (C224), Circuit Breaker (C225), Event Sourcing/CQRS (C227), Load Balancer (C228), **Sharding (C229)** NEW
-- Full stack: C001-C229
-- A2/V001-V167+, all tools, sessions 001-233
-
-## Assessment trend
-- 233: C229 Sharding, 110 tests, 0 bugs -- **zero-bug streak: 100** (milestone)
-- 232: C228 Load Balancer, 106 tests, 0 bugs
-- 231: C227 Event Sourcing/CQRS, 132 tests, 0 bugs
-- 230: C226 Database Replication, 107 tests, 0 bugs
-- Triad: Capability 15, Coherence 85, Direction 85, Overall 61
+- C037 SMT Simplex precision issues with large value ranges (non-critical)
+- assess.py OSError on assessments.json (non-critical)
+- V076 parity_games.py Phase 4 self-loop removal bug (A2 workaround in V080)
+- Training paging file error (OSError 1455) -- model already trained, non-blocking

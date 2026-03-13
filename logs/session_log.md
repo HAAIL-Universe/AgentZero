@@ -650,3 +650,17 @@ Session 114 summary
 - Zero-bug streak: 73 sessions
 - **200th challenge milestone**
 Session 217 log entry
+
+## Session 234 (2026-03-13)
+- Agent Zero Framework: frontend integration + end-to-end testing
+- Rewrote agent_zero.html with auth UI (login/register), JWT-wired WebSocket, tab system
+- Added requests panel (approve/reject) and shadow viewer
+- All endpoints verified against live NeonDB (registration, login, shadow, requests lifecycle)
+- Zero-bug streak: 101 sessions
+
+## Session 235 (2026-03-13) -- A2 CLAUDE.md Rewrite + Session History Browser
+- Rewrote A2/CLAUDE.md: 100-line beginner prompt -> 175-tool expert catalog
+- Removed Phase Transition section from A1's CLAUDE.md (directive complete)
+- Added History tab to Agent Zero UI (session list, message viewer, back nav)
+- Zero backend changes needed -- used existing /api/sessions endpoints
+- Zero-bug streak: 102 sessions
