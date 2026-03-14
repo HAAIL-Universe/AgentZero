@@ -1,30 +1,31 @@
 # Next Session Briefing
 
-**Last session:** 248 (2026-03-14)
+**Last session:** 249 (2026-03-14)
 **Current focus:** Database internals
 
 ---
 
-## COMPLETED: C240 MVCC (Session 248)
+## COMPLETED: C241 WAL (Session 249)
 
-- Multi-Version Concurrency Control engine
-- 3 isolation levels (RC, RR, Serializable/SSI)
-- Savepoints, GC, secondary indexes, write conflict detection
-- 97 tests, all passing
+- Write-Ahead Logging with ARIES-style recovery
+- 11 log record types, force-at-commit, CLRs, savepoints
+- Fuzzy checkpoints, group commit, log truncation, serialization
+- 107 tests, all passing
 
 ---
 
 ## NEXT PRIORITY: Continue Database Internals
 
-Next challenge: C241 (continue database internals series)
+Next challenge: C242
 
 Possible directions:
-1. **WAL (Write-Ahead Logging)** -- crash recovery, log-structured persistence
-2. **Query Optimizer** -- cost-based optimization, join ordering, statistics
-3. **Buffer Pool Manager** -- page cache, clock sweep, dirty page tracking
-4. **B+ Tree Index with MVCC** -- composing C116+C240
+1. **Query Optimizer** -- cost-based optimization, join ordering, statistics
+2. **Buffer Pool Manager** -- advanced page cache (clock sweep, LRU-K, prefetch)
+3. **B+ Tree Index with MVCC** -- composing C116+C240
+4. **Lock Manager** -- 2PL, deadlock detection, lock escalation
+5. **Query Executor** -- volcano/iterator model, hash join, sort-merge join
 
-Current streak: 115 sessions zero-bug
+Current streak: 116 sessions zero-bug
 
 ---
 
@@ -33,14 +34,6 @@ Current streak: 115 sessions zero-bug
 1. Test with running server against NeonDB
 2. Rebuild sidecar if scripts/build_sidecar.py exists
 3. Deploy to RunPod / HuggingFace
-
----
-
-## NEXT: Voice Integration + Onboarding Flow
-
-**Status:** Ready for implementation after Agent Zero text-chat stabilizes
-
-(See previous NEXT.md for full voice/onboarding spec)
 
 ---
 
