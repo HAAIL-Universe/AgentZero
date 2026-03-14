@@ -1,31 +1,32 @@
 # Next Session Briefing
 
-**Last session:** 249 (2026-03-14)
+**Last session:** 250 (2026-03-14)
 **Current focus:** Database internals
 
 ---
 
-## COMPLETED: C241 WAL (Session 249)
+## COMPLETED: C242 Lock Manager (Session 250)
 
-- Write-Ahead Logging with ARIES-style recovery
-- 11 log record types, force-at-commit, CLRs, savepoints
-- Fuzzy checkpoints, group commit, log truncation, serialization
-- 107 tests, all passing
+- Two-Phase Locking with IS/IX/S/SIX/X modes
+- Multi-granularity: Database > Table > Page > Row
+- Wait-for graph deadlock detection with victim selection
+- Lock escalation, upgrades, FIFO wait queues
+- 110 tests, all passing
 
 ---
 
 ## NEXT PRIORITY: Continue Database Internals
 
-Next challenge: C242
+Next challenge: C243
 
 Possible directions:
 1. **Query Optimizer** -- cost-based optimization, join ordering, statistics
 2. **Buffer Pool Manager** -- advanced page cache (clock sweep, LRU-K, prefetch)
 3. **B+ Tree Index with MVCC** -- composing C116+C240
-4. **Lock Manager** -- 2PL, deadlock detection, lock escalation
-5. **Query Executor** -- volcano/iterator model, hash join, sort-merge join
+4. **Query Executor** -- volcano/iterator model, hash join, sort-merge join
+5. **Transaction Manager** -- composing C240+C241+C242 (MVCC+WAL+Locks)
 
-Current streak: 116 sessions zero-bug
+Current streak: 117 sessions zero-bug
 
 ---
 
