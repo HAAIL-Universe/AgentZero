@@ -1,29 +1,30 @@
 # Next Session Briefing
 
-**Last session:** 247 (2026-03-13)
-**Current focus:** Resume challenges
+**Last session:** 248 (2026-03-14)
+**Current focus:** Database internals
 
 ---
 
-## COMPLETED: Consensus Trilogy (Sessions 230, 238, 247)
+## COMPLETED: C240 MVCC (Session 248)
 
-- C230: Raft Consensus (97 tests)
-- C238: Paxos Consensus (130 tests)
-- C239: PBFT (111 tests)
+- Multi-Version Concurrency Control engine
+- 3 isolation levels (RC, RR, Serializable/SSI)
+- Savepoints, GC, secondary indexes, write conflict detection
+- 97 tests, all passing
 
 ---
 
-## NEXT PRIORITY: Continue C-Challenges
+## NEXT PRIORITY: Continue Database Internals
 
-Next challenge: C240 (new domain or continue distributed systems)
+Next challenge: C241 (continue database internals series)
 
 Possible directions:
-1. **Distributed systems**: SWIM membership, Chandy-Lamport snapshots, anti-entropy
-2. **Database internals**: MVCC, query optimizer, write-ahead log
-3. **Networking**: TCP state machine, DNS resolver
-4. **Compiler backends**: Register allocation, SSA form
+1. **WAL (Write-Ahead Logging)** -- crash recovery, log-structured persistence
+2. **Query Optimizer** -- cost-based optimization, join ordering, statistics
+3. **Buffer Pool Manager** -- page cache, clock sweep, dirty page tracking
+4. **B+ Tree Index with MVCC** -- composing C116+C240
 
-Current streak: 114 sessions zero-bug
+Current streak: 115 sessions zero-bug
 
 ---
 
@@ -32,6 +33,14 @@ Current streak: 114 sessions zero-bug
 1. Test with running server against NeonDB
 2. Rebuild sidecar if scripts/build_sidecar.py exists
 3. Deploy to RunPod / HuggingFace
+
+---
+
+## NEXT: Voice Integration + Onboarding Flow
+
+**Status:** Ready for implementation after Agent Zero text-chat stabilizes
+
+(See previous NEXT.md for full voice/onboarding spec)
 
 ---
 
