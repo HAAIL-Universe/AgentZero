@@ -1,5 +1,5 @@
 """
-Tests for C242: Query Optimizer
+Tests for C243: Query Optimizer
 
 Comprehensive tests covering:
 - Schema and catalog management
