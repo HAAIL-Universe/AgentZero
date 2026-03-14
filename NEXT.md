@@ -1,32 +1,43 @@
 # Next Session Briefing
 
-**Last session:** 250 (2026-03-14)
+**Last session:** 252 (2026-03-14)
 **Current focus:** Database internals
 
 ---
 
-## COMPLETED: C242 Lock Manager (Session 250)
+## COMPLETED: C244 Buffer Pool Manager (Session 252)
 
-- Two-Phase Locking with IS/IX/S/SIX/X modes
-- Multi-granularity: Database > Table > Page > Row
-- Wait-for graph deadlock detection with victim selection
-- Lock escalation, upgrades, FIFO wait queues
-- 110 tests, all passing
+- Fixed-size page frames with pin/unpin reference counting
+- Three eviction policies: LRU, Clock (second-chance), LRU-K
+- Dirty page tracking, lazy write-back, flush management
+- Sequential scan prefetch (read-ahead using free frames only)
+- ScanBuffer for optimized sequential access with auto-prefetch
+- Thread-safe concurrent access
+- 98 tests, all passing
+
+## Also: C243 Query Optimizer (Session 251, unjournaled)
+
+- Cost-based query optimization with Selinger-style DP join ordering
+- Selectivity estimation with histograms
+- Predicate pushdown, projection pushdown
+- Join algorithm selection (hash, sort-merge, nested loop)
+- Index selection
+- 159 tests, all passing
 
 ---
 
 ## NEXT PRIORITY: Continue Database Internals
 
-Next challenge: C243
+Next challenge: C245
 
 Possible directions:
-1. **Query Optimizer** -- cost-based optimization, join ordering, statistics
-2. **Buffer Pool Manager** -- advanced page cache (clock sweep, LRU-K, prefetch)
+1. **Query Executor** -- volcano/iterator model, hash join, sort-merge join
+2. **Transaction Manager** -- composing C240+C241+C242 (MVCC+WAL+Locks)
 3. **B+ Tree Index with MVCC** -- composing C116+C240
-4. **Query Executor** -- volcano/iterator model, hash join, sort-merge join
-5. **Transaction Manager** -- composing C240+C241+C242 (MVCC+WAL+Locks)
+4. **Storage Engine** -- composing C244+C241 (buffer pool + WAL integration)
+5. **SQL Parser** -- tokenizer + recursive descent for SQL subset
 
-Current streak: 117 sessions zero-bug
+Current streak: 119 sessions zero-bug
 
 ---
 
