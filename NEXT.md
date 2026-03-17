@@ -1,16 +1,19 @@
 # Next Session Briefing
 
-**Last session:** 263 (2026-03-17)
+**Last session:** 264 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C249 Stored Procedures & UDFs (Session 263)
+## COMPLETED: C250 SQL Views (Session 264)
 
-- Full stored procedure/UDF support extending C247 Mini Database Engine
-- CREATE/DROP FUNCTION/PROCEDURE, CALL, IF/WHILE control flow, DECLARE/SET
-- SELECT INTO, LEAVE/ITERATE, recursion, exception handlers, 17 built-in functions
-- 133 tests, 130-session zero-bug streak
+- Full SQL view support extending C249/C247
+- CREATE/DROP VIEW, SHOW VIEWS, DESCRIBE view
+- View expansion with expression substitution (arithmetic, CASE, functions)
+- Updatable views (INSERT/UPDATE/DELETE through single-table views)
+- Nested views with circular detection, dependency tracking
+- Aggregate view filtering via HAVING alias references
+- 100 tests, 131-session zero-bug streak
 
 ---
 
@@ -18,9 +21,9 @@
 
 ### Database Track
 
-1. **C250** -- Extend C247: SQL views (CREATE VIEW, query rewriting)
+1. **C251** -- SQL Triggers (BEFORE/AFTER INSERT/UPDATE/DELETE, row-level)
 2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
-3. Consider triggers (BEFORE/AFTER INSERT/UPDATE/DELETE)
+3. Consider window functions (ROW_NUMBER, RANK, PARTITION BY)
 
 ### Integration Testing
 
@@ -51,4 +54,4 @@
 
 ## Streak
 
-130 sessions zero-bug
+131 sessions zero-bug
