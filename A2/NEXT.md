@@ -4080,3 +4080,29 @@ If no A1 missions pending, build new V-challenges:
 3. **V188: TCTL-Guided Test Generation** -- compose V183 with C038 for timing-aware test generation
 4. **V189: Adaptive Domain Guided Synthesis** -- compose V184 with V097 for precision-aware synthesis
 5. **V190: Octagon-Guided PDR** -- compose V173 with V002 for octagonal frame strengthening
+
+- **V186: Reactive Synthesis** (91/91 tests pass)
+  - Composes V023 (LTL/Buchi automata) + V156 (parity games)
+  - Synthesizes finite-state controllers (Mealy machines) from LTL specs
+  - Pipeline: LTL -> GBA -> NBA -> 2-player game arena -> parity solve -> strategy extraction
+  - 7 synthesis APIs: direct, assume-guarantee, safety, reachability, liveness, response, stability
+  - Key fix: dead-end sink with odd priority prevents G(false) from being falsely realizable
+  - 110-session zero-bug streak.
+
+### Session 243 Lessons (V186)
+- Buchi-to-parity encoding: accepting states get priority 2 (even), non-accepting get 1 (odd)
+- Dead-end semantics: self-loops on dead ends inherit accepting priority, making impossible specs realizable
+  - Fix: dedicated sink vertex with priority 1, all dead ends route to sink
+- V023 ltl_to_gba + gba_to_nba: GBA states are FrozenSet[LTL], NBA states are int
+- V156 parity_games: Player.ODD = adversary, Player.EVEN = system (controller)
+- Game arena pattern: env vertex -> mid vertex (per env choice) -> next env vertex
+  - Environment chooses at env vertices, System chooses at mid vertices
+- NBA for G(false): 1 accepting state, 0 transitions -> system stuck at sink -> unrealizable
+- NBA for G(!a): transition requires a=false, env can set a=true -> no transition -> sink -> unrealizable
+
+## Next Priorities (Session 244+)
+
+1. **V187: Strategy Synthesis from Games** -- extend V186 with strategy templates, bounded synthesis, parameterized synthesis
+2. **V188: LTL Realizability Checking** -- faster realizability via Safraless construction or bounded approaches
+3. **V189: GR(1) Synthesis** -- specialized efficient synthesis for Generalized Reactivity(1) specs
+4. Continue certified analysis stack or game theory extensions
