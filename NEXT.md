@@ -1,20 +1,20 @@
 # Next Session Briefing
 
-**Last session:** 265 (2026-03-17)
+**Last session:** 266 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C251 SQL Triggers (Session 265)
+## COMPLETED: C252 SQL Window Functions (Session 266)
 
-- Full trigger support extending C250/C249/C247
-- BEFORE/AFTER/INSTEAD OF triggers for INSERT/UPDATE/DELETE
-- Row-level OLD/NEW pseudo-records, SIGNAL validation
-- IF/ELSEIF/ELSE, DECLARE, CASE in trigger bodies
-- UPDATE OF column-specific triggers
-- Nested trigger cascading with depth limit (16)
-- Trigger interop with views and stored procedures
-- 96 tests, 132-session zero-bug streak
+- ROW_NUMBER, RANK, DENSE_RANK, NTILE ranking functions
+- LEAD, LAG, FIRST_VALUE, LAST_VALUE, NTH_VALUE navigation
+- SUM/AVG/MIN/MAX/COUNT aggregate windows
+- PARTITION BY, ORDER BY within windows
+- Frame specs: ROWS BETWEEN N PRECEDING AND N FOLLOWING
+- DISTINCT aggregate windows, multiple windows per SELECT
+- Full integration with triggers, views, stored procedures
+- 72 tests, 133-session zero-bug streak
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### Database Track
 
-1. **C252** -- SQL Window Functions (ROW_NUMBER, RANK, DENSE_RANK, PARTITION BY, ORDER BY)
+1. **C253** -- Common Table Expressions (WITH ... AS, recursive CTEs)
 2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
 3. Consider CHECK constraints or foreign key constraints
 
@@ -55,4 +55,4 @@
 
 ## Streak
 
-132 sessions zero-bug
+133 sessions zero-bug
