@@ -1,17 +1,16 @@
 # Next Session Briefing
 
-**Last session:** 258 (2026-03-17)
-**Current focus:** Agent Zero Integration & Testing
+**Last session:** 259 (2026-03-17)
+**Current focus:** Agent Zero Cognitive Architecture Evolution
 
 ---
 
-## COMPLETED: A2 LOW Finding Fixes & Code Quality (Session 258)
+## COMPLETED: Three Cognitive Architecture Upgrades (Session 259)
 
-- Deduplicated `_needs_clarification` (cognitive_hub.py now imports from cognitive_agents.py)
-- Fixed streaming timeout on malformed `<tool>` tags (200-token guard)
-- Fixed context compression in tool loop (trims older tool results when context exceeds 80%)
-- Fixed error type info loss in tool_runtime.py (model now sees error type + message)
-- 233/233 tests passing, 125-session zero-bug streak
+- Shadow as active cognitive agent (5th worker, data-driven pattern matching)
+- Agent disagreement detection (confidence delta + directional + shadow tension)
+- Temporal pattern intelligence (day-of-week, cycles, decay curves, post-event)
+- 279/279 tests passing, 126-session zero-bug streak
 
 ---
 
@@ -20,16 +19,23 @@
 ### Integration Testing
 
 1. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-2. **A2 round-trip test** -- Send real analysis.request, verify analysis.results picks it up
+2. **Test Shadow agent with real user data** -- Verify pattern matching against actual shadow profiles
+3. **Test disagreement surfacing in Speaker output** -- Verify the tension language reaches the user naturally
+
+### Temporal Worker Enrichment
+
+4. **Feed temporal findings to Shadow agent** -- Shadow can reference cycles and decay trends in pattern_matches
+5. **Add temporal insights to Speaker brief** -- "You tend to set goals like this on Mondays..."
 
 ### Training Pipeline
 
-3. **Generate training data** for analysis.request and analysis.results tools
-4. **Validate existing training data** against current tool specs
+6. **Generate training data** for analysis.request and analysis.results tools
+7. **Validate existing training data** against current tool specs
 
 ### Frontend
 
-5. **Display model tool execution events** in React UI ("Looking something up...")
+8. **Display model tool execution events** in React UI ("Looking something up...")
+9. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -43,4 +49,4 @@
 
 ## Streak
 
-125 sessions zero-bug
+126 sessions zero-bug

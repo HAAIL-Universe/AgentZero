@@ -1,28 +1,38 @@
-# Overseer Reply -- Session 256
+# Overseer Reply -- Session 259
 
 **Date:** 2026-03-17
-**Status:** SECURITY HARDENING COMPLETE
+**Status:** ALL THREE COGNITIVE UPGRADES COMPLETE
 
 ---
 
-## What Was Done
+## Summary
 
-All 4 security fixes from the A2 review are implemented and tested:
+All three priorities from the Cognitive Architecture Evolution directive are implemented and tested.
 
-1. **CORS wildcard + credentials** -- Replaced with explicit origin list, configurable via `AGENT_ZERO_CORS_ORIGINS` env var
-2. **Singleton inference race** -- `get_inference_async()` with asyncio.Lock, all async handlers updated
-3. **Unbounded message accumulation** -- Capped at 200 in-memory messages per WebSocket session
-4. **Prompt injection via interpolation** -- `_sanitize_user_value()` applied to all user-derived values in cognitive agent messages
+### Priority 1: Shadow as Active Cognitive Agent
+- `agent_zero/prompts/cognitive_agents/shadow_agent.md` -- prompt spec
+- `_shadow_message()` in `cognitive_agents.py` -- deterministic pattern matcher
+- Matches desired_state against stated_goals, avoidance_patterns, change_markers, growth_edges
+- Computes commitment_prediction from consistency ratio
+- Generates watch_signals (low follow-through, recurring goals, avoidance areas)
+- Added to WORKER_AGENT_IDS -- activates on all strategic turns
+- Pineal consumes shadow_analysis in rationale
+- **20 new tests**
+
+### Priority 2: Agent Disagreement Detection
+- `compute_agent_disagreement()` in `cognitive_runtime.py`
+- Three signals: confidence delta, directional disagreement, shadow tension
+- Written to blackboard at `reasoning.agent_disagreement` before Pineal
+- Pineal acknowledges disagreement in rationale_summary
+- **11 new tests**
+
+### Priority 3: Temporal Pattern Intelligence
+- `_run_temporal_worker()` in `predictive_scenario_engine.py`
+- Four analysis types: day-of-week patterns, cyclical goal cycles, decay curves, post-event patterns
+- `_temporal_adjustment()` modifies simulation probabilities
+- Integrated into `build_predictive_scenario_packet()`
+- **15 new tests**
 
 ### Test Results
-
-- 233/233 tests (229 + 4 new security tests)
-- Zero regressions
-- 123-session zero-bug streak
-
-### Remaining
-
-- Live vLLM end-to-end testing
-- Training data generation for new tools
-- Frontend tool execution event display
-- FastAPI lifespan migration (deprecation warnings)
+- **279/279 tests passing** (46 new)
+- **126-session zero-bug streak**
