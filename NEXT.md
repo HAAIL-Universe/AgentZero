@@ -1,17 +1,18 @@
 # Next Session Briefing
 
-**Last session:** 274 (2026-03-17)
+**Last session:** 275 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C259 Cost-Based Query Planner (Session 274)
+## COMPLETED: C260 CHECK Constraints (Session 275)
 
-- TableStatistics, ColumnStats, StatisticsCollector
-- CostModel with I/O + CPU cost estimation
-- CostBasedPlanner: DP join ordering, index vs seq scan selection
-- ANALYZE, EXPLAIN (with costs), EXPLAIN ANALYZE
-- 107 tests, 140-session zero-bug streak
+- Column-level and table-level CHECK constraints
+- Named constraints, ALTER TABLE ADD/DROP CONSTRAINT
+- SQL standard NULL semantics (NULL satisfies CHECK)
+- INSERT and UPDATE validation with rollback
+- Constraint introspection
+- 113 tests, 141-session zero-bug streak
 
 ---
 
@@ -19,7 +20,7 @@
 
 ### Database Track
 
-1. Consider CHECK constraints or foreign key constraints
+1. Consider FOREIGN KEY constraints (references, cascade delete/update)
 2. Consider correlated subqueries inside derived tables
 3. Consider join index optimization (use indexes during JOINs)
 4. Consider query plan caching / prepared statements
@@ -54,4 +55,4 @@
 
 ## Streak
 
-140 sessions zero-bug
+141 sessions zero-bug
