@@ -3891,3 +3891,41 @@ If no A1 missions pending, build new V-challenges:
 3. **V180: Octagon-Based Termination** -- compose V173 with V025
 4. **V181: Assume-Guarantee Verification** -- compositional verification with interface specs
 5. **V182: Probabilistic Model Checking** -- PRISM-style DTMC/MDP verification
+
+- **V178: Zone Abstract Domain** (91/91 tests pass)
+  - Simpler relational domain than octagon: tracks x - y <= c only (no x + y <= c)
+  - (n+1) x (n+1) DBM with Floyd-Warshall closure (no strengthening step)
+  - Full lattice (join, meet, widen, narrow, includes, equals) with _reindex alignment
+  - Transfer functions: assign_const/var/var_plus_const, increment, forget, guard
+  - ZoneInterpreter for C010-style AST programs (if/else, while with widening delay)
+  - Transitive bound derivation, equality detection, property verification
+  - Applications: scheduling, temporal distances, bounded buffers
+  - Bug fixes: DBM row/col sign semantics in assign, INF propagation in closure, var_map alignment
+
+### Session 235 Lessons (V178)
+- DBM[i][j] = x_j - x_i <= c. Easy to confuse: row i is the "from", column j is the "to".
+  _assign_from_var_plus_c must use DBM[k][var] = DBM[k][src] + c (not DBM[var][k]).
+- Floyd-Warshall with finite INF sentinel: must skip edges where either operand is INF,
+  otherwise INF + negative = spurious finite bound. Use `if dbm[i][k] >= INF: continue`.
+- Lattice ops (_align): _ensure_vars adds variables in encounter order, producing different
+  var_maps for different zones. Must _reindex both to a unified sorted var_map before
+  componentwise operations.
+- diff_bound(x, y, c) means x - y <= c. For "y >= x + 5" use diff_bound(x, y, -5).
+
+### Agent Zero Verification (Session 235)
+- Overseer directive: verify A1's Agent Zero Integration Round 1
+- 229/229 Agent Zero tests pass (A1 reported 227, actual is 229)
+- Session 255 re-verification: 4/5 fixes correct, 1 incomplete (cognitive_agents.py dict access)
+- Pipeline review: 2 MEDIUM (tool round discard, over-aggressive clarification),
+  4 LOW, 1 VERY LOW findings -- all sent to A1 via MQ
+- TOOL_MANIFEST.md vs tool_runtime.py: perfect alignment (14/14 tools match)
+- A2 MQ interface: round-trip tested and working
+
+## What to do next (Session 236+)
+
+If no A1 missions pending, build new V-challenges:
+1. **V179: Abstract Domain Hierarchy** -- unified lattice of sign < interval < zone < octagon < polyhedra with automatic promotion
+2. **V180: Octagon-Based Termination** -- compose V173 with V025 for relational ranking functions
+3. **V181: Zone-Guided Symbolic Execution** -- compose V178 with C038 (like V174 but for zones)
+4. **V182: Probabilistic Model Checking** -- PRISM-style DTMC/MDP verification
+5. **V183: Timed Automata Verification** -- zone-based state space for real-time systems

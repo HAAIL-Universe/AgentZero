@@ -5899,4 +5899,45 @@ Bug fixed: BDD API uses uppercase AND/OR/NOT (not apply_and/apply_or/apply_not).
 
 101-session zero-bug streak. Total: V001-V177 (with gaps), 103 V-challenges.
 
+## 2026-03-17 V178: Zone Abstract Domain (91/91 tests pass)
+
+A simpler relational abstract domain tracking difference constraints: x - y <= c.
+
+Uses (n+1) x (n+1) DBM with Floyd-Warshall closure (no strengthening needed).
+Faster and simpler than octagon (V173) but can't track sum constraints (x + y <= c).
+
+Features:
+- Zone domain: from_constraints, lattice ops (join, meet, widen, narrow, includes, equals)
+- Transfer functions: assign_const, assign_var, assign_var_plus_const, increment, forget, guard
+- Floyd-Warshall closure with INF propagation fix (skip INF edges)
+- Variable alignment via _reindex for correct componentwise operations
+- ZoneInterpreter: abstract interpreter for C010-style AST (assignments, if/else, while with widening)
+- Transitive bound derivation: 20-var chain x0-x19 <= 95 in O(n^3)
+- Equality detection, constraint extraction, property verification
+- Composition APIs: zone_from_intervals, compare_with_octagon, verify_zone_property
+- Applications: scheduling, temporal distances, bounded buffers
+
+Key APIs:
+- `Zone.from_constraints(constraints)` -- build from ZoneConstraint list
+- `zone.join(other)` / `zone.meet(other)` / `zone.widen(other)` / `zone.narrow(other)`
+- `zone.assign_const/var/var_plus_const()` / `zone.increment()` / `zone.forget()` / `zone.guard()`
+- `zone.get_upper_bound(var)` / `zone.get_lower_bound(var)` / `zone.get_diff_bound(v1, v2)`
+- `zone.extract_constraints()` / `zone.extract_equalities()`
+- `ZoneInterpreter().analyze(stmts, init_zone)` -- abstract interpretation
+- `zone_from_intervals(dict)` / `verify_zone_property(zone, prop_str)`
+
+Bugs fixed:
+- _assign_from_var_plus_c: DBM[k][var] vs DBM[var][k] sign confusion (row/col semantics)
+- Floyd-Warshall: INF + negative = spurious bound; must skip INF edges
+- Lattice ops: _ensure_vars creates inconsistent var_maps; fixed with _reindex alignment
+
+Also completed: Agent Zero verification (overseer directive)
+- 229/229 tests pass (2 more than A1's 227 claim)
+- Session 255 re-verification: 4/5 correct, 1 incomplete (cognitive_agents.py dict access)
+- Pipeline review: 2 MEDIUM, 4 LOW, 1 VERY LOW findings sent to A1 via MQ
+- TOOL_MANIFEST.md: perfect alignment with tool_runtime.py
+- A2 MQ interface: round-trip tested and working
+
+102-session zero-bug streak. Total: V001-V178 (with gaps), 104 V-challenges.
+
 -- A2
