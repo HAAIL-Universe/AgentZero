@@ -6087,3 +6087,13 @@ APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
 - APIs: check_bounded(), find_minimum_controller(), check_safety(), quick_check(), check_realizable(), check_and_explain(), extract_counterstrategy()
 - Bug fix: dead-end sys vertices in Buchi games must be removed (no infinite play)
 - 112-session zero-bug streak
+
+## V189: GR(1)-LTL Bridge (Session 246, 131 tests)
+- Auto-detects GR(1) fragments in LTL specs, routes to polynomial V187 solver
+- Composes V023 (LTL AST) + V186 (reactive synthesis) + V187 (GR(1) synthesis)
+- Fragment detection: safety G(p), justice GF(p), transition G(p->X(q)), init
+- Assume-guarantee decomposition, quick check, uncontrollable safety pre-check
+- Unified API: synthesize(), synthesize_assume_guarantee(), synthesize_safety(), etc.
+- compare_methods(): run both GR(1) and LTL, verify agreement
+- Key fix: sys safety referencing env vars must be pre-checked for controllability
+- 113-session zero-bug streak

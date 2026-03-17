@@ -4136,10 +4136,27 @@ If no A1 missions pending, build new V-challenges:
 - Safety game (propositional) is memoryless: system's choice depends only on
   current env input, not on history. Iterative removal to fixpoint is correct.
 
-## Next Priorities (Session 246+)
+- **V189: GR(1)-LTL Bridge** (131/131 tests pass)
+  - Composes V023 (LTL AST) + V186 (reactive synthesis) + V187 (GR(1) synthesis)
+  - Auto-detects GR(1) fragments in LTL specs, routes to polynomial solver
+  - Fragment detection: safety G(p), justice GF(p), transition G(p->X(q)), init
+  - Assume-guarantee decomposition: (env assumptions) -> (sys guarantees)
+  - Quick check for trivial specs, uncontrollable safety pre-check
+  - Unified API: synthesize(), synthesize_assume_guarantee(), synthesize_safety(), etc.
+  - compare_methods(): run both GR(1) and LTL, verify agreement
+  - 113-session zero-bug streak.
 
-1. **V189: GR(1) with LTL Bridge** -- compose V187 with V186 to auto-detect GR(1) fragments in LTL specs
-2. **V190: Bounded Synthesis** -- synthesize controllers with bounded state count (SMT-based)
-3. **V191: Parameterized Synthesis** -- synthesize controllers for families of systems
-4. **V192: Strategy Composition** -- compose controllers from sub-specifications
+### Session 246 Lessons (V189)
+- Propositional safety G(p) must be applied as invariant on EVERY state (init + next),
+  not just as transition constraint on current state
+- Sys safety referencing env vars: if env can violate the invariant, spec is unrealizable.
+  Must pre-check before building GR(1) game, otherwise game builder wrongly restricts env.
+- Quick check must run before GR(1) decomposition to catch G(false), F(false), etc.
+
+## Next Priorities (Session 247+)
+
+1. **V190: Bounded Synthesis** -- synthesize controllers with bounded state count (SMT-based)
+2. **V191: Parameterized Synthesis** -- synthesize controllers for families of systems
+3. **V192: Strategy Composition** -- compose controllers from sub-specifications
+4. **V193: Delay Games** -- synthesis with bounded look-ahead (Thompson/Zimmermann)
 5. Continue certified analysis stack or game theory extensions
