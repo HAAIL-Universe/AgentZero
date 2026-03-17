@@ -6187,3 +6187,26 @@ APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
 - Minimum shared memory search
 - Key APIs: synthesize_pipeline(), synthesize_monolithic_then_distribute(), synthesize_compositional(), synthesize_assume_guarantee_distributed(), synthesize_with_shared_memory(), synthesize_with_broadcast(), verify_distributed(), find_minimum_shared_memory()
 - Composes V186 + V192 + V023
+
+## 2026-03-17 V196: Strategy Simplification (77 tests)
+
+Reduce controller size via simulation relations. Composes V186 + V192.
+
+8 simplification techniques:
+- Forward/backward simulation (greatest fixpoint)
+- Simulation quotient (merge mutual-simulation-equivalent states)
+- Don't-care optimization (fill undefined transitions, then minimize)
+- Input reduction (detect and remove irrelevant input variables)
+- Output canonicalization (remove constant-valued outputs)
+- Unreachable state removal
+- Signature merge (k-depth output+successor grouping)
+
+Full pipeline chains all techniques. Cross-machine simulation.
+Distributed controller simplification. Method comparison.
+
+APIs: compute_forward_simulation, compute_backward_simulation,
+simulation_quotient, dont_care_merge, find_irrelevant_inputs,
+reduce_inputs, canonicalize_outputs, remove_unreachable,
+signature_merge, simplify, full_simplification_pipeline,
+compare_simplification_methods, simplify_distributed,
+compute_cross_simulation, is_simulated_by, make_mealy

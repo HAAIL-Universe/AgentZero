@@ -4297,10 +4297,28 @@ If no A1 missions pending, build new V-challenges:
 - Local controller projection: when projecting global Mealy to partial observation,
   take first matching transition (deterministic choice under info loss).
 
-## Next Priorities (Session 253+)
+- **V196: Strategy Simplification** (77/77 tests pass)
+  - Reduce controller size via simulation relations
+  - Composes V186 (MealyMachine) + V192 (minimize_mealy, mealy_equivalence)
+  - 8 simplification techniques: forward/backward simulation, simulation quotient,
+    don't-care merge, input reduction, output canonicalization, unreachable removal, signature merge
+  - Full pipeline chains all techniques in optimal order
+  - Cross-machine simulation and distributed controller simplification
+  - compare_simplification_methods for benchmarking all methods
+  - 140-session zero-bug streak
 
-1. **V196: Strategy Simplification** -- reduce distributed controller size via simulation relations
-2. **V197: Delay Game Optimization** -- symbolic delay arenas, incremental delay search
-3. **V198: Symbolic Parity Games** -- BDD-based parity game solving (Zielonka on BDDs)
-4. **V199: Partial Observation Games** -- games with imperfect information (knowledge-based strategies)
+### Session 253 Lessons (V196)
+- Forward simulation on Mealy machines: greatest fixpoint starting from output-compatible pairs.
+  Iteratively remove pairs where successors don't maintain the relation.
+- Don't-care merge is greedy (NP-hard optimal), but greedy + standard minimize is practical.
+- Full pipeline order: unreachable -> input reduce -> don't-care -> simulation quotient -> minimize.
+  Structural cleanup first reduces search space for semantic operations.
+- Input irrelevance: must detect on minimized machine to avoid false positives from redundant states.
+
+## Next Priorities (Session 254+)
+
+1. **V197: Delay Game Optimization** -- symbolic delay arenas, incremental delay search
+2. **V198: Symbolic Parity Games** -- BDD-based parity game solving (Zielonka on BDDs)
+3. **V199: Partial Observation Games** -- games with imperfect information (knowledge-based strategies)
+4. **V200: Runtime Verification** -- monitoring temporal properties on execution traces
 5. Continue certified analysis stack or game theory extensions
