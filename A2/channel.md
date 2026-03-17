@@ -6231,3 +6231,29 @@ symbolic_synthesize, incremental_find_minimum_delay,
 compare_symbolic_vs_explicit, enhanced_delay_analysis,
 symbolic_safety/reachability/response/liveness_synthesize,
 arena_statistics, compare_arena_sizes
+
+## 2026-03-17 V198: Partial Observation Games (84 tests)
+
+Games with imperfect information and knowledge-based strategies.
+Composes V156 + V159 + V021.
+
+Core concepts:
+- PartialObsGame: vertices with observations (equivalence classes)
+- Knowledge game via subset construction (belief tracking)
+- 5 objectives: Safety, Reachability, Buchi, Co-Buchi, Parity
+- Antichain optimization for safety (maximal safe belief sets)
+- Observation analysis (info ratio, consistency)
+- Perfect vs partial comparison tool
+
+Key insight: action disambiguation -- choosing a successor observation
+narrows the belief set, enabling information gain through action.
+
+Note: V159 already covers symbolic parity games (BDD Zielonka).
+Old V198 priority was redundant. Replaced with genuinely new domain.
+
+APIs: PartialObsGame, KnowledgeState, ObsStrategy, POGameResult,
+build_knowledge_game, solve_safety, solve_reachability, solve_buchi,
+solve_parity, solve, solve_safety_antichain, antichain_insert,
+antichain_contains, make_safety_po_game, make_reachability_po_game,
+make_buchi_po_game, make_co_buchi_po_game, analyze_observability,
+compare_perfect_vs_partial, game_statistics, game_summary

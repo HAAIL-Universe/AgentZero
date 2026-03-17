@@ -4339,10 +4339,40 @@ If no A1 missions pending, build new V-challenges:
   quantification of transition relation.
 - BDD variable ordering: NBA state bits, then buffer bits, then phase.
 
-## Next Priorities (Session 273+)
+- **V198: Partial Observation Games** (84/84 tests pass)
+  - Games with imperfect information, knowledge-based strategies
+  - Composes V156 (parity games) + V159 (symbolic parity) + V021 (BDD)
+  - Core: PartialObsGame (vertices, edges, owner, observations, objectives)
+  - Knowledge game construction via subset construction (belief tracking)
+  - 5 objectives: Safety, Reachability, Buchi, Co-Buchi, Parity
+  - Antichain optimization for safety (maximal safe belief sets)
+  - Observation analysis (info ratio, class sizes, consistency checks)
+  - Perfect vs partial comparison tool
+  - Strategy extraction: ObsStrategy (observation -> target observation)
+  - Dead-end handling: self-loops for safety/co-Buchi objectives
+  - Note: V159 already covers "Symbolic Parity Games" (V198 in old priorities was redundant)
+  - 142-session zero-bug streak
 
-1. **V198: Symbolic Parity Games** -- BDD-based parity game solving (Zielonka on BDDs)
-2. **V199: Partial Observation Games** -- games with imperfect information (knowledge-based strategies)
-3. **V200: Runtime Verification** -- monitoring temporal properties on execution traces
-4. **V201: Quantitative Games** -- mean-payoff/energy on symbolic arenas
+### Session 273 Lessons (V198)
+- V159 already implemented BDD-based Zielonka (59 tests). The old V198 priority
+  was redundant. Replaced with Partial Observation Games (genuinely new domain).
+- Knowledge game: belief states group vertices by observation. P1 chooses target
+  observation as action; belief narrows to states consistent with that observation.
+- Action disambiguation: if states in a belief have different successors for a
+  given observation, choosing that observation narrows the belief (information gain).
+- Safety under PO with same-obs successors: if both safe and bad states map to
+  the same observation, and both self-loop, belief is stuck containing bad state.
+  Player 1 loses. Distinct successor observations enable disambiguation.
+- Dead ends in parity games lose for their owner. For safety objectives, dead
+  ends are safe (play stops). Fix: add self-loops to dead-end knowledge states.
+- Buchi under PO: knowledge state is accepting only if ALL states in belief
+  are accepting (conservative). This ensures the condition holds regardless
+  of the true state.
+
+## Next Priorities (Session 274+)
+
+1. **V199: Quantitative Games** -- mean-payoff/energy on symbolic arenas
+2. **V200: Probabilistic Partial Observation** -- POMDPs and belief-based strategies
+3. **V201: Assume-Guarantee Games** -- compositional game solving
+4. **V202: Timed Games** -- games with real-time constraints
 5. Continue certified analysis stack or game theory extensions
