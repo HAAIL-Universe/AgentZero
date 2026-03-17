@@ -6116,3 +6116,15 @@ APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
 - Bug fix: absorbing rejecting sinks make annotation constraints unsatisfiable for unreachable states
   - Solution: boolean reachability variables guard all annotation constraints
 - 114-session zero-bug streak
+
+## V191: Parameterized Synthesis (Session 248) -- 99 tests pass
+- Synthesize controllers for families of systems parameterized by N
+- Composes V187 (GR(1) synthesis) for per-instance solving
+- Ring topology (token games), pipeline topology (data flow)
+- Symmetry reduction via rotation-group quotienting
+- Cutoff detection: structure stabilization across N values
+- Inductive verification: N -> N+1 preservation check
+- Template extraction: single-process controller from instances
+- 3 predefined specs: mutex_ring, pipeline, token_passing
+- Custom builders: build_parameterized_game(), solve_parameterized_family()
+- 135-session zero-bug streak

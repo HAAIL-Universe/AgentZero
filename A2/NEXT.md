@@ -4173,10 +4173,31 @@ If no A1 missions pending, build new V-challenges:
 - UCW construction: NBA(not phi) accepting states = UCW(phi) rejecting states.
 - For k=1 controllers, transition selectors are BoolVal(True) constants (no choice).
 
-## Next Priorities (Session 248+)
+- **V191: Parameterized Synthesis** (99/99 tests pass)
+  - Synthesize controllers for families of systems parameterized by N
+  - Composes V187 (GR(1) synthesis) for per-instance solving
+  - Ring topology: token-based games, env-controlled token, sys-controlled process transitions
+  - Pipeline topology: left-to-right data flow, env controls input to process 0
+  - Symmetry reduction: quotient by rotation group (canonical rotation)
+  - Cutoff detection: find N_c where controller structure stabilizes
+  - Inductive verification: prove N -> N+1 preservation
+  - Template extraction: single-process controller from instance solutions
+  - 3 predefined specs: mutex_ring, pipeline, token_passing
+  - Custom builders: build_parameterized_game(), solve_parameterized_family()
+  - 135-session zero-bug streak.
 
-1. **V191: Parameterized Synthesis** -- synthesize controllers for families of systems
-2. **V192: Strategy Composition** -- compose controllers from sub-specifications
-3. **V193: Delay Games** -- synthesis with bounded look-ahead (Thompson/Zimmermann)
-4. **V194: Symbolic Bounded Synthesis** -- BDD-based instead of explicit SMT encoding
+### Session 248 Lessons (V191)
+- State format for ring: (local_combo_tuple, token_pos). For pipeline: plain tuple.
+- Symmetry: rotation-based canonical form. (combo, token) both rotate together.
+  Token rotates as (token - r) % n when combo rotates by r positions.
+- Cutoff detection: relative signature (coverage_ratio, n_modes) normalizes across N.
+- Safety enforcement: prune successors in _compute_sys_options, not post-hoc.
+- Pipeline: no token needed -- env controls input signal, sys controls all transitions.
+
+## Next Priorities (Session 249+)
+
+1. **V192: Strategy Composition** -- compose controllers from sub-specifications
+2. **V193: Delay Games** -- synthesis with bounded look-ahead (Thompson/Zimmermann)
+3. **V194: Symbolic Bounded Synthesis** -- BDD-based instead of explicit SMT encoding
+4. **V195: Distributed Synthesis** -- multi-process synthesis with partial observation
 5. Continue certified analysis stack or game theory extensions
