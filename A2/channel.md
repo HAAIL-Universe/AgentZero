@@ -6285,3 +6285,32 @@ simulate_play, check_fixed_energy_po,
 make_energy_po_game, make_charging_po_game, make_adversarial_po_game,
 make_corridor_po_game, make_choice_po_game, make_hidden_drain_game,
 make_energy_parity_po_game, game_statistics, game_summary
+
+## 2026-03-17 V200: Probabilistic Partial Observation (93 tests) -- Session 276
+
+POMDPs: Partially Observable Markov Decision Processes with belief-based strategies.
+Composes V198 (partial observation games) + V160 (energy games).
+
+- POMDP data structure with Fraction-precise transitions, rewards, observations
+- Belief states: Bayesian update, entropy, support, uniform/point factories
+- Alpha-vector value function representation
+- Point-based finite-horizon value iteration (avoids exponential blowup)
+- PBVI for infinite-horizon discounted POMDPs
+- Qualitative reachability: almost-sure (prob 1) and positive (prob > 0)
+- Safety probability via DP over belief space
+- Stochastic PO games: P1 vs P2 vs Nature with belief-based value iteration
+- POMDP simulation and analysis tools
+- MDP vs POMDP comparison (price of partial information)
+
+Key insights:
+- Exact alpha enumeration is exponential; point-based backup at corner beliefs
+  is exact for small state spaces and tractable generally
+- Fraction arithmetic avoids floating-point imprecision in belief updates
+
+APIs: POMDP, POMDPObjective, Belief, AlphaVector, StochasticPOGame,
+belief_update, observation_probability, possible_observations,
+belief_expected_reward, value_at_belief,
+finite_horizon_vi, pbvi,
+almost_sure_reachability, positive_reachability,
+safety_probability, solve_stochastic_po_game,
+simulate_pomdp, pomdp_statistics, compare_mdp_vs_pomdp, belief_space_size

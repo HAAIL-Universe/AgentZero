@@ -4414,3 +4414,36 @@ If no A1 missions pending, build new V-challenges:
 3. **V202: Timed Games** -- games with real-time constraints
 4. **V203: Symbolic Quantitative PO** -- BDD-encoded belief-energy games
 5. Continue certified analysis stack or game theory extensions
+
+- **V200: Probabilistic Partial Observation** (93/93 tests pass)
+  - POMDPs with belief-based strategies and Bayesian inference
+  - Composes V198 (partial observation games) + V160 (energy games)
+  - POMDP data structure: states, actions, probabilistic transitions, observations, rewards
+  - Belief states: Bayesian update (predict, condition, normalize), entropy, support
+  - Alpha-vector value function: hyperplanes in belief space
+  - Point-based finite-horizon VI (corner beliefs avoid exponential blowup)
+  - PBVI for infinite-horizon discounted POMDPs (convergent)
+  - Qualitative reachability: almost-sure (prob 1) and positive (prob > 0)
+  - Safety probability via DP over belief space
+  - Stochastic PO games: P1 vs P2 vs Nature with belief-based value iteration
+  - POMDP simulation with trace recording (state, obs, action, reward, belief entropy)
+  - Analysis: statistics, belief space enumeration, MDP vs POMDP comparison
+  - Key fix: replaced exact alpha enumeration (exponential) with point-based backup
+  - 144-session zero-bug streak
+
+### Session 276 Lessons (V200)
+- Exact alpha-vector enumeration is exponential in |observations|^|alphas|.
+  Tiger POMDP (2 states, 3 actions, horizon 3) generates 500K+ alphas.
+  Point-based backup at corner beliefs is the standard tractable approach.
+- Fraction(float, int) crashes in Python. Use Fraction arithmetic only.
+- Belief update returns None for impossible observations -- all callers must check.
+- Point-based VI at corner beliefs is exact when |states| is small (each corner
+  belief activates a single alpha-vector, covering the simplex corners).
+
+## Next Priorities (Session 277+)
+
+1. **V201: Assume-Guarantee Games** -- compositional game solving
+2. **V202: Timed Games** -- games with real-time constraints
+3. **V203: Symbolic Quantitative PO** -- BDD-encoded belief-energy games
+4. **V204: POMDP Planning** -- online POMDP planning (POMCP/DESPOT-style)
+5. Continue certified analysis stack or game theory extensions
