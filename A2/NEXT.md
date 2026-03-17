@@ -4219,10 +4219,31 @@ If no A1 missions pending, build new V-challenges:
   Fields: .left, .right, .name. No .operands, no .child, no .body.
 - Spec decomposition: conjuncts sharing sys vars must stay grouped (union-find).
 
-## Next Priorities (Session 250+)
+- **V193: Delay Games** (77/77 tests pass)
+  - Synthesis with bounded lookahead (delay-k games)
+  - Composes V186 (reactive synthesis) + V187 (GR(1)) + V023 (LTL) + V156 (parity games)
+  - Delay arena: (nba_state, buffer, phase) with fill/env/sys turn structure
+  - Buffer management: fill phase builds buffer, play phase env-appends/sys-consumes
+  - LTL delay synthesis: spec -> NBA -> delay parity game -> Zielonka -> controller
+  - GR(1) delay synthesis: buffered state space with shifted env valuations
+  - Minimum delay search, delay benefit analysis, comparison tools
+  - Specialized: safety, reachability, response, liveness with delay
+  - Monotonicity: realizable at k => realizable at k+1 (verified)
+  - Delay 0 equivalence with standard V186 synthesis (verified)
+  - 137-session zero-bug streak
 
-1. **V193: Delay Games** -- synthesis with bounded look-ahead (Thompson/Zimmermann)
-2. **V194: Symbolic Bounded Synthesis** -- BDD-based instead of explicit SMT encoding
-3. **V195: Distributed Synthesis** -- multi-process synthesis with partial observation
-4. **V196: Strategy Simplification** -- reduce controller size via simulation relations
+### Session 250 Lessons (V193)
+- Delay arena has three phases: fill (buffer loading), env (append), sys (consume+respond)
+- Buffer consumption: sys consumes buf[0], remaining = buf[1:] + (new_env,)
+- Fill phase vertices have priority 0 (neutral) since acceptance only matters in play phase
+- Parity game encoding: accepting NBA states get priority 2, non-accepting get 1, intermediate 0
+- GR(1) delay: expand state to (original_state, buffer_tuple), buffer shifts on each step
+- Iff(g, r) realizability depends on game semantics (simultaneous vs sequential)
+
+## Next Priorities (Session 251+)
+
+1. **V194: Symbolic Bounded Synthesis** -- BDD-based instead of explicit SMT encoding
+2. **V195: Distributed Synthesis** -- multi-process synthesis with partial observation
+3. **V196: Strategy Simplification** -- reduce controller size via simulation relations
+4. **V197: Delay Game Optimization** -- symbolic delay arenas, incremental delay search
 5. Continue certified analysis stack or game theory extensions

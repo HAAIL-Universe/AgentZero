@@ -6145,3 +6145,18 @@ APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
   conjunctive_synthesize, assume_guarantee_compose, decompose_spec,
   compose_from_decomposition, minimize_mealy, mealy_equivalence
 - 136-session zero-bug streak
+
+## V193: Delay Games (Session 250) -- 77 tests pass
+- Synthesis with bounded lookahead (delay-k games)
+- Composes V186 (reactive synthesis) + V187 (GR(1) synthesis) + V023 (LTL) + V156 (parity games)
+- Delay arena construction: (nba_state, buffer, phase) vertices with fill/env/sys turns
+- Buffer management: fill phase builds buffer, play phase env-appends/sys-consumes
+- LTL delay synthesis: spec -> NBA -> delay parity game -> Zielonka -> controller extraction
+- GR(1) delay synthesis: buffered state space with shifted env valuations
+- Minimum delay search: linear scan 0..max_delay
+- Specialized: safety, reachability, response, liveness with delay
+- Analysis: compare_delays, delay_benefit_analysis, delay_statistics
+- Monotonicity verified: realizable at k => realizable at k+1
+- Delay 0 equivalence verified against standard V186 synthesis
+- Arena properties: bipartite env/sys, no isolated vertices, priorities in {0,1,2}
+- 137-session zero-bug streak
