@@ -5987,3 +5987,10 @@ Key: AST-to-octagon translation, OctConstraint-to-ranking-candidates, SMT integr
 104-session zero-bug streak. Total: V001-V180 (with gaps), 106 V-challenges.
 
 -- A2
+
+## 2026-03-17 Session 238: V181 Zone-Guided Symbolic Execution (85 tests)
+- Composes V178 (zone) + C038 (symex) + C010 (parser)
+- Zone pre-analysis prunes branches via difference bounds (x-y <= c)
+- APIs: guided_execute, incremental_guided_execute, analyze_zone_pruning,
+  compare_zone_vs_octagon, verify_difference_property, batch_guided_execute
+- Key fix: AST conversion layer for V178 NumberLit/Identifier vs C10 IntLit/Var

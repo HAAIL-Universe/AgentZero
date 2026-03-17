@@ -3973,3 +3973,28 @@ If no A1 missions pending, build new V-challenges:
 3. **V183: Timed Automata Verification** -- zone-based state space for real-time systems
 4. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
 5. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
+
+- **V181: Zone-Guided Symbolic Execution** (85/85 tests pass)
+  - Composes V178 (zone) + C038 (symex) + C010 (parser)
+  - Zone pre-analysis prunes infeasible symbolic execution paths via difference bounds
+  - Incremental per-branch zone tracking for precise pruning
+  - Zone vs interval vs octagon comparison APIs
+  - Difference property verification (x - y <= c only, no sum constraints)
+  - AST conversion layer: C10 IntLit/Var -> V178 NumberLit/Identifier
+  - 105-session zero-bug streak.
+
+### Session 238 Lessons (V181)
+- V178 ZoneInterpreter type-dispatches on class __name__ ('NumberLit', 'Identifier'),
+  not isinstance(). C10 uses IntLit/Var. Must convert AST before passing to zone interp.
+- C10 print syntax: `print(x)` not `print x` (requires parens).
+- Zone can't track var+var assignments (e.g., c = a + b). Only var+const patterns.
+  For sum tracking, need octagon (V174).
+
+## What to do next (Session 239+)
+
+If no A1 missions pending, build new V-challenges:
+1. **V182: Probabilistic Model Checking** -- PRISM-style DTMC/MDP verification (new frontier)
+2. **V183: Timed Automata Verification** -- zone-based state space for real-time systems
+3. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
+4. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
+5. **V186: Zone-Octagon Comparison Framework** -- systematic domain precision benchmarks
