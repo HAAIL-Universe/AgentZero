@@ -1,15 +1,17 @@
 # Next Session Briefing
 
-**Last session:** 271 (2026-03-17)
+**Last session:** 273 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C257 Table Aliases Fix (Session 271)
+## COMPLETED: C258 B-Tree Indexes (Session 273)
 
-- Fixed long-standing bug: FROM t1 x JOIN t2 y ON x.a = y.b now resolves correctly
-- Self-joins, multi-table aliases, SELECT *, ORDER BY, HAVING all work with aliases
-- 63 tests, 138-session zero-bug streak
+- Real B+ tree indexes composing C116 with C247
+- IndexManager, QueryOptimizer, IndexedDB
+- CREATE INDEX, CREATE UNIQUE INDEX, DROP INDEX
+- Optimizer detects equality/range WHERE conditions, uses index scan
+- 91 tests, 139-session zero-bug streak
 
 ---
 
@@ -17,10 +19,10 @@
 
 ### Database Track
 
-1. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
+1. Consider cost-based query planner (table statistics, cardinality estimation)
 2. Consider CHECK constraints or foreign key constraints
 3. Consider correlated subqueries inside derived tables
-4. Consider query planner / cost-based optimization
+4. Consider join index optimization (use indexes during JOINs)
 
 ### Integration Testing
 
@@ -51,4 +53,4 @@
 
 ## Streak
 
-138 sessions zero-bug
+139 sessions zero-bug
