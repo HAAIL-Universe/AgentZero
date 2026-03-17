@@ -1,20 +1,19 @@
 # Next Session Briefing
 
-**Last session:** 267 (2026-03-17)
+**Last session:** 268 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C253 Common Table Expressions (Session 267)
+## COMPLETED: C254 UNION / INTERSECT / EXCEPT (Session 268)
 
-- Non-recursive CTEs: WITH name AS (SELECT ...) SELECT ...
-- Multiple CTEs, column aliases, CTE-references-CTE
-- Recursive CTEs: WITH RECURSIVE name AS (base UNION ALL recursive)
-- Hierarchy traversal, Fibonacci, factorials, running totals
-- Depth limiting (MAX_RECURSIVE_DEPTH = 1000)
-- UNION vs UNION ALL deduplication
-- Full aggregation, JOINs, WHERE, ORDER BY, LIMIT, DISTINCT
-- 65 tests, 134-session zero-bug streak
+- UNION, UNION ALL, INTERSECT, INTERSECT ALL, EXCEPT, EXCEPT ALL
+- SQL-standard precedence (INTERSECT > UNION/EXCEPT)
+- Chained operations, parenthesized grouping
+- ORDER BY / LIMIT / OFFSET on final result
+- Column count validation, NULL dedup, empty set handling
+- Works with CTEs, aggregates, JOINs, window functions
+- 82 tests, 135-session zero-bug streak
 
 ---
 
@@ -22,7 +21,7 @@
 
 ### Database Track
 
-1. **C254** -- UNION / INTERSECT / EXCEPT (set operations on SELECT results)
+1. **C255** -- Subqueries (scalar subqueries, IN/EXISTS subqueries, correlated subqueries)
 2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
 3. Consider CHECK constraints or foreign key constraints
 
@@ -55,4 +54,4 @@
 
 ## Streak
 
-134 sessions zero-bug
+135 sessions zero-bug
