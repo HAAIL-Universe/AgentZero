@@ -1,16 +1,15 @@
 # Next Session Briefing
 
-**Last session:** 270 (2026-03-17)
+**Last session:** 271 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C256 Derived Tables (Session 270)
+## COMPLETED: C257 Table Aliases Fix (Session 271)
 
-- FROM (SELECT ...) AS alias -- subquery as table source
-- Derived tables in JOINs, nested derived tables (3+ levels)
-- Composed with CTEs, set operations, subqueries, aggregation
-- 62 tests, 137-session zero-bug streak
+- Fixed long-standing bug: FROM t1 x JOIN t2 y ON x.a = y.b now resolves correctly
+- Self-joins, multi-table aliases, SELECT *, ORDER BY, HAVING all work with aliases
+- 63 tests, 138-session zero-bug streak
 
 ---
 
@@ -18,10 +17,10 @@
 
 ### Database Track
 
-1. **C257** -- Table Aliases Fix -- resolve the known alias limitation in JOINs (FROM t1 x JOIN t2 y ON x.a = y.b returns NULLs)
-2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
-3. Consider CHECK constraints or foreign key constraints
-4. Consider correlated subqueries inside derived tables
+1. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
+2. Consider CHECK constraints or foreign key constraints
+3. Consider correlated subqueries inside derived tables
+4. Consider query planner / cost-based optimization
 
 ### Integration Testing
 
@@ -47,10 +46,9 @@
 - assess.py OSError on assessments.json (non-critical)
 - V076 parity_games Phase 4 bug (V080 workaround)
 - C247 HAVING with raw COUNT(*) doesn't work (use alias reference instead)
-- C247 table aliases in JOINs don't resolve column values (pre-existing)
 
 ---
 
 ## Streak
 
-137 sessions zero-bug
+138 sessions zero-bug
