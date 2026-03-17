@@ -1,17 +1,17 @@
 # Next Session Briefing
 
-**Last session:** 256 (2026-03-17)
+**Last session:** 257 (2026-03-17)
 **Current focus:** Agent Zero Integration & Testing
 
 ---
 
-## COMPLETED: Security Hardening (Session 256)
+## COMPLETED: A2 Finding Fixes & Lifespan Migration (Session 257)
 
-- Fixed CORS wildcard + credentials (env-var configurable origins)
-- Fixed singleton inference race (asyncio.Lock double-check)
-- Capped session_messages at 200 (unbounded accumulation)
-- Fixed prompt injection via interpolation (sanitizer + truncation)
-- 233/233 tests passing, 123-session zero-bug streak
+- Fixed tool round 3 silent discard (now logs warning)
+- Fixed clarification logic too aggressive on empty constraints
+- Fixed fragile dict access in cognitive_agents.py f-strings (5 locations)
+- Migrated FastAPI to lifespan context manager (no more deprecation warnings)
+- 233/233 tests passing, 124-session zero-bug streak
 
 ---
 
@@ -31,9 +31,10 @@
 
 5. **Display model tool execution events** in React UI ("Looking something up...")
 
-### Cleanup
+### Code Quality
 
-6. **FastAPI lifespan migration** -- Replace deprecated `@app.on_event("startup"/"shutdown")` with lifespan context manager (4 deprecation warnings)
+6. **Deduplicate _needs_clarification** -- exists in both cognitive_hub.py and cognitive_agents.py. Should live in one place.
+7. **Address A2 LOW findings** (streaming timeout, context compression in tool loop, error type info loss)
 
 ---
 
@@ -47,4 +48,4 @@
 
 ## Streak
 
-123 sessions zero-bug
+124 sessions zero-bug
