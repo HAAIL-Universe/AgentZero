@@ -6257,3 +6257,31 @@ solve_parity, solve, solve_safety_antichain, antichain_insert,
 antichain_contains, make_safety_po_game, make_reachability_po_game,
 make_buchi_po_game, make_co_buchi_po_game, analyze_observability,
 compare_perfect_vs_partial, game_statistics, game_summary
+
+## 2026-03-17 V199: Quantitative Partial Observation Games (89 tests)
+
+Energy and mean-payoff objectives under imperfect information.
+Composes V198 (partial observation) + V160 (energy) + V161 (mean-payoff parity).
+
+Core concepts:
+- QuantPOGame: weighted edges + observations + quantitative objectives
+- 5 objectives: Energy, Mean-Payoff, Energy-Safety, Energy-Parity, MP-Safety
+- Belief-energy value iteration with non-convergence detection
+- Adversarial parity: max odd priority in belief (P2 controls real state)
+- Mean-payoff via energy reduction (threshold shifting + binary search)
+- Perfect vs partial comparison (information cost quantification)
+
+Key insights:
+- Belief energy bound must use belief graph weights, not original game
+- Non-convergence detection after iteration limit: mark divergent, propagate INF
+- Safety dead-ends: both Even AND Odd lose for P1
+- Parity under PO: max ODD priority, not max overall
+
+APIs: QuantPOGame, QObjective, QPOResult, BeliefEnergyState,
+solve_energy_po, solve_mean_payoff_po, find_optimal_mean_payoff_po,
+solve_energy_safety_po, solve_energy_parity_po, solve,
+compare_perfect_vs_partial, quantitative_decomposition,
+simulate_play, check_fixed_energy_po,
+make_energy_po_game, make_charging_po_game, make_adversarial_po_game,
+make_corridor_po_game, make_choice_po_game, make_hidden_drain_game,
+make_energy_parity_po_game, game_statistics, game_summary

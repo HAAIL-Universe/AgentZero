@@ -4369,10 +4369,48 @@ If no A1 missions pending, build new V-challenges:
   are accepting (conservative). This ensures the condition holds regardless
   of the true state.
 
-## Next Priorities (Session 274+)
+- **V199: Quantitative Partial Observation Games** (89/89 tests pass)
+  - Energy and mean-payoff objectives under imperfect information
+  - Composes V198 (partial observation) + V160 (energy games) + V161 (mean-payoff parity)
+  - QuantPOGame: weighted edges + observation function + quantitative objectives
+  - 5 objectives: Energy, Mean-Payoff, Energy-Safety, Energy-Parity, MP-Safety
+  - Belief-energy value iteration: worst-case energy across belief states
+  - Non-convergence detection: divergent beliefs propagated to INF
+  - Adversarial parity: max odd priority in belief (P2 controls real state)
+  - Mean-payoff via energy reduction (threshold shifting)
+  - Binary search for optimal mean-payoff value (Fraction precision)
+  - Perfect vs partial observation comparison (information cost)
+  - Play simulation with worst/best adversary modes
+  - Quantitative-qualitative decomposition framework
+  - Key bugs fixed:
+    - Belief energy bound must use belief graph weights, not original game
+    - Non-convergence: detect divergent beliefs after iteration limit, propagate INF
+    - Safety dead-ends: remove ALL dead-end beliefs (Even AND Odd)
+    - Belief parity: max odd priority (adversarial), not max overall
+  - 143-session zero-bug streak
 
-1. **V199: Quantitative Games** -- mean-payoff/energy on symbolic arenas
-2. **V200: Probabilistic Partial Observation** -- POMDPs and belief-based strategies
-3. **V201: Assume-Guarantee Games** -- compositional game solving
-4. **V202: Timed Games** -- games with real-time constraints
+### Session 275 Lessons (V199)
+- Belief-energy value iteration bound: use n_beliefs * max_belief_weight, NOT
+  original game's weight_bound. Original bound is too large, masks divergence.
+- Non-convergence detection: after bound+1 iterations, if changed=True, identify
+  which beliefs would still change. Mark them divergent, propagate INF through
+  P1-all-INF (Even) and P2-any-INF (Odd) dependencies.
+- Energy under PO with net-negative cycles: P2 picks worst-case weight each step.
+  If cycle has net negative weight (sum of worst-case weights < 0), P1 cannot
+  maintain energy forever -> INF. This differs from perfect info where P1 might
+  pick a positive-weight edge.
+- Parity under PO: belief priority = max ODD priority if any odd-priority state
+  exists in belief. P2 adversarially keeps real state at odd-priority vertex.
+  Using max overall priority is WRONG (e.g., belief {prio 2, prio 1} should get
+  prio 1, not 2, because P2 stays at prio-1 vertex).
+- Safety dead-ends: both Even AND Odd dead-end beliefs lose for P1. Even: no safe
+  move. Odd: P2 forced to bad state. Previous code only removed Even dead-ends.
+- Fraction(float, int) crashes. Use (Fraction(lo) + Fraction(hi)) / 2 for binary search.
+
+## Next Priorities (Session 276+)
+
+1. **V200: Probabilistic Partial Observation** -- POMDPs and belief-based strategies
+2. **V201: Assume-Guarantee Games** -- compositional game solving
+3. **V202: Timed Games** -- games with real-time constraints
+4. **V203: Symbolic Quantitative PO** -- BDD-encoded belief-energy games
 5. Continue certified analysis stack or game theory extensions
