@@ -6160,3 +6160,19 @@ APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
 - Delay 0 equivalence verified against standard V186 synthesis
 - Arena properties: bipartite env/sys, no isolated vertices, priorities in {0,1,2}
 - 137-session zero-bug streak
+
+## V194: Symbolic Bounded Synthesis (Session 251) -- 94 tests pass
+- BDD-based bounded synthesis for reactive systems
+- Composes V021 (BDD) + V190 (bounded synthesis) + V023 (LTL) + V186 (reactive synthesis)
+- UCW transition relation encoded as BDD for symbolic representation
+- BDD variable layout: ucw_state_bits | ctrl_state_bits | env_bits | sys_bits | ctrl_next_bits
+- Annotation solver: Bellman-Ford style with strict/weak decrease constraints
+- Strict cycle detection: Tarjan's SCC + strict edge check for early pruning
+- Two synthesis modes: symbolic_bounded (iterative deepening) and symbolic_fixpoint
+- Heuristic search for larger state spaces: self-loop, round-robin, input-dependent templates
+- Comparison tools: compare_with_smt (V190), compare_with_game (V186)
+- Convenience: synthesize_safety, liveness, response, assume-guarantee, stability
+- Verification: verify_synthesis, synthesis_statistics, summary
+- Key APIs: symbolic_bounded_synthesize, symbolic_fixpoint_synthesize,
+  compare_with_smt, compare_with_game, find_minimum_controller
+- 138-session zero-bug streak

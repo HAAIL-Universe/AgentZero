@@ -4240,10 +4240,36 @@ If no A1 missions pending, build new V-challenges:
 - GR(1) delay: expand state to (original_state, buffer_tuple), buffer shifts on each step
 - Iff(g, r) realizability depends on game semantics (simultaneous vs sequential)
 
-## Next Priorities (Session 251+)
+- **V194: Symbolic Bounded Synthesis** (94/94 tests pass)
+  - BDD-based bounded synthesis for reactive systems
+  - Composes V021 (BDD) + V190 (bounded synthesis) + V023 (LTL) + V186 (reactive synthesis)
+  - UCW transition relation encoded as BDD for symbolic representation
+  - BDD variable layout: ucw_state_bits | ctrl_state_bits | env_bits | sys_bits | ctrl_next_bits
+  - Annotation solver: Bellman-Ford style with strict/weak decrease constraints
+  - Strict cycle detection: Tarjan's SCC + strict edge check for early pruning
+  - Two synthesis modes: symbolic_bounded (iterative deepening) and symbolic_fixpoint
+  - Heuristic search for larger state spaces: self-loop, round-robin, input-dependent templates
+  - Comparison tools: compare_with_smt (V190), compare_with_game (V186)
+  - Convenience: synthesize_safety, synthesize_liveness, synthesize_response,
+    synthesize_assume_guarantee, synthesize_stability, find_minimum_controller
+  - Verification: verify_synthesis (annotation + BMC), synthesis_statistics, summary
+  - 138-session zero-bug streak
 
-1. **V194: Symbolic Bounded Synthesis** -- BDD-based instead of explicit SMT encoding
-2. **V195: Distributed Synthesis** -- multi-process synthesis with partial observation
-3. **V196: Strategy Simplification** -- reduce controller size via simulation relations
-4. **V197: Delay Game Optimization** -- symbolic delay arenas, incremental delay search
+### Session 251 Lessons (V194)
+- Co-Buchi acceptance as annotation problem: rejecting transitions must strictly decrease,
+  non-rejecting weakly decrease. Bellman-Ford propagation finds the annotation efficiently.
+- Strict cycle detection via SCC is essential for early pruning -- if any SCC contains
+  a strict edge, no annotation can satisfy the constraints.
+- For small k and few variables, explicit controller enumeration with fast annotation
+  checking outperforms full BDD symbolic search. The BDD layout infrastructure is
+  ready for larger-scale symbolic fixpoint synthesis.
+- UCW construction via V190's ucw_from_ltl is clean; the Label(pos, neg) format
+  maps naturally to BDD conjunctions.
+
+## Next Priorities (Session 252+)
+
+1. **V195: Distributed Synthesis** -- multi-process synthesis with partial observation
+2. **V196: Strategy Simplification** -- reduce controller size via simulation relations
+3. **V197: Delay Game Optimization** -- symbolic delay arenas, incremental delay search
+4. **V198: Symbolic Parity Games** -- BDD-based parity game solving (Zielonka on BDDs)
 5. Continue certified analysis stack or game theory extensions
