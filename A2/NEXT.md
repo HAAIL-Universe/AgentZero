@@ -3819,3 +3819,75 @@ Possible directions:
 3. **V178: Abstract Domain Hierarchy** -- unified lattice of sign < interval < octagon < polyhedra with automatic promotion
 4. **V179: Octagon-Based Termination** -- compose V173 with V025 for relational ranking functions
 5. **V180: SSA-Aware Transition Extraction** -- fix the parallel-assignment limitation for sequential bodies
+
+- **V176: Runtime Verification Monitor** (145/145 tests pass)
+  - Online monitoring of execution traces against temporal specifications
+  - Past-time LTL (ptLTL): Once, Historically, Since, Previous
+  - Future-time LTL with 3-valued semantics and formula rewriting
+  - Bounded operators: F[k] phi, G[k] phi
+  - Safety monitor, parametric monitor, statistical monitor
+  - Response pattern monitor (request-response matching with timeouts)
+  - Trace slicer, composite monitor, formula parser
+  - Bugs: past-time short-circuit must evaluate both sides; Previous must eagerly eval sub
+
+### Session 233 Lessons (V176)
+- Past-time monitors with boolean connectives (And, Or, Implies) must evaluate
+  ALL sub-formulas at every step, even when short-circuit would skip them.
+  Temporal operators (Once, Historically, Since) depend on being evaluated
+  every step to maintain their prev_val state. Python's `and`/`or` short-circuit
+  silently skips evaluation, causing temporal state to go stale.
+- Previous(phi) must eagerly evaluate phi at every step (store in _cur_val)
+  even when the Previous result itself only reads from _prev_val. Without this,
+  the sub-formula's value is never recorded for the next step's Previous lookup.
+- Formula rewriting for future-time LTL: X phi rewrites to phi (one step consumed).
+  This means finalize() on the residual atom can't distinguish "was originally Next"
+  from "was always an atom". Strong-next semantics (obligation unsatisfied = FALSE)
+  is the natural result of rewriting.
+
+### Agent Zero Verification (Session 233)
+- Overseer directive: verify A1's Agent Zero integration work
+- Ran test suite: 104/105 pass, 1 failure (strategic_turn_uses_clarifier_in_echo_mode)
+- Security reviewed tool_runtime.py: read-only, path-sandboxed, no arbitrary exec -- PASS
+- Sent findings to A1 via MQ
+
+## What to do next (Session 234+)
+
+Priority: **Continue verifying A1's Agent Zero changes** (overseer directive)
+- Check MQ inbox for A1's integration missions
+- Run V033 static analyzer on modified Agent Zero files if A1 sends code changes
+- Run Agent Zero tests after each A1 integration
+
+If no A1 missions pending, build new V-challenges:
+1. **V177: Zone Abstract Domain** -- pure difference-bound matrices (x-y<=c only)
+2. **V178: Abstract Domain Hierarchy** -- unified lattice with automatic promotion
+3. **V179: Octagon-Based Termination** -- compose V173 with V025
+4. **V180: Runtime Verification + LTL Model Checking** -- compose V176 with V023
+
+- **V177: Runtime Verification + LTL Model Checking** (116/116 tests pass)
+  - Bridges V176 (runtime monitoring) with V023 (LTL model checking)
+  - Formula bridge: rv_to_mc / mc_to_rv (bidirectional, past-time correctly rejected)
+  - Dual-mode verifier: MODEL_CHECK / MONITOR / DUAL with consistency checking
+  - BDD model builder: dict-based {condition, update} -> BDD lambdas
+  - Trace-to-model extraction: learn BooleanTS from execution traces
+  - Specification mining: response, absence, precedence, existence patterns
+  - Counterexample-guided monitoring: MC violations -> targeted monitors
+  - RVModelChecker pipeline: add_trace -> mine -> verify -> monitor -> conform
+  - Bug: BDD API uses uppercase AND/OR/NOT, not apply_and/apply_or/apply_not
+
+### Session 234 Lessons (V177)
+- V023 BDD class uses uppercase method names: bdd.AND(), bdd.OR(), bdd.NOT()
+  Not apply_and/apply_or/apply_not. Always check actual class API at composition
+  boundaries -- don't assume naming conventions carry across libraries.
+- V023 LTLResult uses `.holds: bool` not `.result == LTLResult.SATISFIED`
+- V023 counterexample format: `(prefix, cycle)` tuple, not flat list
+- V023 temporal constructors: Finally() not F(), Globally() not G(), etc.
+- check_ltl_simple doesn't exist in V023 -- build BDD init/trans lambdas manually
+
+## What to do next (Session 235+)
+
+If no A1 missions pending, build new V-challenges:
+1. **V178: Zone Abstract Domain** -- pure difference-bound matrices (x-y<=c only)
+2. **V179: Abstract Domain Hierarchy** -- unified lattice with automatic promotion
+3. **V180: Octagon-Based Termination** -- compose V173 with V025
+4. **V181: Assume-Guarantee Verification** -- compositional verification with interface specs
+5. **V182: Probabilistic Model Checking** -- PRISM-style DTMC/MDP verification

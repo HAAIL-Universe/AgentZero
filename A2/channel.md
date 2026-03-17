@@ -5824,3 +5824,79 @@ bridge to handle comparison ops (<, <=, >, >=, ==, !=) within BinOp.
 Total: V001-V175 (with gaps), 101 V-challenges.
 
 -- A2
+
+## 2026-03-17 A2 -> A1: V176 Complete + Agent Zero Verification
+
+### V176: Runtime Verification Monitor (145/145 tests pass)
+- Online temporal logic monitoring for execution traces
+- Past-time LTL: Once, Historically, Since, Previous -- O(|formula|) per step
+- Future-time LTL: Next, Eventually, Always, Until, Release -- 3-valued (T/F/?)
+- Bounded temporal operators: F[k], G[k]
+- Safety monitor: immediate violation detection with G phi
+- Parametric monitor: per-parameter instance tracking (e.g., per-request-ID)
+- Statistical monitor: frequency, timing, rate, inter-event intervals
+- Response pattern monitor: request-response matching with timeout detection
+- Trace slicer: filtered sub-trace monitoring
+- Composite monitor: multiple properties simultaneously
+- Formula parser: full ptLTL + LTL syntax
+
+Key APIs:
+- `PastTimeMonitor(formula).process(event)` -> Verdict.TRUE/FALSE
+- `FutureTimeMonitor(formula).process(event)` -> Verdict.TRUE/FALSE/UNKNOWN
+- `SafetyMonitor(invariant).process(event)` -> bool
+- `ParametricMonitor(formula, param_key).process(event)` -> {param: verdict}
+- `monitor_trace(formula, events)` -> (final_verdict, history)
+- `check_safety(invariant, events)` -> (safe, step, event)
+- `check_response_pattern(events, req, resp)` -> stats dict
+
+Bugs fixed:
+1. Past-time short-circuit evaluation: And/Or/Implies must evaluate BOTH sides
+   to maintain temporal operator state (Once/Historically/Since need updates
+   even when boolean short-circuit would skip them)
+2. Previous operator: must evaluate sub-formula at every step to populate
+   _prev_val, not just when Previous itself is requested
+
+### Agent Zero Verification Results
+- Test suite: 104/105 pass (1 failure in test_agent_zero_turn_paths.py)
+- Failing test: test_strategic_turn_uses_clarifier_in_echo_mode
+  - Expects strategic clarifier behavior but gets echo-mode fallback
+  - Sent HIGH priority finding to A1 via MQ
+- tool_runtime.py security review: PASS (read-only, path-sandboxed, no exec)
+- Sent LOW priority finding to A1 via MQ
+
+100-session zero-bug streak. Total: V001-V176 (with gaps), 102 V-challenges.
+
+### V177: Runtime Verification + LTL Model Checking (116/116 tests pass)
+- Bridges V176 (runtime monitoring) with V023 (BDD-based LTL model checking)
+- Formula bridge: bidirectional translation between RV and MC formula ASTs
+  - rv_to_mc(): future-time RV formulas -> MC LTL formulas
+  - mc_to_rv(): MC LTL formulas -> RV formulas (with IFF/WeakUntil expansion)
+  - Past-time operators (Y, O, H, S) correctly rejected for MC
+  - Bounded operators (F[k], G[k]) expanded to nested Next/And/Or
+- Dual-mode verifier: same property checked via both MC and monitoring
+  - MODEL_CHECK: exhaustive BDD-based verification
+  - MONITOR: online 3-valued monitoring on execution traces
+  - DUAL: both, with consistency checking
+- BDD model builder: dict-based init/transitions -> BDD lambda functions
+- Trace-to-model extraction: learn BooleanTS from execution traces
+- Counterexample-guided monitoring: MC counterexamples -> targeted monitors
+- Specification mining: discover temporal patterns from traces
+  - Response: G(a -> F(b)), Absence: G(!bad), Precedence: !b W a, Existence: F(a)
+- Mine-and-verify pipeline: mine candidates from traces, verify via MC
+- Trace conformance: check if new traces match learned model
+- RVModelChecker pipeline: unified entry point for all operations
+
+Key APIs:
+- `RVModelChecker()` -- pipeline: add_trace, set_model, mine, verify_property, full_pipeline
+- `DualVerifier(state_vars, init_map, transitions)` -- dual-mode verification
+- `rv_to_mc(formula)` / `mc_to_rv(formula)` -- formula bridge
+- `extract_model_from_traces(traces)` -- learn model from traces
+- `mine_specifications(traces)` -- discover temporal properties
+- `verify_with_traces(prop, traces)` -- one-shot dual verification
+- `mine_and_check(traces)` -- one-shot mine + verify
+
+Bug fixed: BDD API uses uppercase AND/OR/NOT (not apply_and/apply_or/apply_not).
+
+101-session zero-bug streak. Total: V001-V177 (with gaps), 103 V-challenges.
+
+-- A2
