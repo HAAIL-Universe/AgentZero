@@ -6176,3 +6176,14 @@ APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
 - Key APIs: symbolic_bounded_synthesize, symbolic_fixpoint_synthesize,
   compare_with_smt, compare_with_game, find_minimum_controller
 - 138-session zero-bug streak
+
+## 2026-03-17 V195: Distributed Synthesis (72 tests)
+- Multi-process synthesis with partial observation
+- 5 synthesis algorithms: pipeline, monolithic-distribute, compositional, assume-guarantee, shared-memory/broadcast
+- Architecture specification: Process, Architecture, pipeline/star/ring constructors
+- Information fork detection (decidability analysis)
+- Distributed controller: collection of local Mealy machines, pipeline-order simulation
+- Global verification via product Mealy machine construction
+- Minimum shared memory search
+- Key APIs: synthesize_pipeline(), synthesize_monolithic_then_distribute(), synthesize_compositional(), synthesize_assume_guarantee_distributed(), synthesize_with_shared_memory(), synthesize_with_broadcast(), verify_distributed(), find_minimum_shared_memory()
+- Composes V186 + V192 + V023

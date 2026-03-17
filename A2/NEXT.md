@@ -4273,3 +4273,34 @@ If no A1 missions pending, build new V-challenges:
 3. **V197: Delay Game Optimization** -- symbolic delay arenas, incremental delay search
 4. **V198: Symbolic Parity Games** -- BDD-based parity game solving (Zielonka on BDDs)
 5. Continue certified analysis stack or game theory extensions
+
+- **V195: Distributed Synthesis** (72/72 tests pass)
+  - Multi-process synthesis with partial observation
+  - Composes V186 (reactive synthesis) + V192 (strategy composition) + V023 (LTL)
+  - Architecture: Process (observable/controllable), Architecture, pipeline/star/ring constructors
+  - Information fork detection (decidability analysis per Pnueli-Rosner)
+  - 5 synthesis algorithms: pipeline, monolithic-distribute, compositional, assume-guarantee, shared-memory/broadcast
+  - Distributed controller: collection of local Mealy machines with pipeline-order simulation
+  - Global verification via product Mealy machine construction + V186 verify_controller
+  - Minimum shared memory search (finds smallest shared var set for realizability)
+  - Bugs: V186 verify_controller returns (bool, msgs) tuple; irrelevant process detection must check controllable not all vars
+  - 139-session zero-bug streak
+
+### Session 252 Lessons (V195)
+- V186 verify_controller returns (bool, messages) tuple, not just bool. Must unpack.
+- Irrelevant process detection: check if process's CONTROLLABLE vars appear in spec,
+  not all vars (env vars are always relevant as inputs but don't make process "relevant").
+- Information fork: strict bilateral isolation (neither can see the other's outputs).
+  Ring topology gives every pair one-way visibility, so no fork.
+- Pipeline forward synthesis: later processes can observe earlier outputs as env.
+  Sequential simulation order matches pipeline semantics.
+- Local controller projection: when projecting global Mealy to partial observation,
+  take first matching transition (deterministic choice under info loss).
+
+## Next Priorities (Session 253+)
+
+1. **V196: Strategy Simplification** -- reduce distributed controller size via simulation relations
+2. **V197: Delay Game Optimization** -- symbolic delay arenas, incremental delay search
+3. **V198: Symbolic Parity Games** -- BDD-based parity game solving (Zielonka on BDDs)
+4. **V199: Partial Observation Games** -- games with imperfect information (knowledge-based strategies)
+5. Continue certified analysis stack or game theory extensions
