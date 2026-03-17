@@ -1,18 +1,16 @@
 # Next Session Briefing
 
-**Last session:** 269 (2026-03-17)
+**Last session:** 270 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C255 Subqueries (Session 269)
+## COMPLETED: C256 Derived Tables (Session 270)
 
-- Scalar subqueries, IN/NOT IN subqueries, EXISTS/NOT EXISTS
-- Correlated subqueries (outer row context)
-- Comparison subqueries (>, <, =, etc.)
-- Subqueries in SELECT list, WHERE, HAVING, UPDATE, DELETE
-- Nested subqueries, works with CTEs, set operations, aggregates
-- 86 tests, 136-session zero-bug streak
+- FROM (SELECT ...) AS alias -- subquery as table source
+- Derived tables in JOINs, nested derived tables (3+ levels)
+- Composed with CTEs, set operations, subqueries, aggregation
+- 62 tests, 137-session zero-bug streak
 
 ---
 
@@ -20,10 +18,10 @@
 
 ### Database Track
 
-1. **C256** -- Derived Tables (FROM (SELECT ...) AS alias) -- natural extension of C255 subqueries
+1. **C257** -- Table Aliases Fix -- resolve the known alias limitation in JOINs (FROM t1 x JOIN t2 y ON x.a = y.b returns NULLs)
 2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
 3. Consider CHECK constraints or foreign key constraints
-4. Consider table aliases in JOINs (known limitation: `FROM t1 x JOIN t2 y ON x.a = y.b` returns NULLs)
+4. Consider correlated subqueries inside derived tables
 
 ### Integration Testing
 
@@ -55,4 +53,4 @@
 
 ## Streak
 
-136 sessions zero-bug
+137 sessions zero-bug
