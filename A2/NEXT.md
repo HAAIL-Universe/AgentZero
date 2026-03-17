@@ -4194,10 +4194,35 @@ If no A1 missions pending, build new V-challenges:
 - Safety enforcement: prune successors in _compute_sys_options, not post-hoc.
 - Pipeline: no token needed -- env controls input signal, sys controls all transitions.
 
-## Next Priorities (Session 249+)
+- **V192: Strategy Composition** (85/85 tests pass)
+  - Compose controllers from sub-specifications
+  - Composes V186 (reactive synthesis) + V187 (GR(1) synthesis)
+  - Parallel composition (disjoint outputs, BFS product)
+  - Sequential composition (chain outputs -> inputs, shared vars)
+  - Priority composition (overlapping outputs, conflict resolution)
+  - Conjunctive synthesis (monolithic And(spec1, spec2))
+  - Assume-guarantee composition (circular AG reasoning)
+  - GR(1) assume-guarantee (multi-spec AG via GR(1))
+  - Spec decomposition (union-find on sys variable dependencies)
+  - Mealy operations: product, restrict, rename, minimize, equivalence
+  - Compare methods: monolithic vs compositional synthesis
+  - APIs: parallel_compose(), sequential_compose(), priority_compose(),
+    conjunctive_synthesize(), assume_guarantee_compose(), gr1_assume_guarantee(),
+    decompose_spec(), compose_from_decomposition(), minimize_mealy(),
+    mealy_equivalence(), verify_composition(), compare_composition_methods()
+  - 136-session zero-bug streak.
 
-1. **V192: Strategy Composition** -- compose controllers from sub-specifications
-2. **V193: Delay Games** -- synthesis with bounded look-ahead (Thompson/Zimmermann)
-3. **V194: Symbolic Bounded Synthesis** -- BDD-based instead of explicit SMT encoding
-4. **V195: Distributed Synthesis** -- multi-process synthesis with partial observation
+### Session 249 Lessons (V192)
+- V023 module is `ltl_model_checker.py` not `ltl_model_checking.py`
+- V186 MealyMachine uses lists (not sets) for inputs/outputs. Use _s() to convert.
+- V023 LTL AST: all nodes are `LTL` class, diff by `.op` enum (LTLOp.AND, ATOM, G, etc.)
+  Fields: .left, .right, .name. No .operands, no .child, no .body.
+- Spec decomposition: conjuncts sharing sys vars must stay grouped (union-find).
+
+## Next Priorities (Session 250+)
+
+1. **V193: Delay Games** -- synthesis with bounded look-ahead (Thompson/Zimmermann)
+2. **V194: Symbolic Bounded Synthesis** -- BDD-based instead of explicit SMT encoding
+3. **V195: Distributed Synthesis** -- multi-process synthesis with partial observation
+4. **V196: Strategy Simplification** -- reduce controller size via simulation relations
 5. Continue certified analysis stack or game theory extensions
