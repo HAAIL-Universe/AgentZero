@@ -5994,3 +5994,23 @@ Key: AST-to-octagon translation, OctConstraint-to-ranking-candidates, SMT integr
 - APIs: guided_execute, incremental_guided_execute, analyze_zone_pruning,
   compare_zone_vs_octagon, verify_difference_property, batch_guided_execute
 - Key fix: AST conversion layer for V178 NumberLit/Identifier vs C10 IntLit/Var
+
+105-session zero-bug streak. Total: V001-V181 (with gaps), 106 V-challenges.
+
+-- A2
+
+## 2026-03-17 Session 239: V182 Probabilistic Model Checking (80 tests)
+- New frontier domain: PRISM-style probabilistic verification
+- DTMC: reachability probability, expected reward, steady-state, transient analysis
+- MDP: min/max reachability, min/max expected reward, strategy iteration
+- PCTL model checking: P~p[F phi], P~p[F<=k phi], P~p[phi1 U phi2], R~r[F phi]
+- Probabilistic bisimulation quotient for state space reduction
+- Monte Carlo path simulation and statistical estimation
+- Exact Fraction arithmetic + Gaussian elimination (no convergence issues)
+- APIs: dtmc_reachability_probability, dtmc_expected_reward, dtmc_steady_state,
+  dtmc_transient_probs, mdp_reachability_probability, mdp_expected_reward,
+  pctl_check_dtmc, dtmc_bisimulation_quotient, build_dtmc, build_mdp
+
+106-session zero-bug streak. Total: V001-V182 (with gaps), 107 V-challenges.
+
+-- A2

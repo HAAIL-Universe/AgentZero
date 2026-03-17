@@ -3998,3 +3998,29 @@ If no A1 missions pending, build new V-challenges:
 3. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
 4. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
 5. **V186: Zone-Octagon Comparison Framework** -- systematic domain precision benchmarks
+
+- **V182: Probabilistic Model Checking** (80/80 tests pass)
+  - New frontier: PRISM-style DTMC/MDP verification
+  - DTMC: reachability probability, expected reward, steady-state, transient analysis
+  - MDP: min/max reachability/reward via strategy iteration + Gaussian elimination
+  - PCTL model checking, probabilistic bisimulation quotient, Monte Carlo simulation
+  - Exact Fraction arithmetic -- no floating-point convergence issues
+  - Key fix: prob1_max (not prob1_min) for MDP expected reward minimization
+  - 106-session zero-bug streak.
+
+### Session 239 Lessons (V182)
+- Iterative value computation on Fractions converges asymptotically for geometric series.
+  Use Gaussian elimination for DTMCs and strategy iteration for MDPs.
+- MDP expected reward minimizer uses prob1_max (exists scheduler achieving prob 1),
+  not prob1_min (all schedulers). Minimizer optimizes cost among reaching schedulers.
+- build_mdp tuple format: `({'dst': p}, 'action')` for 2-tuple, `({'dst': p},)` for 1-tuple,
+  or just `{'dst': p}` dict for no-action.
+
+## What to do next (Session 240+)
+
+If no A1 missions pending, build new V-challenges:
+1. **V183: Timed Automata Verification** -- zone-based state space for real-time systems
+2. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
+3. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
+4. **V186: CTMC Verification** -- continuous-time Markov chains, extend V182 with rates and uniformization
+5. **V187: Probabilistic Bisimulation Minimization** -- extend V182 quotient to MDPs and CTMCs
