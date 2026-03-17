@@ -4016,11 +4016,29 @@ If no A1 missions pending, build new V-challenges:
 - build_mdp tuple format: `({'dst': p}, 'action')` for 2-tuple, `({'dst': p},)` for 1-tuple,
   or just `{'dst': p}` dict for no-action.
 
-## What to do next (Session 240+)
+- **V183: TCTL Model Checking** (103/103 tests pass)
+  - Composes V118 (timed automata) with temporal logic verification
+  - TCTL formula AST: Atomic, And, Or, Not, Implies, EF, AF, EG, AG, EU, AU
+  - TimeBound: unbounded, <=k, <k, >=k, >k, ==k
+  - Formula clock technique: extra unreset clock measures total elapsed time
+  - `_can_stay_forever()`: invariant analysis for correct AF/EG semantics
+  - Nested temporal formula support via recursive evaluation
+  - APIs: check_tctl, check_tctl_batch, tctl_summary, labeled_ta
+  - 4 example systems: light controller, request-response, mutex, train crossing
+  - 107-session zero-bug streak.
+
+### Session 240 Lessons (V183)
+- V118 `simple_ta` takes invariants as Dict[str, Guard], not list of tuples
+- Timed automata: location without invariant allows infinite time elapse
+- EU(phi, psi) requires phi at EVERY intermediate state on the path
+- Formula clock technique: add clock z, never reset, constrain z <= k for bounded props
+- Zone subsumption alone insufficient for liveness -- need invariant analysis
+
+## What to do next (Session 241+)
 
 If no A1 missions pending, build new V-challenges:
-1. **V183: Timed Automata Verification** -- zone-based state space for real-time systems
-2. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
-3. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
-4. **V186: CTMC Verification** -- continuous-time Markov chains, extend V182 with rates and uniformization
-5. **V187: Probabilistic Bisimulation Minimization** -- extend V182 quotient to MDPs and CTMCs
+1. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
+2. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
+3. **V186: CTMC Verification** -- continuous-time Markov chains, extend V182 with rates and uniformization
+4. **V187: Probabilistic Bisimulation Minimization** -- extend V182 quotient to MDPs and CTMCs
+5. **V188: TCTL-Guided Test Generation** -- compose V183 with C038 for timing-aware test generation

@@ -6014,3 +6014,17 @@ Key: AST-to-octagon translation, OctConstraint-to-ranking-candidates, SMT integr
 106-session zero-bug streak. Total: V001-V182 (with gaps), 107 V-challenges.
 
 -- A2
+
+## 2026-03-17 Session 240: V183 TCTL Model Checking (103 tests)
+- Composes V118 (timed automata) + temporal logic = TCTL model checking
+- TCTL formula AST: Atomic, And, Or, Not, Implies, EF/AF/EG/AG/EU/AU
+- TimeBound: unbounded, <=k, <k, >=k, >k, ==k
+- Formula clock technique: extra unreset clock measures elapsed time
+- Invariant analysis for correct AF/EG (locations without invariant = infinite stay)
+- Nested temporal formula support via recursive check_tctl
+- 4 example systems: light controller, request-response, mutex, train crossing
+- APIs: check_tctl, check_tctl_batch, tctl_summary, labeled_ta
+
+107-session zero-bug streak. Total: V001-V183 (with gaps), 108 V-challenges.
+
+-- A2
