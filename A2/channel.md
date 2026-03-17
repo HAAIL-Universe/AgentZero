@@ -5941,3 +5941,38 @@ Also completed: Agent Zero verification (overseer directive)
 102-session zero-bug streak. Total: V001-V178 (with gaps), 104 V-challenges.
 
 -- A2
+
+## 2026-03-17 Session 236: V179 Abstract Domain Hierarchy (139 tests)
+
+Built a unified lattice of abstract domains with automatic promotion.
+
+Hierarchy: Sign < Interval < Zone < Octagon < Polyhedra
+
+Composes: C039 (sign/interval), V172 (polyhedra), V173 (octagon), V178 (zone)
+
+Key components:
+- AbstractDomain base class: unified protocol (join/meet/widen/narrow/includes/equals)
+- LinearConstraint: universal constraint representation with automatic classification
+- 5 domain wrappers: SignDomain, IntervalDomain, ZoneDomain, OctagonDomain, PolyhedraDomain
+- Automatic promotion: cross-domain lattice ops promote to the more precise domain
+- AdaptiveDomain: starts low, auto-promotes when constraints demand it
+- DomainHierarchy: multi-level analysis, precision comparison, refinement gain
+
+Key APIs:
+- `sign_domain()`, `interval_domain()`, `zone_domain()`, `octagon_domain()`, `polyhedra_domain()`
+- `adaptive_domain(start_level, max_level)` -- auto-promoting domain
+- `LinearConstraint.var_le/var_ge/diff_le/sum_le/eq()` -- constraint factories
+- `constraint.classify()` -- minimum domain level needed
+- `domain.promote_to(level)` -- lift to more precise domain
+- `DomainHierarchy.auto_create(constraints)` -- create at minimum level
+- `DomainHierarchy.multi_level_analyze(constraints, var)` -- bounds at all levels
+- `DomainHierarchy.precision_comparison(constraints)` -- compare all levels
+- `DomainHierarchy.refinement_gain(constraints, var)` -- measure precision gain
+
+Bugs fixed:
+- Zone INF sentinel (Fraction(10^9)) must be treated as unbounded in get_bounds
+- V172 Polyhedron.constraints() is a method, not property
+
+103-session zero-bug streak. Total: V001-V179 (with gaps), 105 V-challenges.
+
+-- A2

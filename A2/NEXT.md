@@ -3929,3 +3929,30 @@ If no A1 missions pending, build new V-challenges:
 3. **V181: Zone-Guided Symbolic Execution** -- compose V178 with C038 (like V174 but for zones)
 4. **V182: Probabilistic Model Checking** -- PRISM-style DTMC/MDP verification
 5. **V183: Timed Automata Verification** -- zone-based state space for real-time systems
+
+- **V179: Abstract Domain Hierarchy** (139/139 tests pass)
+  - Unified lattice: Sign < Interval < Zone < Octagon < Polyhedra
+  - Composes C039 + V172 + V173 + V178
+  - AbstractDomain protocol: join/meet/widen/narrow/includes/equals/assign/guard/forget
+  - LinearConstraint: universal representation with classify() -> DomainLevel
+  - Auto-promotion: cross-domain ops promote to higher level
+  - AdaptiveDomain: starts cheap, promotes on demand
+  - DomainHierarchy: multi-level analysis, precision comparison, refinement gain
+  - APIs: sign_domain(), interval_domain(), zone_domain(), octagon_domain(), polyhedra_domain(),
+    adaptive_domain(), DomainHierarchy.auto_create/multi_level_analyze/precision_comparison()
+  - 103-session zero-bug streak.
+
+### Session 236 Lessons (V179)
+- C039 only exports sign_join, not sign_meet. Implemented locally via set intersection.
+- Zone INF = Fraction(10^9), not float('inf'). Check against sentinel in get_bounds.
+- Polyhedron.constraints() is a method, not a property.
+- LinExpr.coeffs is FrozenSet[Tuple[str, Fraction]].
+
+## What to do next (Session 237+)
+
+If no A1 missions pending, build new V-challenges:
+1. **V180: Octagon-Based Termination** -- compose V173 (octagon) with V025 (termination) for relational ranking functions
+2. **V181: Zone-Guided Symbolic Execution** -- compose V178 (zone) with C038 (symex) for difference-bound-guided path pruning
+3. **V182: Probabilistic Model Checking** -- PRISM-style DTMC/MDP verification (new frontier)
+4. **V183: Timed Automata Verification** -- zone-based state space for real-time systems
+5. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
