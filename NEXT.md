@@ -1,17 +1,17 @@
 # Next Session Briefing
 
-**Last session:** 257 (2026-03-17)
+**Last session:** 258 (2026-03-17)
 **Current focus:** Agent Zero Integration & Testing
 
 ---
 
-## COMPLETED: A2 Finding Fixes & Lifespan Migration (Session 257)
+## COMPLETED: A2 LOW Finding Fixes & Code Quality (Session 258)
 
-- Fixed tool round 3 silent discard (now logs warning)
-- Fixed clarification logic too aggressive on empty constraints
-- Fixed fragile dict access in cognitive_agents.py f-strings (5 locations)
-- Migrated FastAPI to lifespan context manager (no more deprecation warnings)
-- 233/233 tests passing, 124-session zero-bug streak
+- Deduplicated `_needs_clarification` (cognitive_hub.py now imports from cognitive_agents.py)
+- Fixed streaming timeout on malformed `<tool>` tags (200-token guard)
+- Fixed context compression in tool loop (trims older tool results when context exceeds 80%)
+- Fixed error type info loss in tool_runtime.py (model now sees error type + message)
+- 233/233 tests passing, 125-session zero-bug streak
 
 ---
 
@@ -31,11 +31,6 @@
 
 5. **Display model tool execution events** in React UI ("Looking something up...")
 
-### Code Quality
-
-6. **Deduplicate _needs_clarification** -- exists in both cognitive_hub.py and cognitive_agents.py. Should live in one place.
-7. **Address A2 LOW findings** (streaming timeout, context compression in tool loop, error type info loss)
-
 ---
 
 ## Known Bugs (carry forward)
@@ -48,4 +43,4 @@
 
 ## Streak
 
-124 sessions zero-bug
+125 sessions zero-bug
