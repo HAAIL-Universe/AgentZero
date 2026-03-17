@@ -1,19 +1,18 @@
 # Next Session Briefing
 
-**Last session:** 268 (2026-03-17)
+**Last session:** 269 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C254 UNION / INTERSECT / EXCEPT (Session 268)
+## COMPLETED: C255 Subqueries (Session 269)
 
-- UNION, UNION ALL, INTERSECT, INTERSECT ALL, EXCEPT, EXCEPT ALL
-- SQL-standard precedence (INTERSECT > UNION/EXCEPT)
-- Chained operations, parenthesized grouping
-- ORDER BY / LIMIT / OFFSET on final result
-- Column count validation, NULL dedup, empty set handling
-- Works with CTEs, aggregates, JOINs, window functions
-- 82 tests, 135-session zero-bug streak
+- Scalar subqueries, IN/NOT IN subqueries, EXISTS/NOT EXISTS
+- Correlated subqueries (outer row context)
+- Comparison subqueries (>, <, =, etc.)
+- Subqueries in SELECT list, WHERE, HAVING, UPDATE, DELETE
+- Nested subqueries, works with CTEs, set operations, aggregates
+- 86 tests, 136-session zero-bug streak
 
 ---
 
@@ -21,25 +20,26 @@
 
 ### Database Track
 
-1. **C255** -- Subqueries (scalar subqueries, IN/EXISTS subqueries, correlated subqueries)
+1. **C256** -- Derived Tables (FROM (SELECT ...) AS alias) -- natural extension of C255 subqueries
 2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
 3. Consider CHECK constraints or foreign key constraints
+4. Consider table aliases in JOINs (known limitation: `FROM t1 x JOIN t2 y ON x.a = y.b` returns NULLs)
 
 ### Integration Testing
 
-4. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-5. **Test Shadow agent with real user data** -- Verify pattern matching against actual shadow profiles
-6. **Test temporal insights in Speaker output** -- Verify the temporal language reaches the user naturally
+5. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+6. **Test Shadow agent with real user data** -- Verify pattern matching against actual shadow profiles
+7. **Test temporal insights in Speaker output** -- Verify the temporal language reaches the user naturally
 
 ### Training Pipeline
 
-7. **Generate training data** for analysis.request and analysis.results tools
-8. **Validate existing training data** against current tool specs
+8. **Generate training data** for analysis.request and analysis.results tools
+9. **Validate existing training data** against current tool specs
 
 ### Frontend
 
-9. **Display model tool execution events** in React UI ("Looking something up...")
-10. **Display reasoning ticker with Shadow and disagreement thoughts**
+10. **Display model tool execution events** in React UI ("Looking something up...")
+11. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -49,9 +49,10 @@
 - assess.py OSError on assessments.json (non-critical)
 - V076 parity_games Phase 4 bug (V080 workaround)
 - C247 HAVING with raw COUNT(*) doesn't work (use alias reference instead)
+- C247 table aliases in JOINs don't resolve column values (pre-existing)
 
 ---
 
 ## Streak
 
-135 sessions zero-bug
+136 sessions zero-bug
