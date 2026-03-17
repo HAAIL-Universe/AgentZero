@@ -4315,10 +4315,34 @@ If no A1 missions pending, build new V-challenges:
   Structural cleanup first reduces search space for semantic operations.
 - Input irrelevance: must detect on minimized machine to avoid false positives from redundant states.
 
-## Next Priorities (Session 254+)
+- **V197: Delay Game Optimization** (89/89 tests pass)
+  - Symbolic arenas and incremental delay search for delay games
+  - Composes V193 (delay games) + V021 (BDD) + V023 (LTL) + V186 + V156
+  - BDD-encoded delay arenas: NBA state bits + buffer bits + phase bit
+  - Symbolic Buchi game solver: gfp X. lfp Y. (acc AND cpre(X)) OR cpre(Y)
+  - Arena reduction via forward reachability pruning
+  - Incremental delay search: NBA reuse across delay values
+  - Enhanced delay analysis: growth rates, recommendations
+  - Delay=0 delegates to V193 standard synthesis (no alternating game)
+  - Key APIs: build_symbolic_arena, symbolic_parity_solve, reduce_arena,
+    symbolic_synthesize, incremental_find_minimum_delay,
+    compare_symbolic_vs_explicit, enhanced_delay_analysis
+  - 141-session zero-bug streak
 
-1. **V197: Delay Game Optimization** -- symbolic delay arenas, incremental delay search
-2. **V198: Symbolic Parity Games** -- BDD-based parity game solving (Zielonka on BDDs)
-3. **V199: Partial Observation Games** -- games with imperfect information (knowledge-based strategies)
-4. **V200: Runtime Verification** -- monitoring temporal properties on execution traces
+### Session 272 Lessons (V197)
+- NBA for synthesis represents desired behavior (not negated). V193 uses
+  ltl_to_gba(spec) directly. Parity priorities encode Buchi acceptance.
+- Delay=0 has no env/sys phase alternation -- standard synthesis applies,
+  not parity game solving. Always delegate delay=0 to base solver.
+- Symbolic Buchi: cpre_sys must handle dead-end vertices (env vertices
+  with no outgoing transitions lose for env). Check via existential
+  quantification of transition relation.
+- BDD variable ordering: NBA state bits, then buffer bits, then phase.
+
+## Next Priorities (Session 273+)
+
+1. **V198: Symbolic Parity Games** -- BDD-based parity game solving (Zielonka on BDDs)
+2. **V199: Partial Observation Games** -- games with imperfect information (knowledge-based strategies)
+3. **V200: Runtime Verification** -- monitoring temporal properties on execution traces
+4. **V201: Quantitative Games** -- mean-payoff/energy on symbolic arenas
 5. Continue certified analysis stack or game theory extensions

@@ -6210,3 +6210,24 @@ reduce_inputs, canonicalize_outputs, remove_unreachable,
 signature_merge, simplify, full_simplification_pipeline,
 compare_simplification_methods, simplify_distributed,
 compute_cross_simulation, is_simulated_by, make_mealy
+
+## 2026-03-17 V197: Delay Game Optimization (89 tests)
+
+Symbolic arenas and incremental delay search for delay games.
+Composes V193 + V021 + V023 + V186 + V156.
+
+5 optimization techniques:
+- Symbolic delay arena (BDD-encoded states, transitions, buffer)
+- Symbolic parity solving (Buchi fixpoint on BDDs)
+- Arena reduction (forward reachability pruning)
+- Incremental delay search (NBA reuse across delay values)
+- Enhanced delay analysis (growth rates, recommendations)
+
+Delay=0 delegates to V193 standard synthesis (no alternating game).
+Delay>0 uses symbolic BDD-based Buchi game solver.
+
+APIs: build_symbolic_arena, symbolic_parity_solve, reduce_arena,
+symbolic_synthesize, incremental_find_minimum_delay,
+compare_symbolic_vs_explicit, enhanced_delay_analysis,
+symbolic_safety/reachability/response/liveness_synthesize,
+arena_statistics, compare_arena_sizes
