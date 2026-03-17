@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Othello — Personal Goal Architect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --bg-1: #020617;
+      --bg-2: #0b1120;
+      --card-bg: rgba(15, 23, 42, 0.85);
+      --border: rgba(148, 163, 184, 0.25);
+      --text-main: #e5e7eb;
+      --text-soft: #9ca3af;
+      --accent: #7dd3fc;
+      --accent-soft: rgba(125, 211, 252, 0.15);
+      --glow: 0 0 22px rgba(125, 211, 252, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 20% 0%, var(--bg-1) 0, var(--bg-2) 70%);
+      font-family: system-ui, sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    /* Outer shell */
+    .shell {
+      width: min(1250px, 100%);
+      margin: 1rem;
+      border-radius: 1rem;
+      background: rgba(2, 6, 23, 0.75);
+      backdrop-filter: blur(22px);
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.65);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      padding: 1rem 1.3rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right, var(--bg-1), var(--bg-1), var(--bg-2));
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .brand-subtitle {
+      font-size: .8rem;
+      color: var(--text-soft);
+    }
+
+    .status-pill {
+      padding: .4rem .8rem;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      font-size: .8rem;
+      color: var(--accent);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 12px #22c55e;
+    }
+
+    /* Layout */
+    main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    /* Chat column */
+    .chat-col {
+      flex: 1.7;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .chat-log {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .msg-row {
+      margin-bottom: 1rem;
+      display: flex;
+    }
+
+    .msg-row.user {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      max-width: 75%;
+      padding: .7rem 1rem;
+      border-radius: .9rem;
+      font-size: .9rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      position: relative;
+      animation: fadeIn .2s ease;
+    }
+
+    .msg-row.user .bubble {
+      background: linear-gradient(135deg, #6366f1, #7c3aed);
+      color: white;
+      border-bottom-right-radius: .3rem;
+      box-shadow: 0 6px 14px rgba(99,102,241,0.4);
+    }
+
+    .msg-row.bot .bubble {
+      background: var(--card-bg);
+      border: 1px solid rgba(71,85,105,0.6);
+      border-bottom-left-radius: .3rem;
+    }
+
+    .meta {
+      font-size: .7rem;
+      color: var(--text-soft);
+      margin-top: .25rem;
+    }
+
+    /* Input bar */
+    .input-bar {
+      padding: .9rem;
+      border-top: 1px solid var(--border);
+      background: rgba(2,6,23,0.6);
+      display: flex;
+      gap: .7rem;
+      align-items: center;
+    }
+
+    #user-input {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid rgba(100,116,139,0.6);
+      background: rgba(15,23,42,0.9);
+      padding: .7rem 1.1rem;
+      color: var(--text-main);
+      font-size: .92rem;
+    }
+
+    #send {
+      border: none;
+      padding: .65rem 1.2rem;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #22c55e, #4ade80);
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 10px 22px rgba(34,197,94,0.35);
+    }
+
+    /* Right side goal brain */
+    .side {
+      flex: 1;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-width: 0;
+      background: rgba(2,6,23,0.5);
+    }
+
+    .side h3 {
+      font-size: .85rem;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: var(--text-soft);
+      margin-bottom: .2rem;
+    }
+
+    .card {
+      padding: .9rem 1rem;
+      border-radius: .8rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+    }
+
+    .card-title {
+      font-size: .85rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-main);
+      opacity: .9;
+      margin-bottom: .2rem;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      margin-top: .4rem;
+    }
+
+    .chip {
+      padding: .25rem .6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.3);
+      font-size: .75rem;
+      background: rgba(15,23,42,0.75);
+      color: var(--text-soft);
+    }
+
+    .footer {
+      margin-top: auto;
+      text-align: right;
+      font-size: .75rem;
+      color: var(--text-soft);
+      opacity: .8;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+
+    <!-- HEADER -->
+    <header>
+      <div class="brand">
+        <div class="brand-title">Othello</div>
+        <div class="brand-subtitle">Personal Goal Architect</div>
+      </div>
+
+      <div class="status-pill">
+        <div class="dot"></div>
+        <span id="status">Online</span>
+      </div>
+    </header>
+
+    <main>
+
+      <!-- CHAT -->
+      <section class="chat-col">
+        <div id="chat-log" class="chat-log"></div>
+
+        <div class="input-bar">
+          <input id="user-input" placeholder="Tell Othello what you're working towards..." />
+          <button id="send">Send</button>
+        </div>
+      </section>
+
+      <!-- GOAL BRAIN -->
+      <aside class="side">
+
+        <div>
+          <h3>Today</h3>
+          <div class="card">
+            <div class="card-title">Focus & Intent</div>
+            <p id="focus-text">
+              No active goals yet. Mention a goal and Othello will start organising your plan.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <h3>Stack</h3>
+          <div class="card">
+            <div class="card-title">Goals</div>
+            <div class="chip-row" id="goal-chips">
+              <!-- chips will be injected here -->
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3>Insights</h3>
+          <div class="card">
+            <div class="card-title">Recent Reflections</div>
+            <p>Othello will soon summarise patterns, blockers and strengths here.</p>
+          </div>
+        </div>
+
+        <div class="footer">
+          v0.1 — Chat only · Goal Engine in construction
+        </div>
+
+      </aside>
+
+    </main>
+  </div>
+
+
+  <!-- JS -->
+  <script>
+    const API = "http://localhost:8000/api/message";
+    const GOALS_API = "http://localhost:8000/api/goals";
+
+    const chatLog = document.getElementById("chat-log");
+    const input = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send");
+    const statusEl = document.getElementById("status");
+
+    const focusTextEl = document.getElementById("focus-text");
+    const goalChipsEl = document.getElementById("goal-chips");
+
+    function addMessage(role, text) {
+      const row = document.createElement("div");
+      row.className = `msg-row ${role}`;
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = role === "user"
+        ? "You · " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        : "Othello · " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+      bubble.appendChild(meta);
+      row.appendChild(bubble);
+      chatLog.appendChild(row);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+    async function refreshGoals() {
+      if (!focusTextEl || !goalChipsEl) return;
+
+      try {
+        const res = await fetch(GOALS_API);
+        if (!res.ok) throw new Error("Failed to fetch goals");
+        const data = await res.json();
+        const goals = data.goals || [];
+
+        // Focus card
+        if (goals.length > 0) {
+          const latest = goals[goals.length - 1];
+          focusTextEl.textContent = latest.text || "Active goal captured.";
+        } else {
+          focusTextEl.textContent =
+            "No active goals yet. Mention a goal and Othello will start organising your plan.";
+        }
+
+        // Stack chips
+        goalChipsEl.innerHTML = "";
+        goals.forEach((g) => {
+          const chip = document.createElement("div");
+          chip.className = "chip";
+          chip.textContent = g.text || "Goal";
+          goalChipsEl.appendChild(chip);
+        });
+      } catch (err) {
+        console.warn("[Othello UI] Failed to refresh goals:", err);
+      }
+    }
+
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMessage("user", text);
+      input.value = "";
+      input.focus();
+      statusEl.textContent = "Thinking…";
+
+      try {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({message: text})
+        });
+
+        const data = await res.json();
+        addMessage("bot", data.reply || "[no reply]");
+        statusEl.textContent = "Online";
+        refreshGoals();
+
+      } catch (err) {
+        addMessage("bot", "[Connection error: backend unreachable]");
+        statusEl.textContent = "Offline";
+      }
+    }
+
+    sendBtn.onclick = sendMessage;
+    input.onkeydown = (e) => {
+      if (e.key === "Enter") sendMessage();
+    };
+  // Initial fetch to populate goals if any exist
+  refreshGoals();
+  </script>
+</body>
+</html>

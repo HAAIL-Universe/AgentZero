@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T18-54-42 ---
+Mood: disappointed
+Text: Missed my workout today.
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's psyche appears to be in a state of indifference, lacking enthusiasm or drive. To spark motivation, try setting a small, achievable goal for the day and reward yourself upon completion."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'insufficient data', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

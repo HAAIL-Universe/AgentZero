@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T18-51-58 ---
+Mood: ambivalent
+Text: Avoiding work but really want to succeed.
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's psyche is currently in a state of equilibrium, lacking emotional highs or lows, coupled with a sense of inertia. To boost motivation, try setting a small, achievable goal for today, such as completing a simple task or taking a short walk, to help build momentum and create a sense of accomplishment."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'insufficient data', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

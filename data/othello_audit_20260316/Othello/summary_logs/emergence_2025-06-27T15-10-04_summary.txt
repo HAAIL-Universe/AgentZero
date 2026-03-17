@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T15-10-04 ---
+Mood: calm
+Text: I’m calm despite the stress.
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "In a state of emotional balance but lacking drive, the user's current psyche is one of calm inertia. To boost motivation, they might start with a small, manageable task that sparks interest or offers a sense of accomplishment, such as organizing a personal space or engaging in a brief, enjoyable physical activity."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T08-58-59 ---
+Mood: unmotivated
+Text: I can’t focus today.
+Reflection: Today's mood: neutral. Mood trend: stable. Goal streak: 0.
+Behavioral Insight: N/A
+Psyche: {'emotional_state': "Today's mood: neutral. Mood trend: stable. Goal streak: 0.", 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's psyche is currently in a balanced state but lacks enthusiasm, as indicated by a neutral mood and low motivation level. To boost motivation, try setting a small, achievable goal today to create a sense of accomplishment and momentum."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

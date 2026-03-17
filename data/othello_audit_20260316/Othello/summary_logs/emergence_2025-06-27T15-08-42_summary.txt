@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T15-08-42 ---
+Mood: impatient
+Text: Whatever, just do it!
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's psyche is currently in a balanced but unmotivated state, displaying neither positive nor negative emotions. To boost motivation, setting a small, achievable goal and rewarding themselves upon completion could help spark momentum and increase motivation."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

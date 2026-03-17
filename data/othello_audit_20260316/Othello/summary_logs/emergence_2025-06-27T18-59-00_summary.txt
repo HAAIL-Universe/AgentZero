@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T18-59-00 ---
+Mood: drained
+Text: Worked straight through lunch.
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': 'The user is in a balanced but uninspired state, feeling neither particularly positive nor negative, with a lack of drive or enthusiasm. To boost motivation, consider setting a small, achievable goal that aligns with personal interests or passions, as accomplishing it can ignite a sense of purpose and momentum.'}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'insufficient data', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

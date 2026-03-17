@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T18-51-35 ---
+Mood: drained
+Text: Worked straight through lunch.
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's neutral mood combined with a lack of motivation suggests a state of indifference or stagnation, where they may feel neither particularly positive nor negative about their current circumstances. To boost motivation, consider setting a small, achievable goal that aligns with something they value or enjoy, as taking even a tiny step forward can help create momentum and a sense of accomplishment."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'insufficient data', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T13-10-58 ---
+Mood: energized
+Text: I feel super productive!
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0).
+Behavioral Insight: N/A
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': 'The user is currently experiencing a neutral emotional state with low motivation, indicating a sense of detachment or indifference towards their immediate tasks or goals. To boost motivation, they could try setting a small, achievable goal that aligns with their interests, and reward themselves upon completion to create a positive feedback loop.'}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

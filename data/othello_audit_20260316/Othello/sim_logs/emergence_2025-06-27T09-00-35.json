@@ -1,0 +1,38 @@
+{
+  "prompt": "\ud83d\udd04 You're steady. Let's nudge things forward.\n\n\ud83e\udde0 Reflective Prompt: Can you refine your plan \u2014 or simplify it \u2014 to make movement easier?",
+  "mood": "Today's mood: neutral. Mood trend: stable. Goal streak: 0.",
+  "reflection": "Today's mood: neutral. Mood trend: stable. Goal streak: 0.",
+  "goal_update": "N/A",
+  "delta": {
+    "mood_trend": "stable",
+    "goal_streak_change": 0,
+    "traits_delta": {}
+  },
+  "anomalies": [],
+  "behavioral_insights": {
+    "habit_score": 0,
+    "emotional_state": "Today's mood: neutral. Mood trend: stable. Goal streak: 0.",
+    "suggestion": "You're doing well, but small improvements could lead to big changes."
+  },
+  "psyche_insights": {
+    "emotional_state": "Today's mood: neutral. Mood trend: stable. Goal streak: 0.",
+    "motivation_level": 0,
+    "suggestion": "It might be helpful to take a break or refocus on your goals.",
+    "llm_summary": "The user's current mood and motivation level suggest a state of emotional equilibrium but with a lack of drive or enthusiasm. For a motivational boost, try setting a small, achievable goal for the day to spark a sense of accomplishment and gradually build momentum."
+  },
+  "routine_snapshot": {
+    "routines": [],
+    "streaks": {},
+    "max_streaks": {},
+    "last_break": {}
+  },
+  "impatience_result": {
+    "impatience_level": "low",
+    "suggestion": "You're doing well. Keep it up, but stay mindful of your emotional state."
+  },
+  "decision_analysis": {
+    "decision_avoidance": [],
+    "risky_decisions": [],
+    "suggestions": []
+  }
+}

@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T08-55-50 ---
+Mood: anxious
+Text: I keep overthinking everything.
+Reflection: Today's mood: neutral. Mood trend: stable. Goal streak: 0.
+Behavioral Insight: N/A
+Psyche: {'emotional_state': "Today's mood: neutral. Mood trend: stable. Goal streak: 0.", 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': 'The user feels emotionally balanced but lacks motivation, suggesting a need for a small spark to ignite their drive. To boost motivation, try setting a simple, achievable goal for the day that aligns with your interests, and reward yourself upon completion to build momentum.'}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

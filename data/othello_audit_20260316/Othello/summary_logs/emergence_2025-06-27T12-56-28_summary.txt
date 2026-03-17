@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T12-56-28 ---
+Mood: avoidant
+Text: I’ve been ignoring my tasks.
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0).
+Behavioral Insight: N/A
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's psyche state is characterized by a lack of motivation and emotional engagement, indicating a need for stimulation or inspiration. To boost motivation, try setting a small, achievable goal for today and reward yourself upon completion to build momentum and positivity."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

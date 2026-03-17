@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T18-57-17 ---
+Mood: confused
+Text: I’m so happy and yet I feel lost.
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's psyche is in a state of balance, without strong emotional leanings, but lacking the drive to initiate tasks. To boost motivation, they could start with a small, manageable task that aligns with their interests, as completing it may create a sense of achievement and momentum."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'insufficient data', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

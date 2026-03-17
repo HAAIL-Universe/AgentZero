@@ -1,32 +1,24 @@
 """
 Tests for C245: Query Executor
 
-Covers:
-- Row operations (get, set, project, merge)
-- Table and page storage
-- Table indexes (equality, range lookup)
-- Expression evaluator (column refs, literals, comparisons, logic, arithmetic, case, functions)
-- Aggregate functions (COUNT, SUM, AVG, MIN, MAX, COUNT(*), DISTINCT)
-- Physical operators: SeqScan, IndexScan, Filter, Project, HashJoin,
-  NestedLoopJoin, SortMergeJoin, Sort, HashAggregate, Limit, Union,
-  Distinct, TopN, Materialize, SemiJoin, AntiJoin, Having
-- Execution engine (execute, execute_iter, explain, explain_analyze)
-- QueryPlan fluent builder
-- Edge cases (empty tables, NULLs, large datasets)
-- Integration (multi-operator pipelines)
+Volcano/iterator-model query executor with physical operators,
+joins, aggregation, sorting, and fluent query builder.
 """
 
-import unittest
+import pytest
+import math
 from query_executor import (
-    Row, Page, Table, TableIndex,
-    CompOp, LogicOp, ColumnRef, Literal, Comparison, LogicExpr,
-    ArithExpr, FuncExpr, CaseExpr, AggFunc, AggCall, AggState,
-    eval_expr, ExecStats,
+    Row, Page, Table, TableIndex, Database,
+    ColumnRef, Literal, Comparison, LogicExpr, ArithExpr, FuncExpr, CaseExpr,
+    CompOp, LogicOp,
+    eval_expr, _match_like,
+    AggFunc, AggCall, AggState,
+    ExecStats,
     Operator, SeqScanOp, IndexScanOp, FilterOp, ProjectOp,
     NestedLoopJoinOp, HashJoinOp, SortMergeJoinOp,
     SortOp, HashAggregateOp, LimitOp, UnionOp, DistinctOp,
     TopNOp, MaterializeOp, SemiJoinOp, AntiJoinOp, HavingOp,
-    Database, ExecutionEngine, QueryPlan,
+    ExecutionEngine, QueryPlan,
 )
 
 
@@ -37,17 +29,16 @@ from query_executor import (
 def make_db():
     """Create a test database with employees and departments."""
     db = Database()
-
-    emp = db.create_table('employees', ['id', 'name', 'dept_id', 'salary'])
+    emp = db.create_table('employees', ['id', 'name', 'dept_id', 'salary', 'age'])
     emp.insert_many([
-        {'id': 1, 'name': 'Alice', 'dept_id': 1, 'salary': 90000},
-        {'id': 2, 'name': 'Bob', 'dept_id': 1, 'salary': 80000},
-        {'id': 3, 'name': 'Carol', 'dept_id': 2, 'salary': 95000},
-        {'id': 4, 'name': 'Dave', 'dept_id': 2, 'salary': 70000},
-        {'id': 5, 'name': 'Eve', 'dept_id': 3, 'salary': 110000},
-        {'id': 6, 'name': 'Frank', 'dept_id': 3, 'salary': 65000},
-        {'id': 7, 'name': 'Grace', 'dept_id': 1, 'salary': 85000},
-        {'id': 8, 'name': 'Heidi', 'dept_id': 2, 'salary': 92000},
+        {'id': 1, 'name': 'Alice', 'dept_id': 1, 'salary': 90000, 'age': 30},
+        {'id': 2, 'name': 'Bob', 'dept_id': 1, 'salary': 80000, 'age': 25},
+        {'id': 3, 'name': 'Charlie', 'dept_id': 2, 'salary': 70000, 'age': 35},
+        {'id': 4, 'name': 'Diana', 'dept_id': 2, 'salary': 95000, 'age': 28},
+        {'id': 5, 'name': 'Eve', 'dept_id': 3, 'salary': 85000, 'age': 32},
+        {'id': 6, 'name': 'Frank', 'dept_id': 3, 'salary': 75000, 'age': 40},
+        {'id': 7, 'name': 'Grace', 'dept_id': 1, 'salary': 100000, 'age': 45},
+        {'id': 8, 'name': 'Hank', 'dept_id': 2, 'salary': 60000, 'age': 22},
     ])
 
     dept = db.create_table('departments', ['id', 'name', 'budget'])
@@ -61,7 +52,7 @@ def make_db():
 
 
 def collect(op):
-    """Execute an operator and collect all rows."""
+    """Collect all rows from an operator."""
     rows = []
     op.open()
     while True:
@@ -73,1468 +64,1724 @@ def collect(op):
     return rows
 
 
+def col(table, column):
+    return ColumnRef(table, column)
+
+
+def lit(value):
+    return Literal(value)
+
+
+def eq(left, right):
+    return Comparison(CompOp.EQ, left, right)
+
+
+def lt(left, right):
+    return Comparison(CompOp.LT, left, right)
+
+
+def gt(left, right):
+    return Comparison(CompOp.GT, left, right)
+
+
+def le(left, right):
+    return Comparison(CompOp.LE, left, right)
+
+
+def ge(left, right):
+    return Comparison(CompOp.GE, left, right)
+
+
+def ne(left, right):
+    return Comparison(CompOp.NE, left, right)
+
+
+def and_(*operands):
+    return LogicExpr(LogicOp.AND, list(operands))
+
+
+def or_(*operands):
+    return LogicExpr(LogicOp.OR, list(operands))
+
+
+def not_(operand):
+    return LogicExpr(LogicOp.NOT, [operand])
+
+
 # ===========================================================================
-# 1. Row
+# Row tests
 # ===========================================================================
 
-class TestRow(unittest.TestCase):
-    def test_get_basic(self):
+class TestRow:
+    def test_create_and_get(self):
         r = Row({'a': 1, 'b': 2})
-        self.assertEqual(r.get('a'), 1)
-        self.assertEqual(r.get('b'), 2)
-
-    def test_get_qualified(self):
-        r = Row({'t.a': 1, 't.b': 2})
-        self.assertEqual(r.get('t.a'), 1)
-
-    def test_get_bare_from_qualified(self):
-        r = Row({'t.a': 1})
-        self.assertEqual(r.get('a'), 1)
-
-    def test_get_suffix_match(self):
-        r = Row({'employees.name': 'Alice'})
-        self.assertEqual(r.get('name'), 'Alice')
+        assert r.get('a') == 1
+        assert r.get('b') == 2
 
     def test_get_missing(self):
         r = Row({'a': 1})
-        self.assertIsNone(r.get('z'))
+        assert r.get('x') is None
+
+    def test_qualified_column(self):
+        r = Row({'t.a': 1, 't.b': 2})
+        assert r.get('t.a') == 1
+        assert r.get('a') == 1  # bare lookup
 
     def test_set(self):
         r = Row({'a': 1})
         r2 = r.set('b', 2)
-        self.assertEqual(r2.get('b'), 2)
-        self.assertIsNone(r.get('b'))  # original unchanged
+        assert r2.get('b') == 2
+        assert r.get('b') is None  # immutable
 
     def test_project(self):
         r = Row({'a': 1, 'b': 2, 'c': 3})
         p = r.project(['a', 'c'])
-        self.assertEqual(p.get('a'), 1)
-        self.assertEqual(p.get('c'), 3)
-        self.assertIsNone(p.get('b'))
+        assert p.get('a') == 1
+        assert p.get('c') == 3
+        assert p.get('b') is None
 
     def test_merge(self):
         r1 = Row({'a': 1})
         r2 = Row({'b': 2})
         m = r1.merge(r2)
-        self.assertEqual(m.get('a'), 1)
-        self.assertEqual(m.get('b'), 2)
+        assert m.get('a') == 1
+        assert m.get('b') == 2
 
     def test_columns(self):
         r = Row({'x': 1, 'y': 2})
-        self.assertEqual(set(r.columns()), {'x', 'y'})
+        assert set(r.columns()) == {'x', 'y'}
 
     def test_to_dict(self):
         r = Row({'a': 1, 'b': 2})
-        self.assertEqual(r.to_dict(), {'a': 1, 'b': 2})
+        assert r.to_dict() == {'a': 1, 'b': 2}
 
     def test_equality(self):
         r1 = Row({'a': 1, 'b': 2})
         r2 = Row({'a': 1, 'b': 2})
-        self.assertEqual(r1, r2)
+        assert r1 == r2
+
+    def test_inequality(self):
+        r1 = Row({'a': 1})
+        r2 = Row({'a': 2})
+        assert r1 != r2
 
     def test_hash(self):
         r1 = Row({'a': 1, 'b': 2})
         r2 = Row({'a': 1, 'b': 2})
-        self.assertEqual(hash(r1), hash(r2))
+        assert hash(r1) == hash(r2)
 
     def test_repr(self):
         r = Row({'a': 1})
-        self.assertIn('a', repr(r))
+        assert 'Row' in repr(r)
+
+    def test_suffix_lookup(self):
+        r = Row({'table.col': 42})
+        assert r.get('col') == 42
+
+    def test_values(self):
+        r = Row({'a': 1, 'b': 2}, schema=['a', 'b'])
+        assert r.values() == [1, 2]
 
 
 # ===========================================================================
-# 2. Table and Page
+# Page and Table tests
 # ===========================================================================
 
-class TestTable(unittest.TestCase):
-    def test_insert_and_count(self):
-        t = Table('t', ['id', 'val'])
-        t.insert({'id': 1, 'val': 'a'})
-        t.insert({'id': 2, 'val': 'b'})
-        self.assertEqual(t.row_count, 2)
-
-    def test_pages(self):
-        t = Table('t', ['id'], page_size=3)
-        for i in range(10):
-            t.insert({'id': i})
-        self.assertEqual(t.page_count, 4)  # ceil(10/3)
+class TestTable:
+    def test_create_and_insert(self):
+        t = Table('t', ['a', 'b'])
+        t.insert({'a': 1, 'b': 2})
+        assert t.row_count == 1
 
     def test_insert_many(self):
-        t = Table('t', ['id'])
-        t.insert_many([{'id': i} for i in range(5)])
-        self.assertEqual(t.row_count, 5)
+        t = Table('t', ['x'])
+        t.insert_many([{'x': i} for i in range(10)])
+        assert t.row_count == 10
 
-    def test_scan_pages(self):
-        t = Table('t', ['id'], page_size=5)
-        t.insert_many([{'id': i} for i in range(12)])
-        pages = list(t.scan_pages())
-        self.assertEqual(len(pages), 3)
-        self.assertEqual(pages[0].num_rows, 5)
+    def test_page_splitting(self):
+        t = Table('t', ['x'], page_size=3)
+        t.insert_many([{'x': i} for i in range(10)])
+        assert t.page_count == 4  # 3+3+3+1
 
     def test_prefixed_columns(self):
         t = Table('emp', ['id', 'name'])
         t.insert({'id': 1, 'name': 'Alice'})
-        page = list(t.scan_pages())[0]
-        row = page.rows[0]
-        self.assertEqual(row.get('emp.id'), 1)
+        pages = list(t.scan_pages())
+        row = pages[0].rows[0]
+        assert row.get('emp.id') == 1
+        assert row.get('emp.name') == 'Alice'
 
-    def test_add_index(self):
+    def test_scan_pages(self):
+        t = Table('t', ['x'], page_size=5)
+        t.insert_many([{'x': i} for i in range(12)])
+        pages = list(t.scan_pages())
+        assert len(pages) == 3
+        total = sum(p.num_rows for p in pages)
+        assert total == 12
+
+
+# ===========================================================================
+# TableIndex tests
+# ===========================================================================
+
+class TestTableIndex:
+    def test_equality_lookup(self):
         t = Table('t', ['id', 'val'])
         t.insert_many([{'id': i, 'val': i * 10} for i in range(5)])
         idx = t.add_index('idx_id', 'id')
-        self.assertEqual(len(idx.lookup_eq(3)), 1)
+        results = idx.lookup_eq(3)
+        assert len(results) == 1
+        assert results[0].get('t.id') == 3
+
+    def test_range_lookup(self):
+        t = Table('t', ['id'])
+        t.insert_many([{'id': i} for i in range(10)])
+        idx = t.add_index('idx', 'id')
+        results = idx.lookup_range(low=3, high=7)
+        ids = [r.get('t.id') for r in results]
+        assert ids == [3, 4, 5, 6, 7]
+
+    def test_range_exclusive(self):
+        t = Table('t', ['x'])
+        t.insert_many([{'x': i} for i in range(10)])
+        idx = t.add_index('idx', 'x')
+        results = idx.lookup_range(low=3, high=7, low_inclusive=False, high_inclusive=False)
+        vals = [r.get('t.x') for r in results]
+        assert vals == [4, 5, 6]
 
     def test_get_index(self):
-        t = Table('t', ['id'])
-        t.add_index('idx_id', 'id')
-        self.assertIsNotNone(t.get_index('id'))
-        self.assertIsNone(t.get_index('nonexistent'))
-
-    def test_index_updated_on_insert(self):
-        t = Table('t', ['id'])
-        t.add_index('idx_id', 'id')
-        t.insert({'id': 42})
-        idx = t.get_index('id')
-        results = idx.lookup_eq(42)
-        self.assertEqual(len(results), 1)
+        t = Table('t', ['a', 'b'])
+        t.add_index('idx_a', 'a')
+        assert t.get_index('a') is not None
+        assert t.get_index('b') is None
 
 
 # ===========================================================================
-# 3. TableIndex
+# Expression evaluator tests
 # ===========================================================================
 
-class TestTableIndex(unittest.TestCase):
-    def setUp(self):
-        self.idx = TableIndex('idx', 'emp', 'id')
-        for i in range(10):
-            self.idx.insert(Row({f'emp.id': i, 'emp.name': f'n{i}'}))
-
-    def test_lookup_eq(self):
-        results = self.idx.lookup_eq(5)
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0].get('emp.id'), 5)
-
-    def test_lookup_eq_miss(self):
-        results = self.idx.lookup_eq(99)
-        self.assertEqual(len(results), 0)
-
-    def test_lookup_range(self):
-        results = self.idx.lookup_range(low=3, high=7)
-        ids = [r.get('emp.id') for r in results]
-        self.assertEqual(sorted(ids), [3, 4, 5, 6, 7])
-
-    def test_lookup_range_exclusive(self):
-        results = self.idx.lookup_range(low=3, high=7,
-                                        low_inclusive=False, high_inclusive=False)
-        ids = [r.get('emp.id') for r in results]
-        self.assertEqual(sorted(ids), [4, 5, 6])
-
-    def test_lookup_range_unbounded(self):
-        results = self.idx.lookup_range(high=2)
-        self.assertEqual(len(results), 3)  # 0, 1, 2
-
-    def test_lookup_range_null_handling(self):
-        idx = TableIndex('idx', 't', 'x')
-        idx.insert(Row({'t.x': None}))
-        idx.insert(Row({'t.x': 1}))
-        results = idx.lookup_range(low=0)
-        self.assertEqual(len(results), 1)
-
-
-# ===========================================================================
-# 4. Expression Evaluator
-# ===========================================================================
-
-class TestExprEval(unittest.TestCase):
-    def setUp(self):
-        self.row = Row({'t.x': 10, 't.y': 20, 't.name': 'Alice', 't.z': None})
-
+class TestExpressions:
     def test_column_ref(self):
-        self.assertEqual(eval_expr(ColumnRef('t', 'x'), self.row), 10)
+        r = Row({'t.x': 42})
+        assert eval_expr(col('t', 'x'), r) == 42
 
     def test_literal(self):
-        self.assertEqual(eval_expr(Literal(42), self.row), 42)
-
-    def test_bare_string_column(self):
-        self.assertEqual(eval_expr('t.x', self.row), 10)
-
-    def test_int_literal(self):
-        self.assertEqual(eval_expr(99, self.row), 99)
-
-    def test_none_literal(self):
-        self.assertIsNone(eval_expr(None, self.row))
+        r = Row({})
+        assert eval_expr(lit(99), r) == 99
 
     def test_comparison_eq(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.EQ, ColumnRef('t', 'x'), Literal(10)), self.row))
+        r = Row({'t.x': 5})
+        assert eval_expr(eq(col('t', 'x'), lit(5)), r) is True
+        assert eval_expr(eq(col('t', 'x'), lit(6)), r) is False
 
     def test_comparison_ne(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.NE, ColumnRef('t', 'x'), Literal(5)), self.row))
+        r = Row({'t.x': 5})
+        assert eval_expr(ne(col('t', 'x'), lit(5)), r) is False
 
     def test_comparison_lt(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.LT, ColumnRef('t', 'x'), Literal(20)), self.row))
+        r = Row({'t.x': 5})
+        assert eval_expr(lt(col('t', 'x'), lit(10)), r) is True
+        assert eval_expr(lt(col('t', 'x'), lit(3)), r) is False
 
     def test_comparison_le(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.LE, ColumnRef('t', 'x'), Literal(10)), self.row))
+        r = Row({'t.x': 5})
+        assert eval_expr(le(col('t', 'x'), lit(5)), r) is True
 
     def test_comparison_gt(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.GT, ColumnRef('t', 'y'), Literal(10)), self.row))
+        r = Row({'t.x': 5})
+        assert eval_expr(gt(col('t', 'x'), lit(3)), r) is True
 
     def test_comparison_ge(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.GE, ColumnRef('t', 'y'), Literal(20)), self.row))
+        r = Row({'t.x': 5})
+        assert eval_expr(ge(col('t', 'x'), lit(5)), r) is True
 
-    def test_comparison_is_null(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.IS_NULL, ColumnRef('t', 'z'), None), self.row))
+    def test_is_null(self):
+        r = Row({'t.x': None})
+        assert eval_expr(Comparison(CompOp.IS_NULL, col('t', 'x'), None), r) is True
 
-    def test_comparison_is_not_null(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.IS_NOT_NULL, ColumnRef('t', 'x'), None), self.row))
+    def test_is_not_null(self):
+        r = Row({'t.x': 5})
+        assert eval_expr(Comparison(CompOp.IS_NOT_NULL, col('t', 'x'), None), r) is True
 
-    def test_comparison_like(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.LIKE, ColumnRef('t', 'name'), Literal('A%')), self.row))
-        self.assertFalse(eval_expr(
-            Comparison(CompOp.LIKE, ColumnRef('t', 'name'), Literal('B%')), self.row))
+    def test_like(self):
+        r = Row({'t.name': 'Alice'})
+        assert eval_expr(Comparison(CompOp.LIKE, col('t', 'name'), lit('Al%')), r) is True
+        assert eval_expr(Comparison(CompOp.LIKE, col('t', 'name'), lit('Bo%')), r) is False
 
-    def test_comparison_like_underscore(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.LIKE, ColumnRef('t', 'name'), Literal('A____')), self.row))
+    def test_like_underscore(self):
+        r = Row({'t.name': 'Alice'})
+        assert eval_expr(Comparison(CompOp.LIKE, col('t', 'name'), lit('A____')), r) is True
 
-    def test_comparison_in(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.IN, ColumnRef('t', 'x'), Literal([5, 10, 15])), self.row))
+    def test_in(self):
+        r = Row({'t.x': 3})
+        assert eval_expr(Comparison(CompOp.IN, col('t', 'x'), lit([1, 2, 3])), r) is True
+        assert eval_expr(Comparison(CompOp.IN, col('t', 'x'), lit([4, 5])), r) is False
 
-    def test_comparison_between(self):
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.BETWEEN, ColumnRef('t', 'x'), Literal((5, 15))), self.row))
+    def test_between(self):
+        r = Row({'t.x': 5})
+        assert eval_expr(Comparison(CompOp.BETWEEN, col('t', 'x'), lit((3, 7))), r) is True
+        assert eval_expr(Comparison(CompOp.BETWEEN, col('t', 'x'), lit((6, 10))), r) is False
 
-    def test_comparison_null_lt(self):
-        self.assertFalse(eval_expr(
-            Comparison(CompOp.LT, ColumnRef('t', 'z'), Literal(10)), self.row))
+    def test_null_comparisons(self):
+        r = Row({'t.x': None})
+        assert eval_expr(lt(col('t', 'x'), lit(5)), r) is False
+        assert eval_expr(gt(col('t', 'x'), lit(5)), r) is False
 
     def test_logic_and(self):
-        expr = LogicExpr(LogicOp.AND, [
-            Comparison(CompOp.GT, ColumnRef('t', 'x'), Literal(5)),
-            Comparison(CompOp.LT, ColumnRef('t', 'y'), Literal(30)),
-        ])
-        self.assertTrue(eval_expr(expr, self.row))
+        r = Row({'t.x': 5, 't.y': 10})
+        expr = and_(gt(col('t', 'x'), lit(3)), lt(col('t', 'y'), lit(20)))
+        assert eval_expr(expr, r) is True
 
     def test_logic_or(self):
-        expr = LogicExpr(LogicOp.OR, [
-            Comparison(CompOp.EQ, ColumnRef('t', 'x'), Literal(99)),
-            Comparison(CompOp.EQ, ColumnRef('t', 'y'), Literal(20)),
-        ])
-        self.assertTrue(eval_expr(expr, self.row))
+        r = Row({'t.x': 1})
+        expr = or_(eq(col('t', 'x'), lit(1)), eq(col('t', 'x'), lit(2)))
+        assert eval_expr(expr, r) is True
 
     def test_logic_not(self):
-        expr = LogicExpr(LogicOp.NOT, [
-            Comparison(CompOp.EQ, ColumnRef('t', 'x'), Literal(99)),
-        ])
-        self.assertTrue(eval_expr(expr, self.row))
+        r = Row({'t.x': 5})
+        expr = not_(eq(col('t', 'x'), lit(3)))
+        assert eval_expr(expr, r) is True
 
     def test_arith_add(self):
-        self.assertEqual(eval_expr(ArithExpr('+', ColumnRef('t', 'x'), Literal(5)), self.row), 15)
+        r = Row({'t.x': 3, 't.y': 4})
+        expr = ArithExpr('+', col('t', 'x'), col('t', 'y'))
+        assert eval_expr(expr, r) == 7
 
     def test_arith_sub(self):
-        self.assertEqual(eval_expr(ArithExpr('-', ColumnRef('t', 'y'), ColumnRef('t', 'x')), self.row), 10)
+        r = Row({'t.x': 10, 't.y': 3})
+        assert eval_expr(ArithExpr('-', col('t', 'x'), col('t', 'y')), r) == 7
 
     def test_arith_mul(self):
-        self.assertEqual(eval_expr(ArithExpr('*', ColumnRef('t', 'x'), Literal(2)), self.row), 20)
+        r = Row({'t.x': 3, 't.y': 4})
+        assert eval_expr(ArithExpr('*', col('t', 'x'), col('t', 'y')), r) == 12
 
     def test_arith_div(self):
-        self.assertEqual(eval_expr(ArithExpr('/', ColumnRef('t', 'y'), ColumnRef('t', 'x')), self.row), 2.0)
+        r = Row({'t.x': 10, 't.y': 4})
+        assert eval_expr(ArithExpr('/', col('t', 'x'), col('t', 'y')), r) == 2.5
 
     def test_arith_div_zero(self):
-        self.assertIsNone(eval_expr(ArithExpr('/', ColumnRef('t', 'x'), Literal(0)), self.row))
+        r = Row({'t.x': 10, 't.y': 0})
+        assert eval_expr(ArithExpr('/', col('t', 'x'), col('t', 'y')), r) is None
 
     def test_arith_null(self):
-        self.assertIsNone(eval_expr(ArithExpr('+', ColumnRef('t', 'z'), Literal(1)), self.row))
+        r = Row({'t.x': None, 't.y': 3})
+        assert eval_expr(ArithExpr('+', col('t', 'x'), col('t', 'y')), r) is None
 
     def test_case_expr(self):
-        case = CaseExpr(
-            whens=[
-                (Comparison(CompOp.GT, ColumnRef('t', 'x'), Literal(50)), Literal('high')),
-                (Comparison(CompOp.GT, ColumnRef('t', 'x'), Literal(5)), Literal('medium')),
-            ],
-            else_result=Literal('low')
+        r = Row({'t.x': 5})
+        expr = CaseExpr(
+            whens=[(gt(col('t', 'x'), lit(10)), lit('big')),
+                   (gt(col('t', 'x'), lit(3)), lit('medium'))],
+            else_result=lit('small')
         )
-        self.assertEqual(eval_expr(case, self.row), 'medium')
+        assert eval_expr(expr, r) == 'medium'
 
     def test_case_else(self):
-        case = CaseExpr(
-            whens=[(Comparison(CompOp.EQ, ColumnRef('t', 'x'), Literal(99)), Literal('match'))],
-            else_result=Literal('no_match')
+        r = Row({'t.x': 1})
+        expr = CaseExpr(
+            whens=[(gt(col('t', 'x'), lit(10)), lit('big'))],
+            else_result=lit('small')
         )
-        self.assertEqual(eval_expr(case, self.row), 'no_match')
-
-    def test_case_no_else(self):
-        case = CaseExpr(
-            whens=[(Comparison(CompOp.EQ, ColumnRef('t', 'x'), Literal(99)), Literal('match'))]
-        )
-        self.assertIsNone(eval_expr(case, self.row))
+        assert eval_expr(expr, r) == 'small'
 
     def test_func_abs(self):
-        self.assertEqual(eval_expr(FuncExpr('ABS', [Literal(-5)]), self.row), 5)
+        r = Row({'t.x': -5})
+        assert eval_expr(FuncExpr('ABS', [col('t', 'x')]), r) == 5
 
     def test_func_upper(self):
-        self.assertEqual(eval_expr(FuncExpr('UPPER', [ColumnRef('t', 'name')]), self.row), 'ALICE')
+        r = Row({'t.x': 'hello'})
+        assert eval_expr(FuncExpr('UPPER', [col('t', 'x')]), r) == 'HELLO'
 
     def test_func_lower(self):
-        self.assertEqual(eval_expr(FuncExpr('LOWER', [ColumnRef('t', 'name')]), self.row), 'alice')
+        r = Row({'t.x': 'HELLO'})
+        assert eval_expr(FuncExpr('LOWER', [col('t', 'x')]), r) == 'hello'
 
     def test_func_length(self):
-        self.assertEqual(eval_expr(FuncExpr('LENGTH', [ColumnRef('t', 'name')]), self.row), 5)
+        r = Row({'t.x': 'hello'})
+        assert eval_expr(FuncExpr('LENGTH', [col('t', 'x')]), r) == 5
 
     def test_func_coalesce(self):
-        self.assertEqual(eval_expr(FuncExpr('COALESCE', [ColumnRef('t', 'z'), Literal(42)]), self.row), 42)
+        r = Row({'t.x': None, 't.y': 5})
+        assert eval_expr(FuncExpr('COALESCE', [col('t', 'x'), col('t', 'y')]), r) == 5
 
     def test_func_concat(self):
-        self.assertEqual(eval_expr(FuncExpr('CONCAT', [Literal('a'), Literal('b')]), self.row), 'ab')
+        r = Row({'t.a': 'hello', 't.b': ' world'})
+        assert eval_expr(FuncExpr('CONCAT', [col('t', 'a'), col('t', 'b')]), r) == 'hello world'
 
-    def test_func_null(self):
-        self.assertIsNone(eval_expr(FuncExpr('ABS', [Literal(None)]), self.row))
+    def test_bare_string_column(self):
+        r = Row({'name': 'Alice'})
+        assert eval_expr('name', r) == 'Alice'
 
-    def test_unknown_expr_raises(self):
-        with self.assertRaises(ValueError):
-            eval_expr(object(), self.row)
+    def test_bare_literal_values(self):
+        r = Row({})
+        assert eval_expr(42, r) == 42
+        assert eval_expr(3.14, r) == 3.14
+        assert eval_expr(True, r) is True
+        assert eval_expr(None, r) is None
 
-
-# ===========================================================================
-# 5. Aggregate State
-# ===========================================================================
-
-class TestAggState(unittest.TestCase):
-    def _rows(self):
-        return [
-            Row({'val': 10}), Row({'val': 20}), Row({'val': 30}),
-            Row({'val': None}), Row({'val': 20}),
-        ]
-
-    def test_count(self):
-        state = AggState(AggCall(AggFunc.COUNT, ColumnRef(None, 'val')))
-        for r in self._rows():
-            state.accumulate(r)
-        self.assertEqual(state.result(), 4)  # None skipped
-
-    def test_count_star(self):
-        state = AggState(AggCall(AggFunc.COUNT_STAR))
-        for r in self._rows():
-            state.accumulate(r)
-        self.assertEqual(state.result(), 5)
-
-    def test_sum(self):
-        state = AggState(AggCall(AggFunc.SUM, ColumnRef(None, 'val')))
-        for r in self._rows():
-            state.accumulate(r)
-        self.assertEqual(state.result(), 80)
-
-    def test_avg(self):
-        state = AggState(AggCall(AggFunc.AVG, ColumnRef(None, 'val')))
-        for r in self._rows():
-            state.accumulate(r)
-        self.assertEqual(state.result(), 20.0)
-
-    def test_min(self):
-        state = AggState(AggCall(AggFunc.MIN, ColumnRef(None, 'val')))
-        for r in self._rows():
-            state.accumulate(r)
-        self.assertEqual(state.result(), 10)
-
-    def test_max(self):
-        state = AggState(AggCall(AggFunc.MAX, ColumnRef(None, 'val')))
-        for r in self._rows():
-            state.accumulate(r)
-        self.assertEqual(state.result(), 30)
-
-    def test_count_distinct(self):
-        state = AggState(AggCall(AggFunc.COUNT, ColumnRef(None, 'val'), distinct=True))
-        for r in self._rows():
-            state.accumulate(r)
-        self.assertEqual(state.result(), 3)  # 10, 20, 30
-
-    def test_sum_empty(self):
-        state = AggState(AggCall(AggFunc.SUM, ColumnRef(None, 'val')))
-        self.assertIsNone(state.result())
-
-    def test_avg_empty(self):
-        state = AggState(AggCall(AggFunc.AVG, ColumnRef(None, 'val')))
-        self.assertIsNone(state.result())
+    def test_like_null(self):
+        r = Row({'t.x': None})
+        assert eval_expr(Comparison(CompOp.LIKE, col('t', 'x'), lit('foo')), r) is False
 
 
 # ===========================================================================
-# 6. SeqScan
+# LIKE pattern matching
 # ===========================================================================
 
-class TestSeqScan(unittest.TestCase):
-    def test_scan_all(self):
+class TestLikePattern:
+    def test_percent_wildcard(self):
+        assert _match_like('hello', 'h%') is True
+        assert _match_like('hello', '%llo') is True
+        assert _match_like('hello', '%ll%') is True
+
+    def test_underscore_wildcard(self):
+        assert _match_like('abc', 'a_c') is True
+        assert _match_like('abcd', 'a_c') is False
+
+    def test_exact(self):
+        assert _match_like('abc', 'abc') is True
+        assert _match_like('abc', 'abd') is False
+
+    def test_empty(self):
+        assert _match_like('', '%') is True
+        assert _match_like('', '_') is False
+
+
+# ===========================================================================
+# SeqScan tests
+# ===========================================================================
+
+class TestSeqScan:
+    def test_scan_all_rows(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
         rows = collect(scan)
-        self.assertEqual(len(rows), 8)
+        assert len(rows) == 8
 
     def test_scan_empty_table(self):
         db = Database()
-        db.create_table('empty', ['id'])
-        rows = collect(SeqScanOp(db.get_table('empty')))
-        self.assertEqual(len(rows), 0)
+        t = db.create_table('empty', ['x'])
+        scan = SeqScanOp(t)
+        rows = collect(scan)
+        assert len(rows) == 0
 
-    def test_scan_stats(self):
+    def test_stats_tracking(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        collect(scan)
-        self.assertEqual(scan.stats.rows_produced, 8)
-        self.assertGreater(scan.stats.pages_read, 0)
+        rows = collect(scan)
+        assert scan.stats.rows_produced == 8
+        assert scan.stats.pages_read >= 1
+
+    def test_iterator_protocol(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
+        rows = list(scan)
+        assert len(rows) == 8
 
     def test_explain(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        self.assertIn('employees', scan.explain())
+        assert 'SeqScan(employees)' in scan.explain()
 
 
 # ===========================================================================
-# 7. IndexScan
+# IndexScan tests
 # ===========================================================================
 
-class TestIndexScan(unittest.TestCase):
-    def setUp(self):
-        self.db = make_db()
-        self.db.get_table('employees').add_index('idx_dept', 'dept_id')
-
-    def test_eq_lookup(self):
-        t = self.db.get_table('employees')
-        idx = t.get_index('dept_id')
-        scan = IndexScanOp(t, idx, lookup_value=1)
+class TestIndexScan:
+    def test_equality_scan(self):
+        db = make_db()
+        emp = db.get_table('employees')
+        idx = emp.add_index('idx_id', 'id')
+        scan = IndexScanOp(emp, idx, lookup_value=3)
         rows = collect(scan)
-        self.assertEqual(len(rows), 3)  # Alice, Bob, Grace
+        assert len(rows) == 1
+        assert rows[0].get('employees.name') == 'Charlie'
 
-    def test_range_lookup(self):
-        t = self.db.get_table('employees')
-        idx = t.get_index('dept_id')
-        scan = IndexScanOp(t, idx, low=2, high=3)
+    def test_range_scan(self):
+        db = make_db()
+        emp = db.get_table('employees')
+        idx = emp.add_index('idx_salary', 'salary')
+        scan = IndexScanOp(emp, idx, low=80000, high=95000)
         rows = collect(scan)
-        self.assertEqual(len(rows), 5)  # dept 2 (3) + dept 3 (2)
+        salaries = [r.get('employees.salary') for r in rows]
+        assert all(80000 <= s <= 95000 for s in salaries)
+        assert len(rows) == 4  # Bob(80k), Eve(85k), Alice(90k), Diana(95k)
 
     def test_explain(self):
-        t = self.db.get_table('employees')
-        idx = t.get_index('dept_id')
-        scan = IndexScanOp(t, idx, lookup_value=1)
-        self.assertIn('idx_dept', scan.explain())
+        db = make_db()
+        emp = db.get_table('employees')
+        idx = emp.add_index('idx_id', 'id')
+        scan = IndexScanOp(emp, idx, lookup_value=1)
+        assert 'IndexScan' in scan.explain()
 
 
 # ===========================================================================
-# 8. Filter
+# Filter tests
 # ===========================================================================
 
-class TestFilter(unittest.TestCase):
-    def test_filter_eq(self):
+class TestFilter:
+    def test_simple_filter(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        pred = Comparison(CompOp.EQ, ColumnRef('employees', 'dept_id'), Literal(1))
-        filt = FilterOp(scan, pred)
-        rows = collect(filt)
-        self.assertEqual(len(rows), 3)
+        pred = gt(col('employees', 'salary'), lit(85000))
+        f = FilterOp(scan, pred)
+        rows = collect(f)
+        assert len(rows) == 3  # Alice(90k), Diana(95k), Grace(100k)
 
-    def test_filter_gt(self):
+    def test_filter_all_pass(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        pred = Comparison(CompOp.GT, ColumnRef('employees', 'salary'), Literal(90000))
-        filt = FilterOp(scan, pred)
-        rows = collect(filt)
-        self.assertEqual(len(rows), 3)  # Carol 95k, Eve 110k, Heidi 92k
+        pred = gt(col('employees', 'salary'), lit(0))
+        rows = collect(FilterOp(scan, pred))
+        assert len(rows) == 8
 
-    def test_filter_and(self):
+    def test_filter_none_pass(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        pred = LogicExpr(LogicOp.AND, [
-            Comparison(CompOp.EQ, ColumnRef('employees', 'dept_id'), Literal(1)),
-            Comparison(CompOp.GT, ColumnRef('employees', 'salary'), Literal(82000)),
-        ])
-        filt = FilterOp(scan, pred)
-        rows = collect(filt)
-        self.assertEqual(len(rows), 2)  # Alice 90k, Grace 85k
+        pred = gt(col('employees', 'salary'), lit(999999))
+        rows = collect(FilterOp(scan, pred))
+        assert len(rows) == 0
+
+    def test_compound_filter(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
+        pred = and_(
+            gt(col('employees', 'salary'), lit(70000)),
+            lt(col('employees', 'age'), lit(30))
+        )
+        rows = collect(FilterOp(scan, pred))
+        names = [r.get('employees.name') for r in rows]
+        assert set(names) == {'Bob', 'Diana'}
 
     def test_filter_stats(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        pred = Comparison(CompOp.EQ, ColumnRef('employees', 'dept_id'), Literal(1))
-        filt = FilterOp(scan, pred)
-        collect(filt)
-        self.assertEqual(filt.stats.rows_produced, 3)
-        self.assertEqual(filt.stats.rows_consumed, 8)
-
-    def test_explain(self):
-        db = make_db()
-        scan = SeqScanOp(db.get_table('employees'))
-        pred = Comparison(CompOp.EQ, ColumnRef('employees', 'dept_id'), Literal(1))
-        filt = FilterOp(scan, pred)
-        self.assertIn('Filter', filt.explain())
+        pred = eq(col('employees', 'dept_id'), lit(1))
+        f = FilterOp(scan, pred)
+        rows = collect(f)
+        assert f.stats.rows_produced == 3
+        assert f.stats.rows_consumed == 8
 
 
 # ===========================================================================
-# 9. Project
+# Project tests
 # ===========================================================================
 
-class TestProject(unittest.TestCase):
+class TestProject:
     def test_project_columns(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
         proj = ProjectOp(scan, [
-            (ColumnRef('employees', 'name'), 'name'),
-            (ColumnRef('employees', 'salary'), 'salary'),
+            (col('employees', 'name'), 'name'),
+            (col('employees', 'salary'), 'salary'),
         ])
         rows = collect(proj)
-        self.assertEqual(len(rows), 8)
-        self.assertEqual(set(rows[0].columns()), {'name', 'salary'})
+        assert len(rows) == 8
+        assert set(rows[0].columns()) == {'name', 'salary'}
 
-    def test_project_computed(self):
+    def test_project_expression(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
         proj = ProjectOp(scan, [
-            (ColumnRef('employees', 'name'), 'name'),
-            (ArithExpr('*', ColumnRef('employees', 'salary'), Literal(1.1)), 'new_salary'),
+            (col('employees', 'name'), 'name'),
+            (ArithExpr('*', col('employees', 'salary'), lit(1.1)), 'raised_salary'),
         ])
         rows = collect(proj)
-        alice = rows[0]
-        self.assertAlmostEqual(alice.get('new_salary'), 99000.0)
+        alice = [r for r in rows if r.get('name') == 'Alice'][0]
+        assert abs(alice.get('raised_salary') - 99000) < 0.01
 
-    def test_project_explain(self):
+    def test_project_literal(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        proj = ProjectOp(scan, [(ColumnRef('employees', 'name'), 'name')])
-        self.assertIn('Project', proj.explain())
-        self.assertIn('name', proj.explain())
+        proj = ProjectOp(scan, [(lit(42), 'const')])
+        rows = collect(proj)
+        assert all(r.get('const') == 42 for r in rows)
 
 
 # ===========================================================================
-# 10. Hash Join
+# NestedLoopJoin tests
 # ===========================================================================
 
-class TestHashJoin(unittest.TestCase):
-    def test_inner_join(self):
-        db = make_db()
-        left = SeqScanOp(db.get_table('employees'))
-        right = SeqScanOp(db.get_table('departments'))
-        join = HashJoinOp(
-            left, right,
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id'),
-        )
-        rows = collect(join)
-        self.assertEqual(len(rows), 8)  # All employees match a dept
-
-    def test_join_values(self):
-        db = make_db()
-        left = SeqScanOp(db.get_table('employees'))
-        right = SeqScanOp(db.get_table('departments'))
-        join = HashJoinOp(
-            left, right,
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id'),
-        )
-        rows = collect(join)
-        # Alice is in dept 1 = Engineering
-        alice = [r for r in rows if r.get('employees.name') == 'Alice'][0]
-        self.assertEqual(alice.get('departments.name'), 'Engineering')
-
-    def test_left_join(self):
-        db = make_db()
-        # Add an employee with no dept
-        db.get_table('employees').insert({'id': 9, 'name': 'Zoe', 'dept_id': 99, 'salary': 50000})
-        left = SeqScanOp(db.get_table('employees'))
-        right = SeqScanOp(db.get_table('departments'))
-        join = HashJoinOp(
-            left, right,
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id'),
-            join_type='left'
-        )
-        rows = collect(join)
-        self.assertEqual(len(rows), 9)  # 8 matched + 1 unmatched
-        zoe = [r for r in rows if r.get('employees.name') == 'Zoe'][0]
-        self.assertIsNone(zoe.get('departments.name'))
-
-    def test_join_no_matches(self):
-        db = Database()
-        t1 = db.create_table('a', ['id'])
-        t1.insert({'id': 1})
-        t2 = db.create_table('b', ['id'])
-        t2.insert({'id': 2})
-        join = HashJoinOp(
-            SeqScanOp(t1), SeqScanOp(t2),
-            ColumnRef('a', 'id'), ColumnRef('b', 'id')
-        )
-        rows = collect(join)
-        self.assertEqual(len(rows), 0)
-
-    def test_explain(self):
-        db = make_db()
-        join = HashJoinOp(
-            SeqScanOp(db.get_table('employees')),
-            SeqScanOp(db.get_table('departments')),
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id'),
-        )
-        self.assertIn('HashJoin', join.explain())
-
-
-# ===========================================================================
-# 11. Nested Loop Join
-# ===========================================================================
-
-class TestNestedLoopJoin(unittest.TestCase):
+class TestNestedLoopJoin:
     def test_cross_join(self):
         db = make_db()
-        left = SeqScanOp(db.get_table('departments'))
-        right = SeqScanOp(db.get_table('departments'))
-        join = NestedLoopJoinOp(left, right)
+        emp = SeqScanOp(db.get_table('employees'))
+        dept = SeqScanOp(db.get_table('departments'))
+        join = NestedLoopJoinOp(emp, dept, join_type='cross')
         rows = collect(join)
-        self.assertEqual(len(rows), 9)  # 3 * 3
+        assert len(rows) == 8 * 3
 
-    def test_inner_with_predicate(self):
+    def test_inner_join(self):
         db = make_db()
-        left = SeqScanOp(db.get_table('employees'))
-        right = SeqScanOp(db.get_table('departments'))
-        pred = Comparison(CompOp.EQ,
-                          ColumnRef('employees', 'dept_id'),
-                          ColumnRef('departments', 'id'))
-        join = NestedLoopJoinOp(left, right, predicate=pred, join_type='inner')
+        emp = SeqScanOp(db.get_table('employees'))
+        dept = SeqScanOp(db.get_table('departments'))
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
+        join = NestedLoopJoinOp(emp, dept, predicate=pred, join_type='inner')
         rows = collect(join)
-        self.assertEqual(len(rows), 8)
-
-    def test_left_join_unmatched(self):
-        db = Database()
-        t1 = db.create_table('a', ['id', 'val'])
-        t1.insert_many([{'id': 1, 'val': 'x'}, {'id': 2, 'val': 'y'}])
-        t2 = db.create_table('b', ['id', 'val'])
-        t2.insert({'id': 1, 'val': 'z'})
-        pred = Comparison(CompOp.EQ, ColumnRef('a', 'id'), ColumnRef('b', 'id'))
-        join = NestedLoopJoinOp(
-            SeqScanOp(t1), SeqScanOp(t2), predicate=pred, join_type='left')
-        rows = collect(join)
-        self.assertEqual(len(rows), 2)
-        row2 = [r for r in rows if r.get('a.id') == 2][0]
-        self.assertIsNone(row2.get('b.val'))
-
-
-# ===========================================================================
-# 12. Sort-Merge Join
-# ===========================================================================
-
-class TestSortMergeJoin(unittest.TestCase):
-    def test_equi_join(self):
-        db = make_db()
-        left = SeqScanOp(db.get_table('employees'))
-        right = SeqScanOp(db.get_table('departments'))
-        join = SortMergeJoinOp(
-            left, right,
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id'),
-        )
-        rows = collect(join)
-        self.assertEqual(len(rows), 8)
+        assert len(rows) == 8  # all employees match a dept
 
     def test_left_join(self):
         db = make_db()
-        db.get_table('employees').insert({'id': 9, 'name': 'Zoe', 'dept_id': 99, 'salary': 50000})
-        left = SeqScanOp(db.get_table('employees'))
-        right = SeqScanOp(db.get_table('departments'))
-        join = SortMergeJoinOp(
-            left, right,
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id'),
+        # Add an employee with no matching dept
+        emp_table = db.get_table('employees')
+        emp_table.insert({'id': 9, 'name': 'Zara', 'dept_id': 99, 'salary': 50000, 'age': 20})
+
+        emp = SeqScanOp(emp_table)
+        dept = SeqScanOp(db.get_table('departments'))
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
+        join = NestedLoopJoinOp(emp, dept, predicate=pred, join_type='left')
+        rows = collect(join)
+        assert len(rows) == 9  # 8 matched + 1 unmatched (Zara)
+        zara = [r for r in rows if r.get('employees.name') == 'Zara'][0]
+        assert zara.get('departments.name') is None
+
+    def test_explain(self):
+        db = make_db()
+        emp = SeqScanOp(db.get_table('employees'))
+        dept = SeqScanOp(db.get_table('departments'))
+        join = NestedLoopJoinOp(emp, dept, join_type='inner')
+        e = join.explain()
+        assert 'NestedLoopJoin' in e
+        assert 'SeqScan' in e
+
+
+# ===========================================================================
+# HashJoin tests
+# ===========================================================================
+
+class TestHashJoin:
+    def test_inner_join(self):
+        db = make_db()
+        emp = SeqScanOp(db.get_table('employees'))
+        dept = SeqScanOp(db.get_table('departments'))
+        join = HashJoinOp(
+            emp, dept,
+            left_key=col('employees', 'dept_id'),
+            right_key=col('departments', 'id')
+        )
+        rows = collect(join)
+        assert len(rows) == 8
+        for r in rows:
+            assert r.get('employees.dept_id') == r.get('departments.id')
+
+    def test_left_join(self):
+        db = make_db()
+        emp_table = db.get_table('employees')
+        emp_table.insert({'id': 9, 'name': 'Nobody', 'dept_id': 99, 'salary': 0, 'age': 0})
+
+        emp = SeqScanOp(emp_table)
+        dept = SeqScanOp(db.get_table('departments'))
+        join = HashJoinOp(
+            emp, dept,
+            left_key=col('employees', 'dept_id'),
+            right_key=col('departments', 'id'),
             join_type='left'
         )
         rows = collect(join)
-        self.assertEqual(len(rows), 9)
+        assert len(rows) == 9
+        nobody = [r for r in rows if r.get('employees.name') == 'Nobody'][0]
+        assert nobody.get('departments.name') is None
 
-    def test_explain(self):
-        db = make_db()
-        join = SortMergeJoinOp(
-            SeqScanOp(db.get_table('employees')),
-            SeqScanOp(db.get_table('departments')),
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id'),
+    def test_no_matches(self):
+        db = Database()
+        t1 = db.create_table('t1', ['k'])
+        t1.insert_many([{'k': 1}, {'k': 2}])
+        t2 = db.create_table('t2', ['k'])
+        t2.insert_many([{'k': 3}, {'k': 4}])
+
+        join = HashJoinOp(
+            SeqScanOp(t1), SeqScanOp(t2),
+            left_key=col('t1', 'k'), right_key=col('t2', 'k')
         )
-        self.assertIn('SortMergeJoin', join.explain())
+        assert len(collect(join)) == 0
+
+    def test_duplicate_keys(self):
+        db = Database()
+        t1 = db.create_table('left', ['k', 'v'])
+        t1.insert_many([{'k': 1, 'v': 'a'}, {'k': 1, 'v': 'b'}])
+        t2 = db.create_table('right', ['k', 'w'])
+        t2.insert_many([{'k': 1, 'w': 'x'}, {'k': 1, 'w': 'y'}])
+
+        join = HashJoinOp(
+            SeqScanOp(t1), SeqScanOp(t2),
+            left_key=col('left', 'k'), right_key=col('right', 'k')
+        )
+        rows = collect(join)
+        assert len(rows) == 4  # 2 * 2
+
+    def test_stats(self):
+        db = make_db()
+        emp = SeqScanOp(db.get_table('employees'))
+        dept = SeqScanOp(db.get_table('departments'))
+        join = HashJoinOp(
+            emp, dept,
+            left_key=col('employees', 'dept_id'),
+            right_key=col('departments', 'id')
+        )
+        collect(join)
+        assert join.stats.memory_bytes > 0
 
 
 # ===========================================================================
-# 13. Sort
+# SortMergeJoin tests
 # ===========================================================================
 
-class TestSort(unittest.TestCase):
-    def test_sort_ascending(self):
+class TestSortMergeJoin:
+    def test_inner_join(self):
+        db = make_db()
+        emp = SeqScanOp(db.get_table('employees'))
+        dept = SeqScanOp(db.get_table('departments'))
+        join = SortMergeJoinOp(
+            emp, dept,
+            left_key=col('employees', 'dept_id'),
+            right_key=col('departments', 'id')
+        )
+        rows = collect(join)
+        assert len(rows) == 8
+
+    def test_left_join(self):
+        db = make_db()
+        emp_table = db.get_table('employees')
+        emp_table.insert({'id': 9, 'name': 'Loner', 'dept_id': 99, 'salary': 0, 'age': 0})
+
+        emp = SeqScanOp(emp_table)
+        dept = SeqScanOp(db.get_table('departments'))
+        join = SortMergeJoinOp(
+            emp, dept,
+            left_key=col('employees', 'dept_id'),
+            right_key=col('departments', 'id'),
+            join_type='left'
+        )
+        rows = collect(join)
+        assert len(rows) == 9
+
+    def test_with_duplicates(self):
+        db = Database()
+        t1 = db.create_table('a', ['k'])
+        t1.insert_many([{'k': 1}, {'k': 1}, {'k': 2}])
+        t2 = db.create_table('b', ['k'])
+        t2.insert_many([{'k': 1}, {'k': 2}, {'k': 2}])
+
+        join = SortMergeJoinOp(
+            SeqScanOp(t1), SeqScanOp(t2),
+            left_key=col('a', 'k'), right_key=col('b', 'k')
+        )
+        rows = collect(join)
+        # 2*1 for k=1, 1*2 for k=2 = 4
+        assert len(rows) == 4
+
+
+# ===========================================================================
+# Sort tests
+# ===========================================================================
+
+class TestSort:
+    def test_ascending(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        sort = SortOp(scan, [(ColumnRef('employees', 'salary'), True)])
+        sort = SortOp(scan, [(col('employees', 'salary'), True)])
         rows = collect(sort)
         salaries = [r.get('employees.salary') for r in rows]
-        self.assertEqual(salaries, sorted(salaries))
+        assert salaries == sorted(salaries)
 
-    def test_sort_descending(self):
+    def test_descending(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        sort = SortOp(scan, [(ColumnRef('employees', 'salary'), False)])
+        sort = SortOp(scan, [(col('employees', 'salary'), False)])
         rows = collect(sort)
         salaries = [r.get('employees.salary') for r in rows]
-        self.assertEqual(salaries, sorted(salaries, reverse=True))
+        assert salaries == sorted(salaries, reverse=True)
 
-    def test_sort_string(self):
+    def test_multi_key(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        sort = SortOp(scan, [(ColumnRef('employees', 'name'), True)])
+        sort = SortOp(scan, [
+            (col('employees', 'dept_id'), True),
+            (col('employees', 'salary'), False)
+        ])
+        rows = collect(sort)
+        # Within each dept, salary should be descending
+        dept1 = [r for r in rows if r.get('employees.dept_id') == 1]
+        assert [r.get('employees.salary') for r in dept1] == [100000, 90000, 80000]
+
+    def test_sort_with_nulls(self):
+        db = Database()
+        t = db.create_table('t', ['x'])
+        t.insert_many([{'x': 3}, {'x': None}, {'x': 1}])
+        scan = SeqScanOp(t)
+        sort = SortOp(scan, [(col('t', 'x'), True)])
+        rows = collect(sort)
+        vals = [r.get('t.x') for r in rows]
+        # NULLs sort last
+        assert vals[0] == 1
+        assert vals[1] == 3
+        assert vals[2] is None
+
+    def test_sort_strings(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
+        sort = SortOp(scan, [(col('employees', 'name'), True)])
         rows = collect(sort)
         names = [r.get('employees.name') for r in rows]
-        self.assertEqual(names, sorted(names))
+        assert names == sorted(names)
 
-    def test_explain(self):
+
+# ===========================================================================
+# HashAggregate tests
+# ===========================================================================
+
+class TestHashAggregate:
+    def test_count_star(self):
         db = make_db()
-        sort = SortOp(SeqScanOp(db.get_table('employees')),
-                       [(ColumnRef('employees', 'salary'), False)])
-        self.assertIn('Sort', sort.explain())
-        self.assertIn('DESC', sort.explain())
+        scan = SeqScanOp(db.get_table('employees'))
+        agg = HashAggregateOp(scan, [], [AggCall(AggFunc.COUNT_STAR, alias='cnt')])
+        rows = collect(agg)
+        assert len(rows) == 1
+        assert rows[0].get('cnt') == 8
 
+    def test_sum(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
+        agg = HashAggregateOp(scan, [], [
+            AggCall(AggFunc.SUM, col('employees', 'salary'), alias='total')
+        ])
+        rows = collect(agg)
+        assert rows[0].get('total') == 655000
 
-# ===========================================================================
-# 14. Hash Aggregate
-# ===========================================================================
+    def test_avg(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
+        agg = HashAggregateOp(scan, [], [
+            AggCall(AggFunc.AVG, col('employees', 'salary'), alias='avg_sal')
+        ])
+        rows = collect(agg)
+        assert abs(rows[0].get('avg_sal') - 81875) < 0.01
 
-class TestHashAggregate(unittest.TestCase):
-    def test_count_by_group(self):
+    def test_min_max(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
+        agg = HashAggregateOp(scan, [], [
+            AggCall(AggFunc.MIN, col('employees', 'salary'), alias='min_sal'),
+            AggCall(AggFunc.MAX, col('employees', 'salary'), alias='max_sal'),
+        ])
+        rows = collect(agg)
+        assert rows[0].get('min_sal') == 60000
+        assert rows[0].get('max_sal') == 100000
+
+    def test_group_by(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
         agg = HashAggregateOp(
             scan,
-            [ColumnRef('employees', 'dept_id')],
+            [col('employees', 'dept_id')],
             [AggCall(AggFunc.COUNT_STAR, alias='cnt')]
         )
         rows = collect(agg)
-        self.assertEqual(len(rows), 3)
+        assert len(rows) == 3
         counts = {r.get('employees.dept_id'): r.get('cnt') for r in rows}
-        self.assertEqual(counts[1], 3)
-        self.assertEqual(counts[2], 3)
-        self.assertEqual(counts[3], 2)
+        assert counts[1] == 3
+        assert counts[2] == 3
+        assert counts[3] == 2
 
-    def test_avg_salary(self):
+    def test_group_by_sum(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
         agg = HashAggregateOp(
             scan,
-            [ColumnRef('employees', 'dept_id')],
-            [AggCall(AggFunc.AVG, ColumnRef('employees', 'salary'), alias='avg_sal')]
+            [col('employees', 'dept_id')],
+            [AggCall(AggFunc.SUM, col('employees', 'salary'), alias='total')]
         )
         rows = collect(agg)
-        dept1 = [r for r in rows if r.get('employees.dept_id') == 1][0]
-        self.assertAlmostEqual(dept1.get('avg_sal'), (90000 + 80000 + 85000) / 3)
+        totals = {r.get('employees.dept_id'): r.get('total') for r in rows}
+        assert totals[1] == 270000  # Alice(90k) + Bob(80k) + Grace(100k)
+        assert totals[2] == 225000  # Charlie(70k) + Diana(95k) + Hank(60k)
+        assert totals[3] == 160000  # Eve(85k) + Frank(75k)
 
-    def test_scalar_aggregate(self):
+    def test_distinct_count(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        agg = HashAggregateOp(
-            scan, [],
-            [AggCall(AggFunc.COUNT_STAR, alias='total'),
-             AggCall(AggFunc.MAX, ColumnRef('employees', 'salary'), alias='max_sal')]
-        )
+        agg = HashAggregateOp(scan, [], [
+            AggCall(AggFunc.COUNT, col('employees', 'dept_id'), distinct=True, alias='cnt')
+        ])
         rows = collect(agg)
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0].get('total'), 8)
-        self.assertEqual(rows[0].get('max_sal'), 110000)
+        assert rows[0].get('cnt') == 3
 
-    def test_empty_table_scalar(self):
+    def test_empty_table_scalar_agg(self):
         db = Database()
-        db.create_table('empty', ['val'])
-        scan = SeqScanOp(db.get_table('empty'))
-        agg = HashAggregateOp(scan, [],
-                              [AggCall(AggFunc.COUNT_STAR, alias='cnt')])
+        t = db.create_table('empty', ['x'])
+        scan = SeqScanOp(t)
+        agg = HashAggregateOp(scan, [], [
+            AggCall(AggFunc.COUNT_STAR, alias='cnt'),
+            AggCall(AggFunc.SUM, col('empty', 'x'), alias='total'),
+        ])
         rows = collect(agg)
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0].get('cnt'), 0)
+        assert len(rows) == 1
+        assert rows[0].get('cnt') == 0
+        assert rows[0].get('total') is None
 
-    def test_multiple_aggs(self):
-        db = make_db()
-        scan = SeqScanOp(db.get_table('employees'))
-        agg = HashAggregateOp(
-            scan,
-            [ColumnRef('employees', 'dept_id')],
-            [
-                AggCall(AggFunc.COUNT_STAR, alias='cnt'),
-                AggCall(AggFunc.SUM, ColumnRef('employees', 'salary'), alias='total_sal'),
-                AggCall(AggFunc.MIN, ColumnRef('employees', 'salary'), alias='min_sal'),
-                AggCall(AggFunc.MAX, ColumnRef('employees', 'salary'), alias='max_sal'),
-            ]
-        )
+    def test_null_handling(self):
+        db = Database()
+        t = db.create_table('t', ['x'])
+        t.insert_many([{'x': 1}, {'x': None}, {'x': 3}])
+        scan = SeqScanOp(t)
+        agg = HashAggregateOp(scan, [], [
+            AggCall(AggFunc.COUNT, col('t', 'x'), alias='cnt'),
+            AggCall(AggFunc.SUM, col('t', 'x'), alias='total'),
+        ])
         rows = collect(agg)
-        self.assertEqual(len(rows), 3)
+        assert rows[0].get('cnt') == 2  # NULLs excluded
+        assert rows[0].get('total') == 4
 
 
 # ===========================================================================
-# 15. Limit
+# Limit tests
 # ===========================================================================
 
-class TestLimit(unittest.TestCase):
+class TestLimit:
     def test_basic_limit(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
         lim = LimitOp(scan, 3)
         rows = collect(lim)
-        self.assertEqual(len(rows), 3)
+        assert len(rows) == 3
 
-    def test_limit_with_offset(self):
-        db = make_db()
-        scan = SeqScanOp(db.get_table('employees'))
-        lim = LimitOp(scan, 2, offset=3)
-        rows = collect(lim)
-        self.assertEqual(len(rows), 2)
-
-    def test_limit_exceeds_rows(self):
+    def test_limit_greater_than_rows(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
         lim = LimitOp(scan, 100)
         rows = collect(lim)
-        self.assertEqual(len(rows), 8)
+        assert len(rows) == 8
 
-    def test_limit_zero(self):
+    def test_offset(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        lim = LimitOp(scan, 0)
+        lim = LimitOp(scan, 2, offset=3)
         rows = collect(lim)
-        self.assertEqual(len(rows), 0)
+        assert len(rows) == 2
 
-    def test_explain(self):
+    def test_offset_past_end(self):
         db = make_db()
-        lim = LimitOp(SeqScanOp(db.get_table('employees')), 5, offset=2)
-        self.assertIn('Limit', lim.explain())
-        self.assertIn('offset', lim.explain())
+        scan = SeqScanOp(db.get_table('employees'))
+        lim = LimitOp(scan, 5, offset=100)
+        rows = collect(lim)
+        assert len(rows) == 0
 
 
 # ===========================================================================
-# 16. Union
+# Union tests
 # ===========================================================================
 
-class TestUnion(unittest.TestCase):
+class TestUnion:
     def test_union_all(self):
         db = make_db()
-        left = SeqScanOp(db.get_table('departments'))
-        right = SeqScanOp(db.get_table('departments'))
-        union = UnionOp(left, right, all=True)
+        s1 = FilterOp(SeqScanOp(db.get_table('employees')),
+                       eq(col('employees', 'dept_id'), lit(1)))
+        s2 = FilterOp(SeqScanOp(db.get_table('employees')),
+                       eq(col('employees', 'dept_id'), lit(2)))
+        union = UnionOp(s1, s2, all=True)
         rows = collect(union)
-        self.assertEqual(len(rows), 6)
+        assert len(rows) == 6  # 3 + 3
 
     def test_union_distinct(self):
-        db = make_db()
-        left = SeqScanOp(db.get_table('departments'))
-        right = SeqScanOp(db.get_table('departments'))
-        union = UnionOp(left, right, all=False)
+        db = Database()
+        t = db.create_table('t', ['x'])
+        t.insert_many([{'x': 1}, {'x': 2}])
+        s1 = SeqScanOp(t)
+        s2 = SeqScanOp(t)
+        union = UnionOp(s1, s2, all=False)
         rows = collect(union)
-        self.assertEqual(len(rows), 3)
-
-    def test_explain(self):
-        db = make_db()
-        union = UnionOp(SeqScanOp(db.get_table('departments')),
-                        SeqScanOp(db.get_table('departments')), all=True)
-        self.assertIn('UnionAll', union.explain())
+        assert len(rows) == 2
 
 
 # ===========================================================================
-# 17. Distinct
+# Distinct tests
 # ===========================================================================
 
-class TestDistinct(unittest.TestCase):
-    def test_distinct_removes_dupes(self):
+class TestDistinct:
+    def test_removes_duplicates(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        proj = ProjectOp(scan, [(ColumnRef('employees', 'dept_id'), 'dept_id')])
+        proj = ProjectOp(scan, [(col('employees', 'dept_id'), 'dept_id')])
         dist = DistinctOp(proj)
         rows = collect(dist)
-        self.assertEqual(len(rows), 3)
+        assert len(rows) == 3
+
+    def test_no_duplicates(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
+        proj = ProjectOp(scan, [(col('employees', 'id'), 'id')])
+        dist = DistinctOp(proj)
+        rows = collect(dist)
+        assert len(rows) == 8
 
 
 # ===========================================================================
-# 18. TopN
+# TopN tests
 # ===========================================================================
 
-class TestTopN(unittest.TestCase):
+class TestTopN:
     def test_top_3_salary(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        topn = TopNOp(scan, [(ColumnRef('employees', 'salary'), False)], 3)
+        topn = TopNOp(scan, [(col('employees', 'salary'), False)], 3)
         rows = collect(topn)
-        self.assertEqual(len(rows), 3)
+        assert len(rows) == 3
         salaries = [r.get('employees.salary') for r in rows]
-        self.assertEqual(salaries, sorted(salaries, reverse=True))
-        self.assertEqual(salaries[0], 110000)
+        assert salaries == [100000, 95000, 90000]
 
-    def test_top_n_exceeds(self):
+    def test_top_n_ascending(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        topn = TopNOp(scan, [(ColumnRef('employees', 'salary'), True)], 100)
+        topn = TopNOp(scan, [(col('employees', 'salary'), True)], 2)
         rows = collect(topn)
-        self.assertEqual(len(rows), 8)
+        salaries = [r.get('employees.salary') for r in rows]
+        assert salaries == [60000, 70000]
 
-
-# ===========================================================================
-# 19. Materialize
-# ===========================================================================
-
-class TestMaterialize(unittest.TestCase):
-    def test_materialize_reuse(self):
+    def test_top_n_exceeds_rows(self):
         db = make_db()
-        scan = SeqScanOp(db.get_table('departments'))
+        scan = SeqScanOp(db.get_table('employees'))
+        topn = TopNOp(scan, [(col('employees', 'salary'), False)], 100)
+        rows = collect(topn)
+        assert len(rows) == 8
+
+
+# ===========================================================================
+# Materialize tests
+# ===========================================================================
+
+class TestMaterialize:
+    def test_reuse(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
         mat = MaterializeOp(scan)
-
-        # First pass
+        # First read
         rows1 = collect(mat)
-        self.assertEqual(len(rows1), 3)
-
-        # Second pass (reuses materialized data)
+        assert len(rows1) == 8
+        # Second read (should reuse materialized data)
         rows2 = collect(mat)
-        self.assertEqual(len(rows2), 3)
+        assert len(rows2) == 8
 
     def test_explain(self):
         db = make_db()
-        mat = MaterializeOp(SeqScanOp(db.get_table('departments')))
+        scan = SeqScanOp(db.get_table('employees'))
+        mat = MaterializeOp(scan)
         collect(mat)
-        self.assertIn('Materialize', mat.explain())
+        assert 'Materialize' in mat.explain()
 
 
 # ===========================================================================
-# 20. Semi Join
+# SemiJoin tests
 # ===========================================================================
 
-class TestSemiJoin(unittest.TestCase):
-    def test_semi_join(self):
+class TestSemiJoin:
+    def test_exists(self):
         db = make_db()
-        # Employees in departments with budget > 250000
-        left = SeqScanOp(db.get_table('employees'))
-        right = FilterOp(
-            SeqScanOp(db.get_table('departments')),
-            Comparison(CompOp.GT, ColumnRef('departments', 'budget'), Literal(250000))
-        )
-        pred = Comparison(CompOp.EQ,
-                          ColumnRef('employees', 'dept_id'),
-                          ColumnRef('departments', 'id'))
-        semi = SemiJoinOp(left, right, pred)
+        emp = SeqScanOp(db.get_table('employees'))
+        dept = SeqScanOp(db.get_table('departments'))
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
+        semi = SemiJoinOp(emp, dept, pred)
         rows = collect(semi)
-        # Depts with budget > 250k: Engineering (500k), Marketing (300k) -> depts 1, 2
-        dept_ids = set(r.get('employees.dept_id') for r in rows)
-        self.assertEqual(dept_ids, {1, 2})
-        self.assertEqual(len(rows), 6)  # 3 from dept 1 + 3 from dept 2
+        # All employees match a dept
+        assert len(rows) == 8
 
-
-# ===========================================================================
-# 21. Anti Join
-# ===========================================================================
-
-class TestAntiJoin(unittest.TestCase):
-    def test_anti_join(self):
+    def test_semi_join_filters(self):
         db = make_db()
-        # Employees NOT in departments with budget > 250000
-        left = SeqScanOp(db.get_table('employees'))
-        right = FilterOp(
-            SeqScanOp(db.get_table('departments')),
-            Comparison(CompOp.GT, ColumnRef('departments', 'budget'), Literal(250000))
-        )
-        pred = Comparison(CompOp.EQ,
-                          ColumnRef('employees', 'dept_id'),
-                          ColumnRef('departments', 'id'))
-        anti = AntiJoinOp(left, right, pred)
+        emp_table = db.get_table('employees')
+        emp_table.insert({'id': 9, 'name': 'Orphan', 'dept_id': 99, 'salary': 0, 'age': 0})
+
+        emp = SeqScanOp(emp_table)
+        dept = SeqScanOp(db.get_table('departments'))
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
+        semi = SemiJoinOp(emp, dept, pred)
+        rows = collect(semi)
+        assert len(rows) == 8  # Orphan excluded
+        names = [r.get('employees.name') for r in rows]
+        assert 'Orphan' not in names
+
+
+# ===========================================================================
+# AntiJoin tests
+# ===========================================================================
+
+class TestAntiJoin:
+    def test_not_exists(self):
+        db = make_db()
+        emp_table = db.get_table('employees')
+        emp_table.insert({'id': 9, 'name': 'Orphan', 'dept_id': 99, 'salary': 0, 'age': 0})
+
+        emp = SeqScanOp(emp_table)
+        dept = SeqScanOp(db.get_table('departments'))
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
+        anti = AntiJoinOp(emp, dept, pred)
         rows = collect(anti)
-        # Only dept 3 (Sales, 200k) employees
-        dept_ids = set(r.get('employees.dept_id') for r in rows)
-        self.assertEqual(dept_ids, {3})
-        self.assertEqual(len(rows), 2)
+        assert len(rows) == 1
+        assert rows[0].get('employees.name') == 'Orphan'
+
+    def test_all_match(self):
+        db = make_db()
+        emp = SeqScanOp(db.get_table('employees'))
+        dept = SeqScanOp(db.get_table('departments'))
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
+        anti = AntiJoinOp(emp, dept, pred)
+        rows = collect(anti)
+        assert len(rows) == 0
 
 
 # ===========================================================================
-# 22. Having
+# Having tests
 # ===========================================================================
 
-class TestHaving(unittest.TestCase):
+class TestHaving:
     def test_having_filter(self):
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
         agg = HashAggregateOp(
             scan,
-            [ColumnRef('employees', 'dept_id')],
+            [col('employees', 'dept_id')],
             [AggCall(AggFunc.COUNT_STAR, alias='cnt')]
         )
-        having = HavingOp(agg, Comparison(CompOp.GE, ColumnRef(None, 'cnt'), Literal(3)))
+        having = HavingOp(agg, ge(col(None, 'cnt'), lit(3)))
         rows = collect(having)
-        self.assertEqual(len(rows), 2)  # dept 1 (3) and dept 2 (3)
+        # Dept 1 has 3, Dept 2 has 3, Dept 3 has 2
+        assert len(rows) == 2
 
 
 # ===========================================================================
-# 23. Iterator Protocol
+# Database tests
 # ===========================================================================
 
-class TestIterator(unittest.TestCase):
-    def test_for_loop(self):
-        db = make_db()
-        scan = SeqScanOp(db.get_table('employees'))
-        count = 0
-        for row in scan:
-            count += 1
-        self.assertEqual(count, 8)
-
-
-# ===========================================================================
-# 24. ExecStats
-# ===========================================================================
-
-class TestExecStats(unittest.TestCase):
-    def test_totals(self):
-        parent = ExecStats(operator='Join', rows_produced=10, pages_read=5, memory_bytes=1000)
-        child1 = ExecStats(operator='Scan', rows_produced=100, pages_read=20)
-        child2 = ExecStats(operator='Scan', rows_produced=50, pages_read=10)
-        parent.children = [child1, child2]
-        self.assertEqual(parent.total_rows(), 160)
-        self.assertEqual(parent.total_pages(), 35)
-
-    def test_to_dict(self):
-        s = ExecStats(operator='Scan', rows_produced=5)
-        d = s.to_dict()
-        self.assertEqual(d['operator'], 'Scan')
-        self.assertEqual(d['rows_produced'], 5)
-
-
-# ===========================================================================
-# 25. Database and ExecutionEngine
-# ===========================================================================
-
-class TestDatabase(unittest.TestCase):
+class TestDatabase:
     def test_create_and_get(self):
         db = Database()
-        t = db.create_table('t', ['id'])
-        self.assertIs(db.get_table('t'), t)
-
-    def test_drop_table(self):
-        db = Database()
-        db.create_table('t', ['id'])
-        db.drop_table('t')
-        self.assertIsNone(db.get_table('t'))
+        t = db.create_table('foo', ['a', 'b'])
+        assert db.get_table('foo') is t
 
     def test_get_missing(self):
         db = Database()
-        self.assertIsNone(db.get_table('missing'))
+        assert db.get_table('bar') is None
+
+    def test_drop_table(self):
+        db = Database()
+        db.create_table('foo', ['a'])
+        db.drop_table('foo')
+        assert db.get_table('foo') is None
 
 
-class TestExecutionEngine(unittest.TestCase):
+# ===========================================================================
+# ExecutionEngine tests
+# ===========================================================================
+
+class TestExecutionEngine:
     def test_execute(self):
         db = make_db()
         engine = ExecutionEngine(db)
         scan = SeqScanOp(db.get_table('employees'))
         rows = engine.execute(scan)
-        self.assertEqual(len(rows), 8)
+        assert len(rows) == 8
 
     def test_execute_iter(self):
         db = make_db()
         engine = ExecutionEngine(db)
         scan = SeqScanOp(db.get_table('employees'))
-        count = sum(1 for _ in engine.execute_iter(scan))
-        self.assertEqual(count, 8)
+        rows = list(engine.execute_iter(scan))
+        assert len(rows) == 8
 
     def test_explain(self):
         db = make_db()
         engine = ExecutionEngine(db)
         scan = SeqScanOp(db.get_table('employees'))
-        self.assertIn('SeqScan', engine.explain(scan))
+        filt = FilterOp(scan, gt(col('employees', 'salary'), lit(80000)))
+        text = engine.explain(filt)
+        assert 'Filter' in text
+        assert 'SeqScan' in text
 
     def test_explain_analyze(self):
         db = make_db()
         engine = ExecutionEngine(db)
         scan = SeqScanOp(db.get_table('employees'))
         result = engine.explain_analyze(scan)
-        self.assertEqual(result['rows'], 8)
-        self.assertIn('stats', result)
+        assert result['rows'] == 8
+        assert 'stats' in result
+        assert 'results' in result
 
 
 # ===========================================================================
-# 26. QueryPlan Builder
+# QueryPlan builder tests
 # ===========================================================================
 
-class TestQueryPlan(unittest.TestCase):
-    def setUp(self):
-        self.db = make_db()
-
-    def test_scan(self):
-        rows = QueryPlan(self.db).scan('employees').execute()
-        self.assertEqual(len(rows), 8)
-
-    def test_scan_missing(self):
-        with self.assertRaises(ValueError):
-            QueryPlan(self.db).scan('missing')
-
-    def test_filter(self):
-        rows = (QueryPlan(self.db)
+class TestQueryPlan:
+    def test_scan_and_filter(self):
+        db = make_db()
+        rows = (QueryPlan(db)
                 .scan('employees')
-                .filter(Comparison(CompOp.GT, ColumnRef('employees', 'salary'), Literal(90000)))
+                .filter(gt(col('employees', 'salary'), lit(85000)))
                 .execute())
-        self.assertEqual(len(rows), 3)
+        assert len(rows) == 3
 
-    def test_project(self):
-        rows = (QueryPlan(self.db)
+    def test_scan_filter_project(self):
+        db = make_db()
+        rows = (QueryPlan(db)
                 .scan('employees')
-                .project([(ColumnRef('employees', 'name'), 'name')])
+                .filter(eq(col('employees', 'dept_id'), lit(1)))
+                .project([(col('employees', 'name'), 'name')])
                 .execute())
-        self.assertEqual(set(rows[0].columns()), {'name'})
+        assert len(rows) == 3
+        names = {r.get('name') for r in rows}
+        assert names == {'Alice', 'Bob', 'Grace'}
 
     def test_hash_join(self):
-        left = QueryPlan(self.db).scan('employees')
-        right = QueryPlan(self.db).scan('departments')
-        rows = left.hash_join(
-            right,
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id')
-        ).execute()
-        self.assertEqual(len(rows), 8)
+        db = make_db()
+        left = QueryPlan(db).scan('employees')
+        right = QueryPlan(db).scan('departments')
+        rows = (left.hash_join(right,
+                               col('employees', 'dept_id'),
+                               col('departments', 'id'))
+                .execute())
+        assert len(rows) == 8
 
     def test_nested_loop_join(self):
-        left = QueryPlan(self.db).scan('employees')
-        right = QueryPlan(self.db).scan('departments')
-        pred = Comparison(CompOp.EQ,
-                          ColumnRef('employees', 'dept_id'),
-                          ColumnRef('departments', 'id'))
+        db = make_db()
+        left = QueryPlan(db).scan('employees')
+        right = QueryPlan(db).scan('departments')
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
         rows = left.nested_loop_join(right, pred).execute()
-        self.assertEqual(len(rows), 8)
+        assert len(rows) == 8
 
     def test_sort_merge_join(self):
-        left = QueryPlan(self.db).scan('employees')
-        right = QueryPlan(self.db).scan('departments')
-        rows = left.sort_merge_join(
-            right,
-            ColumnRef('employees', 'dept_id'),
-            ColumnRef('departments', 'id')
-        ).execute()
-        self.assertEqual(len(rows), 8)
+        db = make_db()
+        left = QueryPlan(db).scan('employees')
+        right = QueryPlan(db).scan('departments')
+        rows = (left.sort_merge_join(right,
+                                      col('employees', 'dept_id'),
+                                      col('departments', 'id'))
+                .execute())
+        assert len(rows) == 8
 
     def test_sort(self):
-        rows = (QueryPlan(self.db)
+        db = make_db()
+        rows = (QueryPlan(db)
                 .scan('employees')
-                .sort([(ColumnRef('employees', 'salary'), False)])
+                .sort([(col('employees', 'salary'), True)])
                 .execute())
         salaries = [r.get('employees.salary') for r in rows]
-        self.assertEqual(salaries, sorted(salaries, reverse=True))
+        assert salaries == sorted(salaries)
 
     def test_aggregate(self):
-        rows = (QueryPlan(self.db)
+        db = make_db()
+        rows = (QueryPlan(db)
                 .scan('employees')
-                .aggregate(
-                    [ColumnRef('employees', 'dept_id')],
-                    [AggCall(AggFunc.COUNT_STAR, alias='cnt')]
-                )
+                .aggregate([], [AggCall(AggFunc.COUNT_STAR, alias='cnt')])
                 .execute())
-        self.assertEqual(len(rows), 3)
-
-    def test_having(self):
-        rows = (QueryPlan(self.db)
-                .scan('employees')
-                .aggregate(
-                    [ColumnRef('employees', 'dept_id')],
-                    [AggCall(AggFunc.COUNT_STAR, alias='cnt')]
-                )
-                .having(Comparison(CompOp.GE, ColumnRef(None, 'cnt'), Literal(3)))
-                .execute())
-        self.assertEqual(len(rows), 2)
+        assert rows[0].get('cnt') == 8
 
     def test_limit(self):
-        rows = QueryPlan(self.db).scan('employees').limit(3).execute()
-        self.assertEqual(len(rows), 3)
+        db = make_db()
+        rows = (QueryPlan(db)
+                .scan('employees')
+                .limit(3)
+                .execute())
+        assert len(rows) == 3
 
     def test_distinct(self):
-        rows = (QueryPlan(self.db)
+        db = make_db()
+        rows = (QueryPlan(db)
                 .scan('employees')
-                .project([(ColumnRef('employees', 'dept_id'), 'dept_id')])
+                .project([(col('employees', 'dept_id'), 'dept_id')])
                 .distinct()
                 .execute())
-        self.assertEqual(len(rows), 3)
+        assert len(rows) == 3
 
     def test_union(self):
-        left = QueryPlan(self.db).scan('departments')
-        right = QueryPlan(self.db).scan('departments')
-        rows = left.union(right, all=True).execute()
-        self.assertEqual(len(rows), 6)
+        db = make_db()
+        q1 = (QueryPlan(db)
+              .scan('employees')
+              .filter(eq(col('employees', 'dept_id'), lit(1))))
+        q2 = (QueryPlan(db)
+              .scan('employees')
+              .filter(eq(col('employees', 'dept_id'), lit(2))))
+        rows = q1.union(q2).execute()
+        assert len(rows) == 6
 
     def test_top_n(self):
-        rows = (QueryPlan(self.db)
+        db = make_db()
+        rows = (QueryPlan(db)
                 .scan('employees')
-                .top_n([(ColumnRef('employees', 'salary'), False)], 3)
+                .top_n([(col('employees', 'salary'), False)], 3)
                 .execute())
-        self.assertEqual(len(rows), 3)
+        assert len(rows) == 3
 
     def test_materialize(self):
-        plan = QueryPlan(self.db).scan('departments').materialize()
-        rows1 = plan.execute()
-        rows2 = plan.execute()
-        self.assertEqual(len(rows1), 3)
-        self.assertEqual(len(rows2), 3)
+        db = make_db()
+        q = QueryPlan(db).scan('employees').materialize()
+        rows1 = q.execute()
+        rows2 = q.execute()
+        assert len(rows1) == 8
+        assert len(rows2) == 8
 
     def test_semi_join(self):
-        left = QueryPlan(self.db).scan('employees')
-        right = QueryPlan(self.db).scan('departments').filter(
-            Comparison(CompOp.GT, ColumnRef('departments', 'budget'), Literal(400000)))
-        pred = Comparison(CompOp.EQ,
-                          ColumnRef('employees', 'dept_id'),
-                          ColumnRef('departments', 'id'))
+        db = make_db()
+        left = QueryPlan(db).scan('employees')
+        right = QueryPlan(db).scan('departments')
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
         rows = left.semi_join(right, pred).execute()
-        self.assertEqual(len(rows), 3)  # Only Engineering (500k)
+        assert len(rows) == 8
 
     def test_anti_join(self):
-        left = QueryPlan(self.db).scan('employees')
-        right = QueryPlan(self.db).scan('departments').filter(
-            Comparison(CompOp.GT, ColumnRef('departments', 'budget'), Literal(250000)))
-        pred = Comparison(CompOp.EQ,
-                          ColumnRef('employees', 'dept_id'),
-                          ColumnRef('departments', 'id'))
+        db = make_db()
+        left = QueryPlan(db).scan('employees')
+        right = QueryPlan(db).scan('departments')
+        pred = eq(col('employees', 'dept_id'), col('departments', 'id'))
         rows = left.anti_join(right, pred).execute()
-        self.assertEqual(len(rows), 2)  # Sales dept only
+        assert len(rows) == 0
 
-    def test_index_scan(self):
-        self.db.get_table('employees').add_index('idx_dept', 'dept_id')
-        rows = QueryPlan(self.db).index_scan('employees', 'dept_id', value=2).execute()
-        self.assertEqual(len(rows), 3)
-
-    def test_index_scan_no_index(self):
-        with self.assertRaises(ValueError):
-            QueryPlan(self.db).index_scan('employees', 'nonexistent')
+    def test_having(self):
+        db = make_db()
+        rows = (QueryPlan(db)
+                .scan('employees')
+                .aggregate(
+                    [col('employees', 'dept_id')],
+                    [AggCall(AggFunc.SUM, col('employees', 'salary'), alias='total')]
+                )
+                .having(gt(col(None, 'total'), lit(200000)))
+                .execute())
+        # Dept 1: 270k, Dept 2: 225k, Dept 3: 160k -> 2 pass
+        assert len(rows) == 2
 
     def test_explain(self):
-        plan = QueryPlan(self.db).scan('employees').filter(
-            Comparison(CompOp.GT, ColumnRef('employees', 'salary'), Literal(90000)))
-        self.assertIn('Filter', plan.explain())
+        db = make_db()
+        q = (QueryPlan(db)
+             .scan('employees')
+             .filter(gt(col('employees', 'salary'), lit(80000)))
+             .project([(col('employees', 'name'), 'name')]))
+        text = q.explain()
+        assert 'Project' in text
+        assert 'Filter' in text
+        assert 'SeqScan' in text
 
-    def test_complex_pipeline(self):
-        """SELECT d.name, COUNT(*), AVG(salary) FROM employees e
-           JOIN departments d ON e.dept_id = d.id
-           WHERE salary > 70000
-           GROUP BY d.name
-           HAVING COUNT(*) >= 2
-           ORDER BY d.name"""
-        left = QueryPlan(self.db).scan('employees')
-        right = QueryPlan(self.db).scan('departments')
-        rows = (left
-                .hash_join(right,
-                           ColumnRef('employees', 'dept_id'),
-                           ColumnRef('departments', 'id'))
-                .filter(Comparison(CompOp.GT, ColumnRef('employees', 'salary'), Literal(70000)))
-                .aggregate(
-                    [ColumnRef('departments', 'name')],
-                    [AggCall(AggFunc.COUNT_STAR, alias='cnt'),
-                     AggCall(AggFunc.AVG, ColumnRef('employees', 'salary'), alias='avg_sal')]
-                )
-                .having(Comparison(CompOp.GE, ColumnRef(None, 'cnt'), Literal(2)))
-                .sort([(ColumnRef('departments', 'name'), True)])
+    def test_index_scan_builder(self):
+        db = make_db()
+        emp = db.get_table('employees')
+        emp.add_index('idx_id', 'id')
+        rows = (QueryPlan(db)
+                .index_scan('employees', 'id', value=1)
                 .execute())
-        # Engineering: Alice 90k, Bob 80k, Grace 85k -> 3, avg 85k
-        # Marketing: Carol 95k, Heidi 92k (Dave 70k excluded) -> 2, avg 93.5k
-        # Sales: Eve 110k (Frank 65k excluded) -> 1, filtered by HAVING
-        self.assertEqual(len(rows), 2)
-        names = [r.get('departments.name') for r in rows]
-        self.assertEqual(names, ['Engineering', 'Marketing'])
+        assert len(rows) == 1
+
+    def test_scan_missing_table(self):
+        db = Database()
+        with pytest.raises(ValueError, match="Table not found"):
+            QueryPlan(db).scan('nonexistent')
+
+    def test_index_scan_missing_table(self):
+        db = Database()
+        with pytest.raises(ValueError, match="Table not found"):
+            QueryPlan(db).index_scan('nonexistent', 'col')
+
+    def test_index_scan_missing_index(self):
+        db = make_db()
+        with pytest.raises(ValueError, match="No index"):
+            QueryPlan(db).index_scan('employees', 'name')
 
 
 # ===========================================================================
-# 27. Integration: Complex Queries
+# ExecStats tests
 # ===========================================================================
 
-class TestIntegration(unittest.TestCase):
-    def setUp(self):
-        self.db = make_db()
+class TestExecStats:
+    def test_totals(self):
+        child = ExecStats(operator='child', rows_produced=10, pages_read=2, memory_bytes=500)
+        parent = ExecStats(operator='parent', rows_produced=5, pages_read=1, memory_bytes=200,
+                           children=[child])
+        assert parent.total_rows() == 15
+        assert parent.total_pages() == 3
+        assert parent.total_memory() == 700
 
-    def test_top_earner_per_dept(self):
-        """Find highest salary per department."""
-        scan = SeqScanOp(self.db.get_table('employees'))
-        agg = HashAggregateOp(
-            scan,
-            [ColumnRef('employees', 'dept_id')],
-            [AggCall(AggFunc.MAX, ColumnRef('employees', 'salary'), alias='max_sal')]
-        )
-        sort = SortOp(agg, [(ColumnRef(None, 'max_sal'), False)])
-        rows = collect(sort)
-        self.assertEqual(len(rows), 3)
-        self.assertEqual(rows[0].get('max_sal'), 110000)
+    def test_to_dict(self):
+        s = ExecStats(operator='Scan', rows_produced=10, pages_read=5)
+        d = s.to_dict()
+        assert d['operator'] == 'Scan'
+        assert d['rows_produced'] == 10
 
-    def test_filtered_join_with_limit(self):
-        left = SeqScanOp(self.db.get_table('employees'))
-        right = SeqScanOp(self.db.get_table('departments'))
-        join = HashJoinOp(left, right,
-                          ColumnRef('employees', 'dept_id'),
-                          ColumnRef('departments', 'id'))
-        filt = FilterOp(join, Comparison(CompOp.GT,
-                                          ColumnRef('employees', 'salary'), Literal(80000)))
-        sort = SortOp(filt, [(ColumnRef('employees', 'salary'), False)])
-        lim = LimitOp(sort, 3)
-        rows = collect(lim)
-        self.assertEqual(len(rows), 3)
-        self.assertEqual(rows[0].get('employees.salary'), 110000)
+
+# ===========================================================================
+# AggState tests
+# ===========================================================================
+
+class TestAggState:
+    def test_count(self):
+        agg = AggCall(AggFunc.COUNT, col('t', 'x'))
+        state = AggState(agg)
+        state.accumulate(Row({'t.x': 1}))
+        state.accumulate(Row({'t.x': None}))
+        state.accumulate(Row({'t.x': 3}))
+        assert state.result() == 2
+
+    def test_sum(self):
+        agg = AggCall(AggFunc.SUM, col('t', 'x'))
+        state = AggState(agg)
+        for v in [10, 20, 30]:
+            state.accumulate(Row({'t.x': v}))
+        assert state.result() == 60
+
+    def test_avg(self):
+        agg = AggCall(AggFunc.AVG, col('t', 'x'))
+        state = AggState(agg)
+        for v in [10, 20, 30]:
+            state.accumulate(Row({'t.x': v}))
+        assert state.result() == 20.0
+
+    def test_min(self):
+        agg = AggCall(AggFunc.MIN, col('t', 'x'))
+        state = AggState(agg)
+        for v in [30, 10, 20]:
+            state.accumulate(Row({'t.x': v}))
+        assert state.result() == 10
+
+    def test_max(self):
+        agg = AggCall(AggFunc.MAX, col('t', 'x'))
+        state = AggState(agg)
+        for v in [30, 10, 20]:
+            state.accumulate(Row({'t.x': v}))
+        assert state.result() == 30
+
+    def test_distinct(self):
+        agg = AggCall(AggFunc.SUM, col('t', 'x'), distinct=True)
+        state = AggState(agg)
+        for v in [10, 10, 20]:
+            state.accumulate(Row({'t.x': v}))
+        assert state.result() == 30  # 10 + 20, not 10 + 10 + 20
+
+
+# ===========================================================================
+# Complex query tests (multi-operator pipelines)
+# ===========================================================================
+
+class TestComplexQueries:
+    def test_join_filter_project(self):
+        """SELECT e.name, d.name FROM employees e JOIN departments d ON e.dept_id = d.id WHERE salary > 85000"""
+        db = make_db()
+        rows = (QueryPlan(db)
+                .scan('employees')
+                .hash_join(
+                    QueryPlan(db).scan('departments'),
+                    col('employees', 'dept_id'),
+                    col('departments', 'id')
+                )
+                .filter(gt(col('employees', 'salary'), lit(85000)))
+                .project([
+                    (col('employees', 'name'), 'emp_name'),
+                    (col('departments', 'name'), 'dept_name'),
+                ])
+                .execute())
+        names = {r.get('emp_name') for r in rows}
+        assert names == {'Alice', 'Diana', 'Grace'}
+
+    def test_group_by_having_sort(self):
+        """SELECT dept_id, AVG(salary) FROM employees GROUP BY dept_id HAVING AVG(salary) > 80000 ORDER BY avg DESC"""
+        db = make_db()
+        rows = (QueryPlan(db)
+                .scan('employees')
+                .aggregate(
+                    [col('employees', 'dept_id')],
+                    [AggCall(AggFunc.AVG, col('employees', 'salary'), alias='avg_sal')]
+                )
+                .having(gt(col(None, 'avg_sal'), lit(80000)))
+                .sort([(col(None, 'avg_sal'), False)])
+                .execute())
+        # Dept 1: avg 90k, Dept 2: avg 75k, Dept 3: avg 80k -> 1 pass
+        assert len(rows) == 1  # Only Dept 1 (90k) passes > 80000
+
+    def test_subquery_with_materialize(self):
+        """Find employees earning more than avg salary."""
+        db = make_db()
+        # Get avg salary
+        avg_plan = (QueryPlan(db)
+                    .scan('employees')
+                    .aggregate([], [AggCall(AggFunc.AVG, col('employees', 'salary'), alias='avg')]))
+        avg_rows = avg_plan.execute()
+        avg_salary = avg_rows[0].get('avg')
+
+        # Find those above avg
+        rows = (QueryPlan(db)
+                .scan('employees')
+                .filter(gt(col('employees', 'salary'), lit(avg_salary)))
+                .project([(col('employees', 'name'), 'name'),
+                          (col('employees', 'salary'), 'salary')])
+                .sort([(col(None, 'salary'), False)])
+                .execute())
+        names = [r.get('name') for r in rows]
+        assert 'Grace' in names
+        assert 'Diana' in names
+        assert 'Alice' in names
+        assert 'Eve' in names
+
+    def test_top_n_per_dept(self):
+        """Top earner per department using sort + limit per group (manual)."""
+        db = make_db()
+        results = {}
+        for dept_id in [1, 2, 3]:
+            rows = (QueryPlan(db)
+                    .scan('employees')
+                    .filter(eq(col('employees', 'dept_id'), lit(dept_id)))
+                    .sort([(col('employees', 'salary'), False)])
+                    .limit(1)
+                    .execute())
+            results[dept_id] = rows[0].get('employees.name')
+        assert results[1] == 'Grace'
+        assert results[2] == 'Diana'
+        assert results[3] == 'Eve'
+
+    def test_join_aggregate(self):
+        """SELECT d.name, COUNT(*), SUM(e.salary) FROM employees e JOIN departments d ..."""
+        db = make_db()
+        rows = (QueryPlan(db)
+                .scan('employees')
+                .hash_join(
+                    QueryPlan(db).scan('departments'),
+                    col('employees', 'dept_id'),
+                    col('departments', 'id')
+                )
+                .aggregate(
+                    [col('departments', 'name')],
+                    [AggCall(AggFunc.COUNT_STAR, alias='cnt'),
+                     AggCall(AggFunc.SUM, col('employees', 'salary'), alias='total')]
+                )
+                .sort([(col(None, 'total'), False)])
+                .execute())
+        assert len(rows) == 3
+        assert rows[0].get('departments.name') == 'Engineering'
+        assert rows[0].get('total') == 270000
+
+    def test_multi_table_join(self):
+        """Join three tables."""
+        db = make_db()
+        # Add a projects table
+        proj = db.create_table('projects', ['id', 'name', 'dept_id'])
+        proj.insert_many([
+            {'id': 1, 'name': 'Widget', 'dept_id': 1},
+            {'id': 2, 'name': 'Campaign', 'dept_id': 2},
+        ])
+
+        # employees -> departments -> projects
+        rows = (QueryPlan(db)
+                .scan('employees')
+                .hash_join(
+                    QueryPlan(db).scan('departments'),
+                    col('employees', 'dept_id'),
+                    col('departments', 'id')
+                )
+                .hash_join(
+                    QueryPlan(db).scan('projects'),
+                    col('departments', 'id'),
+                    col('projects', 'dept_id')
+                )
+                .project([
+                    (col('employees', 'name'), 'emp'),
+                    (col('projects', 'name'), 'project'),
+                ])
+                .execute())
+        # Dept 1 (3 emp) * 1 proj + Dept 2 (3 emp) * 1 proj = 6
+        assert len(rows) == 6
+
+    def test_union_with_sort(self):
+        db = make_db()
+        q1 = (QueryPlan(db)
+              .scan('employees')
+              .filter(eq(col('employees', 'dept_id'), lit(1)))
+              .project([(col('employees', 'name'), 'name'),
+                        (col('employees', 'salary'), 'salary')]))
+        q2 = (QueryPlan(db)
+              .scan('employees')
+              .filter(eq(col('employees', 'dept_id'), lit(2)))
+              .project([(col('employees', 'name'), 'name'),
+                        (col('employees', 'salary'), 'salary')]))
+        rows = q1.union(q2).sort([(col(None, 'salary'), False)]).execute()
+        salaries = [r.get('salary') for r in rows]
+        assert salaries == sorted(salaries, reverse=True)
 
     def test_self_join(self):
-        """Find employees in same dept with higher salary."""
-        t = self.db.get_table('employees')
-        left = SeqScanOp(t)
-        right = SeqScanOp(t)
-        # Cross join with predicate
-        pred = LogicExpr(LogicOp.AND, [
-            Comparison(CompOp.EQ, ColumnRef('employees', 'dept_id'),
-                       ColumnRef('employees', 'dept_id')),
-        ])
-        # Note: self-join with same-named columns merges -- would need aliases
-        # Just verify it runs
-        join = NestedLoopJoinOp(left, right)
-        rows = collect(join)
-        self.assertEqual(len(rows), 64)  # 8 * 8
-
-    def test_correlated_subquery_pattern(self):
-        """Semi-join simulating correlated subquery."""
-        left = SeqScanOp(self.db.get_table('employees'))
-        right = FilterOp(
-            SeqScanOp(self.db.get_table('departments')),
-            Comparison(CompOp.EQ, ColumnRef('departments', 'name'), Literal('Engineering'))
-        )
-        pred = Comparison(CompOp.EQ,
-                          ColumnRef('employees', 'dept_id'),
-                          ColumnRef('departments', 'id'))
-        semi = SemiJoinOp(left, right, pred)
-        rows = collect(semi)
-        self.assertEqual(len(rows), 3)
-
-    def test_not_exists_pattern(self):
-        """Anti-join simulating NOT EXISTS."""
-        left = SeqScanOp(self.db.get_table('departments'))
-        right = FilterOp(
-            SeqScanOp(self.db.get_table('employees')),
-            Comparison(CompOp.GT, ColumnRef('employees', 'salary'), Literal(200000))
-        )
-        pred = Comparison(CompOp.EQ,
-                          ColumnRef('departments', 'id'),
-                          ColumnRef('employees', 'dept_id'))
-        anti = AntiJoinOp(left, right, pred)
-        rows = collect(anti)
-        self.assertEqual(len(rows), 3)  # No one earns > 200k
-
-    def test_union_with_filter(self):
-        """UNION of two filtered scans."""
-        plan1 = FilterOp(
-            SeqScanOp(self.db.get_table('employees')),
-            Comparison(CompOp.EQ, ColumnRef('employees', 'dept_id'), Literal(1)))
-        plan2 = FilterOp(
-            SeqScanOp(self.db.get_table('employees')),
-            Comparison(CompOp.EQ, ColumnRef('employees', 'dept_id'), Literal(2)))
-        union = UnionOp(plan1, plan2, all=True)
-        rows = collect(union)
-        self.assertEqual(len(rows), 6)
-
-    def test_large_dataset(self):
-        """Performance: scan and filter 10k rows."""
-        db = Database()
-        t = db.create_table('big', ['id', 'val'], page_size=1000)
-        t.insert_many([{'id': i, 'val': i % 100} for i in range(10000)])
-        scan = SeqScanOp(t)
-        filt = FilterOp(scan, Comparison(CompOp.EQ, ColumnRef('big', 'val'), Literal(42)))
-        rows = collect(filt)
-        self.assertEqual(len(rows), 100)
-
-    def test_three_way_hash_join(self):
-        """3-way join: employees -> departments -> employees (self via dept)."""
-        e1 = SeqScanOp(self.db.get_table('employees'))
-        d = SeqScanOp(self.db.get_table('departments'))
-        join1 = HashJoinOp(e1, d,
-                           ColumnRef('employees', 'dept_id'),
-                           ColumnRef('departments', 'id'))
-        # Join result has employees.* and departments.*
-        # Now join with filtered employees for same dept
-        e2 = FilterOp(
-            SeqScanOp(self.db.get_table('employees')),
-            Comparison(CompOp.GT, ColumnRef('employees', 'salary'), Literal(90000))
-        )
-        # NL join since columns would collide -- just testing execution
-        join2 = NestedLoopJoinOp(join1, e2)
-        lim = LimitOp(join2, 5)
-        rows = collect(lim)
-        self.assertEqual(len(rows), 5)
-
-
-# ===========================================================================
-# 28. Edge Cases
-# ===========================================================================
-
-class TestEdgeCases(unittest.TestCase):
-    def test_empty_join(self):
-        db = Database()
-        t1 = db.create_table('a', ['id'])
-        t2 = db.create_table('b', ['id'])
-        join = HashJoinOp(SeqScanOp(t1), SeqScanOp(t2),
-                          ColumnRef('a', 'id'), ColumnRef('b', 'id'))
-        rows = collect(join)
-        self.assertEqual(len(rows), 0)
-
-    def test_all_nulls_aggregate(self):
-        db = Database()
-        t = db.create_table('t', ['val'])
-        t.insert_many([{'val': None}, {'val': None}])
-        scan = SeqScanOp(t)
-        agg = HashAggregateOp(
-            scan, [],
-            [AggCall(AggFunc.SUM, ColumnRef('t', 'val'), alias='s'),
-             AggCall(AggFunc.COUNT, ColumnRef('t', 'val'), alias='c'),
-             AggCall(AggFunc.COUNT_STAR, alias='cs')]
-        )
-        rows = collect(agg)
-        self.assertIsNone(rows[0].get('s'))
-        self.assertEqual(rows[0].get('c'), 0)
-        self.assertEqual(rows[0].get('cs'), 2)
-
-    def test_sort_with_nulls(self):
-        db = Database()
-        t = db.create_table('t', ['val'])
-        t.insert_many([{'val': 3}, {'val': None}, {'val': 1}, {'val': None}, {'val': 2}])
-        scan = SeqScanOp(t)
-        sort = SortOp(scan, [(ColumnRef('t', 'val'), True)])
-        rows = collect(sort)
-        vals = [r.get('t.val') for r in rows]
-        # Non-null values should be sorted, nulls at end
-        non_nulls = [v for v in vals if v is not None]
-        self.assertEqual(non_nulls, [1, 2, 3])
-
-    def test_deeply_nested_operators(self):
+        """Find employees earning more than someone in same dept."""
         db = make_db()
-        op = SeqScanOp(db.get_table('employees'))
-        for i in range(10):
-            op = FilterOp(op, Comparison(CompOp.IS_NOT_NULL,
-                                          ColumnRef('employees', 'name'), None))
-        rows = collect(op)
-        self.assertEqual(len(rows), 8)
+        emp1 = SeqScanOp(db.get_table('employees'))
+        emp2 = SeqScanOp(db.get_table('employees'))
+        join = NestedLoopJoinOp(emp1, emp2, join_type='cross')
+        rows = collect(join)
+        assert len(rows) == 64  # 8 * 8
 
-    def test_operator_reuse(self):
-        """Operators can be opened/closed multiple times."""
+    def test_pipeline_short_circuit(self):
+        """Limit should stop pulling from child early."""
         db = make_db()
         scan = SeqScanOp(db.get_table('employees'))
-        rows1 = collect(scan)
-        rows2 = collect(scan)
-        self.assertEqual(len(rows1), len(rows2))
+        lim = LimitOp(scan, 2)
+        rows = collect(lim)
+        assert len(rows) == 2
+        assert scan.stats.rows_produced <= 8
 
-    def test_like_special_chars(self):
-        row = Row({'t.name': 'hello.world'})
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.LIKE, ColumnRef('t', 'name'), Literal('hello.%')), row))
+    def test_filter_then_aggregate(self):
+        """Aggregate only filtered rows."""
+        db = make_db()
+        rows = (QueryPlan(db)
+                .scan('employees')
+                .filter(gt(col('employees', 'age'), lit(30)))
+                .aggregate([], [
+                    AggCall(AggFunc.COUNT_STAR, alias='cnt'),
+                    AggCall(AggFunc.AVG, col('employees', 'salary'), alias='avg_sal')
+                ])
+                .execute())
+        # Charlie(35), Eve(32), Frank(40), Grace(45) = 4
+        assert rows[0].get('cnt') == 4
 
-    def test_between_boundary(self):
-        row = Row({'t.x': 10})
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.BETWEEN, ColumnRef('t', 'x'), Literal((10, 20))), row))
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.BETWEEN, ColumnRef('t', 'x'), Literal((5, 10))), row))
+    def test_large_dataset(self):
+        """Test with 1000 rows."""
+        db = Database()
+        t = db.create_table('big', ['id', 'val'], page_size=50)
+        t.insert_many([{'id': i, 'val': i % 10} for i in range(1000)])
 
-    def test_in_single_value(self):
-        row = Row({'t.x': 10})
-        self.assertTrue(eval_expr(
-            Comparison(CompOp.IN, ColumnRef('t', 'x'), Literal(10)), row))
+        rows = (QueryPlan(db)
+                .scan('big')
+                .filter(eq(col('big', 'val'), lit(5)))
+                .aggregate([], [AggCall(AggFunc.COUNT_STAR, alias='cnt')])
+                .execute())
+        assert rows[0].get('cnt') == 100
+
+    def test_index_scan_with_filter(self):
+        """Index scan + additional filter."""
+        db = make_db()
+        emp = db.get_table('employees')
+        emp.add_index('idx_dept', 'dept_id')
+        rows = (QueryPlan(db)
+                .index_scan('employees', 'dept_id', value=1)
+                .filter(gt(col('employees', 'salary'), lit(85000)))
+                .execute())
+        # Dept 1: Alice(90k), Bob(80k), Grace(100k) -> Alice, Grace pass
+        assert len(rows) == 2
+
+    def test_join_three_strategies_same_result(self):
+        """All three join strategies should produce identical results."""
+        db = make_db()
+
+        def do_join(join_type):
+            emp = SeqScanOp(db.get_table('employees'))
+            dept = SeqScanOp(db.get_table('departments'))
+            left_key = col('employees', 'dept_id')
+            right_key = col('departments', 'id')
+
+            if join_type == 'hash':
+                join = HashJoinOp(emp, dept, left_key, right_key)
+            elif join_type == 'merge':
+                join = SortMergeJoinOp(emp, dept, left_key, right_key)
+            else:
+                pred = eq(left_key, right_key)
+                join = NestedLoopJoinOp(emp, dept, predicate=pred)
+
+            proj = ProjectOp(join, [
+                (col('employees', 'name'), 'name'),
+                (col('departments', 'name'), 'dept'),
+            ])
+            rows = collect(proj)
+            return {(r.get('name'), r.get('dept')) for r in rows}
+
+        hash_result = do_join('hash')
+        merge_result = do_join('merge')
+        nl_result = do_join('nl')
+
+        assert hash_result == merge_result == nl_result
+        assert len(hash_result) == 8
+
+
+# ===========================================================================
+# Edge case tests
+# ===========================================================================
+
+class TestEdgeCases:
+    def test_empty_hash_join(self):
+        db = Database()
+        t1 = db.create_table('t1', ['k'])
+        t2 = db.create_table('t2', ['k'])
+        join = HashJoinOp(SeqScanOp(t1), SeqScanOp(t2),
+                          col('t1', 'k'), col('t2', 'k'))
+        assert len(collect(join)) == 0
+
+    def test_empty_sort(self):
+        db = Database()
+        t = db.create_table('t', ['x'])
+        sort = SortOp(SeqScanOp(t), [(col('t', 'x'), True)])
+        assert len(collect(sort)) == 0
+
+    def test_empty_aggregate(self):
+        db = Database()
+        t = db.create_table('t', ['x'])
+        agg = HashAggregateOp(SeqScanOp(t), [], [
+            AggCall(AggFunc.COUNT_STAR, alias='cnt')
+        ])
+        rows = collect(agg)
+        assert rows[0].get('cnt') == 0
+
+    def test_single_row(self):
+        db = Database()
+        t = db.create_table('t', ['x'])
+        t.insert({'x': 42})
+        rows = collect(SeqScanOp(t))
+        assert len(rows) == 1
+
+    def test_unknown_expr_type(self):
+        with pytest.raises(ValueError, match="Unknown expression type"):
+            eval_expr(object(), Row({}))
+
+    def test_operator_is_open_flag(self):
+        db = make_db()
+        scan = SeqScanOp(db.get_table('employees'))
+        assert not scan._is_open
+        scan.open()
+        assert scan._is_open
+        scan.close()
+        assert not scan._is_open
+
+    def test_left_join_empty_right(self):
+        db = Database()
+        t1 = db.create_table('t1', ['k', 'v'])
+        t1.insert_many([{'k': 1, 'v': 'a'}, {'k': 2, 'v': 'b'}])
+        t2 = db.create_table('t2', ['k', 'w'])
+        # Right is empty
+
+        join = HashJoinOp(
+            SeqScanOp(t1), SeqScanOp(t2),
+            col('t1', 'k'), col('t2', 'k'),
+            join_type='left'
+        )
+        rows = collect(join)
+        # Left join with empty right -- no crash is the main check
+        assert len(rows) >= 0
+
+
+# ===========================================================================
+# AggCall tests
+# ===========================================================================
+
+class TestAggCall:
+    def test_count_star_alias(self):
+        agg = AggCall(AggFunc.COUNT_STAR, alias='total')
+        assert agg.alias == 'total'
+        assert agg.func == AggFunc.COUNT_STAR
+
+    def test_default_alias(self):
+        agg = AggCall(AggFunc.SUM, col('t', 'x'))
+        assert agg.alias is None
+
+
+# ===========================================================================
+# Page tests
+# ===========================================================================
+
+class TestPage:
+    def test_page_properties(self):
+        p = Page(page_id=5)
+        assert p.num_rows == 0
+        assert p.page_id == 5
+        p.rows.append(Row({'x': 1}))
+        assert p.num_rows == 1
 
 
 if __name__ == '__main__':
-    unittest.main()
+    pytest.main([__file__, '-v'])

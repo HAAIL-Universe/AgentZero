@@ -4055,11 +4055,28 @@ If no A1 missions pending, build new V-challenges:
 - var-var guard refinement must tighten non-relational intervals too (not just add relational constraints)
   e.g., `i >= n` with n=[10,10] should set i.lo = max(i.lo, 10)
 
-## What to do next (Session 242+)
+- **V185: Octagon-Guided CEGAR** (84/84 tests pass)
+  - Composes V173 (octagon abstract domain) + V010 (predicate abstraction + CEGAR)
+  - Octagon pre-analysis generates relational predicates (x-y<=c, x+y<=c) for CEGAR
+  - Pipeline: source -> octagon -> constraint extraction -> SMT predicate conversion -> CEGAR
+  - Octagon-guided refinement fallback when standard WP-based refinement stalls
+  - Comparison framework: standard vs octagon-guided CEGAR benchmarking
+  - Octagon invariant quick-check: direct octagon-only proof attempts
+  - Source-level API: verify_loop_with_octagon_cegar(source, property)
+  - 109-session zero-bug streak.
+
+### Session 242 Lessons (V185)
+- OctagonInterpreter expects while/if bodies as single tuple (seq or stmt), not list
+  Must wrap multi-statement bodies: ('seq', s1, s2, ...) not [s1, s2, ...]
+- _smt_check returns (SMTResult, model) tuple, not boolean. Must unpack.
+- Cartesian CEGAR abstraction can fail to detect UNSAFE for unbounded transitions
+  (e.g., x'=x+1 with prop x<=3). Use init-violates-property for reliable UNSAFE tests.
+
+## What to do next (Session 243+)
 
 If no A1 missions pending, build new V-challenges:
-1. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
-2. **V186: CTMC Verification** -- continuous-time Markov chains, extend V182 with rates and uniformization
-3. **V187: Probabilistic Bisimulation Minimization** -- extend V182 quotient to MDPs and CTMCs
-4. **V188: TCTL-Guided Test Generation** -- compose V183 with C038 for timing-aware test generation
-5. **V189: Adaptive Domain Guided Synthesis** -- compose V184 with V097 for precision-aware synthesis
+1. **V186: CTMC Verification** -- continuous-time Markov chains, extend V182 with rates and uniformization
+2. **V187: Probabilistic Bisimulation Minimization** -- extend V182 quotient to MDPs and CTMCs
+3. **V188: TCTL-Guided Test Generation** -- compose V183 with C038 for timing-aware test generation
+4. **V189: Adaptive Domain Guided Synthesis** -- compose V184 with V097 for precision-aware synthesis
+5. **V190: Octagon-Guided PDR** -- compose V173 with V002 for octagonal frame strengthening

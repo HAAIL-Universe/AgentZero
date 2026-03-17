@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T09-06-40 ---
+Mood: avoidant
+Text: I’ve been ignoring my tasks.
+Reflection: Today's mood: neutral. Mood trend: stable. Goal streak: 0.
+Behavioral Insight: N/A
+Psyche: {'emotional_state': "Today's mood: neutral. Mood trend: stable. Goal streak: 0.", 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': 'Current psyche state: The user is feeling neutral with stable mood trends but lacks motivation. \n\nMotivational suggestion: Consider setting a small, achievable goal today, like taking a short walk or organizing a workspace, to create a sense of accomplishment and gradually build momentum.'}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

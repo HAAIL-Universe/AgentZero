@@ -1,0 +1,54 @@
+{
+  "prompt": "\ud83d\udd04 You're steady. Let's nudge things forward.\n\n\ud83e\udde0 Reflective Prompt: What's one small task you\u2019ve been avoiding that could unlock progress?",
+  "mood": "Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (\u03940).",
+  "reflection": "Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (\u03940).",
+  "goal_update": "N/A",
+  "delta": {
+    "mood_trend": "stable",
+    "mood_momentum": "stable",
+    "goal_streak_change": 0,
+    "traits_delta": {}
+  },
+  "anomalies": [],
+  "behavioral_insights": {
+    "anomaly_flags": [],
+    "positive_streaks": [],
+    "regressions": [],
+    "linked_traits": {},
+    "linked_goals": {},
+    "total_rewards": 0,
+    "summary_notes": [
+      "Context: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (\u03940)."
+    ],
+    "delta_change": {},
+    "momentum": {},
+    "emotional_state": "neutral",
+    "ml_rl_ready_vector": {},
+    "shadow_alignment": {},
+    "persona_alignment": {}
+  },
+  "psyche_insights": {
+    "emotional_state": "neutral",
+    "motivation_level": 0,
+    "suggestion": "It might be helpful to take a break or refocus on your goals.",
+    "llm_summary": "The user's psyche is in a state of equilibrium, lacking emotional highs or lows, and they may be experiencing a sense of stagnation or listlessness. To boost motivation, try setting a small, achievable goal that aligns with a personal interest or passion to ignite a sense of purpose and accomplishment."
+  },
+  "routine_snapshot": {
+    "routines": [],
+    "streaks": {},
+    "max_streaks": {},
+    "last_break": {}
+  },
+  "impatience_result": {
+    "impatience_level": "low",
+    "normalized_score": 0.0,
+    "suggestion": "You're doing well. Keep it up, but stay mindful of your emotional state.",
+    "source": "unspecified",
+    "timestamp": 1751029832.8054812
+  },
+  "decision_analysis": {
+    "decision_avoidance": [],
+    "risky_decisions": [],
+    "suggestions": []
+  }
+}

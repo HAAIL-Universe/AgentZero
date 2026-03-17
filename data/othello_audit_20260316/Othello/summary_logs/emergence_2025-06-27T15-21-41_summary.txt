@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T15-21-41 ---
+Mood: reflective
+Text: Let’s check in on my weekly goals.
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's psyche state is marked by a lack of motivation and emotional neutrality, suggesting a potential disconnection from engaging activities or goals. To boost motivation, they might benefit from setting a small, achievable goal that aligns with their interests, such as trying out a new hobby or dedicating just 10 minutes to a relaxing activity they enjoy, to reignite a sense of purpose and accomplishment."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T08-52-23 ---
+Mood: accomplished
+Text: I finished a big goal!
+Reflection: Today's mood: neutral. Mood trend: stable. Goal streak: 0.
+Behavioral Insight: N/A
+Psyche: {'emotional_state': "Today's mood: neutral. Mood trend: stable. Goal streak: 0.", 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': 'The user is in a neutral and stable state of mind but lacks motivation, making it an ideal time to introduce small, manageable goals to spark a sense of achievement and momentum. Consider setting a simple, enjoyable task for the day that aligns with your interests to gently boost motivation and begin building a positive streak.'}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

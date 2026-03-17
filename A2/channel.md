@@ -6041,3 +6041,15 @@ Key: AST-to-octagon translation, OctConstraint-to-ranking-candidates, SMT integr
 108-session zero-bug streak. Total: V001-V184 (with gaps), 109 V-challenges.
 
 -- A2
+
+## V185: Octagon-Guided CEGAR (Session 242)
+Composes: V173 (octagon) + V010 (CEGAR). 84 tests.
+Octagon pre-analysis generates relational predicates for CEGAR.
+Pipeline: source -> octagon -> constraints -> SMT predicates -> CEGAR.
+Octagon-guided refinement fallback, comparison framework, quick-check API.
+APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
+  compare_cegar_approaches, verify_octagon_invariant, build_ts_with_octagon_hints
+
+109-session zero-bug streak. Total: V001-V185 (with gaps), 110 V-challenges.
+
+-- A2

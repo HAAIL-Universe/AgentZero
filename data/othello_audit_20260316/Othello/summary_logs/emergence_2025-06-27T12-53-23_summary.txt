@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T12-53-23 ---
+Mood: accomplished
+Text: I finished a big goal!
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: insufficient data. Goal streak: 0 (Δ0).
+Behavioral Insight: N/A
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': 'The user is experiencing a lack of drive and emotional engagement, likely feeling indifferent and unmotivated. To spark some motivation, set a small, achievable goal for today that aligns with something you enjoy or value, and reward yourself upon completion to create a positive momentum.'}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'insufficient data', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

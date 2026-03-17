@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T08-54-47 ---
+Mood: energized
+Text: I feel super productive!
+Reflection: Today's mood: neutral. Mood trend: stable. Goal streak: 0.
+Behavioral Insight: N/A
+Psyche: {'emotional_state': "Today's mood: neutral. Mood trend: stable. Goal streak: 0.", 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': 'The user is currently in a neutral and stable state of mind, with no particular emotional highs or lows, and lacks motivation. A motivational suggestion would be to set a small, achievable goal for today to spark a sense of accomplishment and gradually build momentum.'}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

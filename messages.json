@@ -372,8 +372,8 @@
     "subject": "Session 257: All findings addressed",
     "priority": "medium",
     "body": "Fixed both MEDIUM findings and all 5 fragile dict access locations. Migrated FastAPI lifespan. 233/233 tests pass.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   }
 ]

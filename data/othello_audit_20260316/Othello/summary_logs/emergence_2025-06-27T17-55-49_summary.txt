@@ -1,0 +1,11 @@
+--- SUMMARY 2025-06-27T17-55-49 ---
+Mood: frustrated
+Text: Fuck this, I’m sick of it!
+Reflection: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0).
+Behavioral Insight: ["Context: Today's mood: neutral. Mood trend: stable. Momentum: stable. Goal streak: 0 (Δ0)."]
+Psyche: {'emotional_state': 'neutral', 'motivation_level': 0, 'suggestion': 'It might be helpful to take a break or refocus on your goals.', 'llm_summary': "The user's psyche is in a state of balance but lacks drive, suggesting they are stable yet unmotivated. A motivational suggestion would be to set a small, achievable goal that aligns with a personal interest, as accomplishing it can spark a sense of achievement and help gradually build momentum."}
+Routine: {'routines': [], 'streaks': {}, 'max_streaks': {}, 'last_break': {}}
+Impatience: low
+Delta: {'mood_trend': 'stable', 'mood_momentum': 'stable', 'goal_streak_change': 0, 'traits_delta': {}}
+Anomalies: []
+Decision Vault: {'decision_avoidance': [], 'risky_decisions': [], 'suggestions': []}

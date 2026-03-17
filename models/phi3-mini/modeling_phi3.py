@@ -1289,7 +1289,14 @@ class Phi3ForCausalLM(Phi3PreTrainedModel):
             if isinstance(past_key_values, Cache):
                 cache_length = past_key_values.get_seq_length()
                 past_length = past_key_values.seen_tokens
-                max_cache_length = past_key_values.get_max_length()
+                if hasattr(past_key_values, "get_max_length"):
+                    max_cache_length = past_key_values.get_max_length()
+                elif hasattr(past_key_values, "get_max_cache_shape"):
+                    max_cache_length = past_key_values.get_max_cache_shape()
+                    if isinstance(max_cache_length, (tuple, list)):
+                        max_cache_length = max_cache_length[-1]
+                else:
+                    max_cache_length = None
             else:
                 cache_length = past_length = past_key_values[0][0].shape[2]
                 max_cache_length = None

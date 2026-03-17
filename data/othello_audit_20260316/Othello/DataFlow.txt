@@ -1,0 +1,13 @@
+[USER INPUT]
+     ↓
+ConversationAgent (parse)
+     ↓
+CentralHub → routes to sub-agents (Behavioral, Goal, Trait, etc.)
+     ↓
+CentralHub maintains shadow (via ShadowAgent at sub-level or via shadow snapshot)
+     ↓
+Agentic agents (via AgenticHub) PULL what they need from CentralHub (shadow snapshot, prism data)
+     ↓
+Agentic agents process → store → pass options to Othello/Fello
+     ↓
+Othello/Fello gatekeep → present to user or act

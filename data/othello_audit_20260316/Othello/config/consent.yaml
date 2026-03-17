@@ -1,0 +1,15 @@
+# config/consent.yaml
+
+# User privacy & consent settings for FELLO
+tier: 3  # 1 = basic, 2 = advanced, 3 = deep psychology
+
+feature_toggles:
+  basic_nudges: true
+  surface_analysis: true
+  advanced_nudges: true
+  pattern_analysis: true
+  deep_psychology: true
+  manipulative_nudges: true
+
+# Audit log will append events here (can be moved to its own file)
+audit: []

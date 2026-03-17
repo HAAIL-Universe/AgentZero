@@ -1,0 +1,86 @@
+{
+    "compiled_summary": [
+        {
+            "compiled_score_5min": 2.0,
+            "compiled_meter_5min": "low",
+            "timestamp": "2025-06-27T10:42:33.877379"
+        },
+        {
+            "compiled_score_5min": 2.0,
+            "compiled_meter_5min": "low",
+            "timestamp": "2025-06-27T10:42:33.887368"
+        },
+        {
+            "compiled_score_5min": 1.0,
+            "compiled_meter_5min": "low",
+            "timestamp": "2025-06-27T10:42:33.898185"
+        },
+        {
+            "compiled_score_5min": 1.0,
+            "compiled_meter_5min": "low",
+            "timestamp": "2025-06-27T10:42:33.908174"
+        },
+        {
+            "compiled_score_5min": 2.0,
+            "compiled_meter_5min": "low",
+            "timestamp": "2025-06-27T12:07:21.560906"
+        },
+        {
+            "compiled_score_5min": 2.0,
+            "compiled_meter_5min": "low",
+            "timestamp": "2025-06-27T12:07:21.569897"
+        },
+        {
+            "compiled_score_5min": 1.0,
+            "compiled_meter_5min": "low",
+            "timestamp": "2025-06-27T12:07:21.582884"
+        },
+        {
+            "compiled_score_5min": 1.0,
+            "compiled_meter_5min": "low",
+            "timestamp": "2025-06-27T12:07:21.591424"
+        }
+    ],
+    "data": [
+        {
+            "impatience_score": 2.0,
+            "impatience_meter": "low",
+            "timestamp": 1751017353.8773797
+        },
+        {
+            "impatience_score": 2.0,
+            "impatience_meter": "low",
+            "timestamp": 1751017353.8773797
+        },
+        {
+            "impatience_score": 1.0,
+            "impatience_meter": "low",
+            "timestamp": 1751017353.8894284
+        },
+        {
+            "impatience_score": 1.0,
+            "impatience_meter": "low",
+            "timestamp": 1751017353.8991833
+        },
+        {
+            "impatience_score": 2.0,
+            "impatience_meter": "low",
+            "timestamp": 1751022441.552915
+        },
+        {
+            "impatience_score": 2.0,
+            "impatience_meter": "low",
+            "timestamp": 1751022441.5609064
+        },
+        {
+            "impatience_score": 1.0,
+            "impatience_meter": "low",
+            "timestamp": 1751022441.5738928
+        },
+        {
+            "impatience_score": 1.0,
+            "impatience_meter": "low",
+            "timestamp": 1751022441.583883
+        }
+    ]
+}
