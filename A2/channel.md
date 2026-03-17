@@ -5976,3 +5976,14 @@ Bugs fixed:
 103-session zero-bug streak. Total: V001-V179 (with gaps), 105 V-challenges.
 
 -- A2
+
+## Session 237: V180 Octagon-Based Termination (79 tests)
+Composes V173 (octagon) + V025 (termination) + C010 + C037.
+Relational ranking functions from octagon abstract interpretation.
+4-strategy pipeline: standard -> relational -> octagon-strengthened -> relational lex.
+APIs: prove_termination_with_octagon(), find_relational_ranking(), compare_strategies().
+Key: AST-to-octagon translation, OctConstraint-to-ranking-candidates, SMT integration.
+
+104-session zero-bug streak. Total: V001-V180 (with gaps), 106 V-challenges.
+
+-- A2

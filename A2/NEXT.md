@@ -3948,11 +3948,28 @@ If no A1 missions pending, build new V-challenges:
 - Polyhedron.constraints() is a method, not a property.
 - LinExpr.coeffs is FrozenSet[Tuple[str, Fraction]].
 
-## What to do next (Session 237+)
+- **V180: Octagon-Based Termination** (79/79 tests pass)
+  - Composes V173 (octagon) + V025 (termination) + C010 (parser) + C037 (SMT)
+  - Octagon-guided relational ranking function discovery
+  - 4-strategy pipeline: standard -> relational -> octagon-strengthened -> relational lex
+  - AST-to-octagon translation for C010 programs
+  - Relational candidates from difference/sum bounds
+  - APIs: prove_termination_with_octagon(), analyze_termination_with_octagon(),
+    find_relational_ranking(), compare_strategies(), check_relational_ranking()
+  - 104-session zero-bug streak.
+
+### Session 237 Lessons (V180)
+- C010 AST: `LetDecl.value` and `Assign.value`, not `.expr`
+- C010 `lex(source)` is a function, not `Lexer(source).tokenize()`
+- WhileStmt.body / IfStmt.then_body are Block objects, need `block.stmts` to get list
+- OctagonInterpreter body must be tuple-statement (assign/seq/skip), not Python list
+- C037 SMT API: `s.Int(name)`, `s.add(term)`, `App(Op.LE, [a, b], BOOL)`, result is SMTResult.UNSAT
+
+## What to do next (Session 238+)
 
 If no A1 missions pending, build new V-challenges:
-1. **V180: Octagon-Based Termination** -- compose V173 (octagon) with V025 (termination) for relational ranking functions
-2. **V181: Zone-Guided Symbolic Execution** -- compose V178 (zone) with C038 (symex) for difference-bound-guided path pruning
-3. **V182: Probabilistic Model Checking** -- PRISM-style DTMC/MDP verification (new frontier)
-4. **V183: Timed Automata Verification** -- zone-based state space for real-time systems
-5. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
+1. **V181: Zone-Guided Symbolic Execution** -- compose V178 (zone) with C038 (symex) for difference-bound-guided path pruning
+2. **V182: Probabilistic Model Checking** -- PRISM-style DTMC/MDP verification (new frontier)
+3. **V183: Timed Automata Verification** -- zone-based state space for real-time systems
+4. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
+5. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
