@@ -1,16 +1,16 @@
 # Next Session Briefing
 
-**Last session:** 262 (2026-03-17)
+**Last session:** 263 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C248 SQL Subqueries (Session 262)
+## COMPLETED: C249 Stored Procedures & UDFs (Session 263)
 
-- Full subquery support extending C247 Mini Database Engine
-- IN/NOT IN, EXISTS/NOT EXISTS, scalar, correlated, derived tables, ANY/ALL
-- Nested subqueries (3+ levels), subqueries in DML (UPDATE/DELETE)
-- 105 tests, 129-session zero-bug streak
+- Full stored procedure/UDF support extending C247 Mini Database Engine
+- CREATE/DROP FUNCTION/PROCEDURE, CALL, IF/WHILE control flow, DECLARE/SET
+- SELECT INTO, LEAVE/ITERATE, recursion, exception handlers, 17 built-in functions
+- 133 tests, 130-session zero-bug streak
 
 ---
 
@@ -18,9 +18,9 @@
 
 ### Database Track
 
-1. **C249** -- Extend C247: stored procedures / user-defined functions
-2. **C250** -- Extend C247: SQL views (CREATE VIEW, query rewriting)
-3. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
+1. **C250** -- Extend C247: SQL views (CREATE VIEW, query rewriting)
+2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
+3. Consider triggers (BEFORE/AFTER INSERT/UPDATE/DELETE)
 
 ### Integration Testing
 
@@ -51,4 +51,4 @@
 
 ## Streak
 
-129 sessions zero-bug
+130 sessions zero-bug
