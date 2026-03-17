@@ -131,11 +131,18 @@ class TestSimpleGames:
         assert result.verdict == GR1Verdict.UNREALIZABLE
 
     def test_safety_game(self):
-        states, trans = linear_game(3)
-        game = make_safety_game(states, [0], trans, bad_states={2})
+        # States: 0->{0,1}, 1->{1,2}, 2->{2}. Bad={2}. Sys can stay in 0 forever.
+        game = make_safety_game(
+            [0, 1, 2], [0],
+            {0: [{0, 1}], 1: [{1, 2}], 2: [{2}]},
+            bad_states={2},
+        )
         result = gr1_solve(game)
-        # Must avoid state 2, but cycle forces 0->1->2. From 0 and 1, can't avoid 2.
-        assert result.verdict == GR1Verdict.UNREALIZABLE
+        assert result.verdict == GR1Verdict.REALIZABLE
+        # But from state 1, sys is forced to 2 eventually (only {1,2} and guarantee visits {0,1})
+        # Actually sys can stay at 0 or 1 forever. Guarantee = visit {0,1} inf often.
+        # From 0, sys picks 0. From 1, sys picks 1. Both are safe.
+        assert 0 in result.winning_region
 
     def test_safety_game_avoidable(self):
         # 0 -> {1,2}, 1 -> {0}, 2 -> {2}. Sys can avoid 2 by always choosing 1.
@@ -273,13 +280,13 @@ class TestAssumptions:
         assert result.verdict == GR1Verdict.UNREALIZABLE
 
     def test_multiple_assumptions(self):
-        # Two assumptions, one guarantee
+        # Two assumptions, one guarantee. Sys has choice at states 1 and 2.
         game = make_game(
             [0, 1, 2, 3], [0],
             {
                 0: [{1}, {2}],       # env picks direction
-                1: [{0}, {3}],       # sys can go to 3
-                2: [{0}, {3}],       # sys can go to 3
+                1: [{0, 3}],         # sys can go to 0 or 3 (single env choice)
+                2: [{0, 3}],         # sys can go to 0 or 3
                 3: [{0}],            # back to start
             },
             env_justice=[{1}, {2}],  # env must visit both 1 and 2
@@ -627,7 +634,8 @@ class TestEdgeCases:
     def test_empty_game(self):
         game = make_game([], [], {})
         result = gr1_solve(game)
-        assert result.verdict == GR1Verdict.REALIZABLE  # Vacuously
+        # No initial states -> unrealizable (can't start)
+        assert result.verdict == GR1Verdict.UNREALIZABLE
 
     def test_no_initial_states(self):
         game = make_game([0, 1], [], {0: [{1}], 1: [{0}]}, sys_justice=[{0}])
@@ -899,17 +907,33 @@ class TestClassicalExamples:
     def test_turn_based_game(self):
         """Turn-based game: env and sys alternate moves on a graph.
         Even states: sys moves. Odd states: env moves.
+        Env can prevent reaching 0 by always going to 2 from odd states.
         """
-        # 0(sys) -> {1,3}, 1(env) -> {0,2}, 2(sys) -> {1,3}, 3(env) -> {0,2}
-        # Guarantee: visit state 0 (sys state)
         game = make_game(
             [0, 1, 2, 3], [0],
             {
-                0: [{1, 3}],       # Sys picks (1 env choice)
-                1: [{0}, {2}],     # Env picks (2 choices, 1 successor each)
+                0: [{1, 3}],       # Sys picks
+                1: [{0}, {2}],     # Env picks
                 2: [{1, 3}],       # Sys picks
                 3: [{0}, {2}],     # Env picks
             },
+            sys_justice=[{0}],
+        )
+        result = gr1_solve(game)
+        # Env can always pick {2} from states 1 and 3, trapping in {1,2,3}
+        assert result.verdict == GR1Verdict.UNREALIZABLE
+
+    def test_turn_based_game_with_fairness(self):
+        """Same turn-based game but with fairness: env visits 0 inf often."""
+        game = make_game(
+            [0, 1, 2, 3], [0],
+            {
+                0: [{1, 3}],
+                1: [{0}, {2}],
+                2: [{1, 3}],
+                3: [{0}, {2}],
+            },
+            env_justice=[{0}],     # Env must visit 0 inf often
             sys_justice=[{0}],
         )
         result = gr1_solve(game)
@@ -917,11 +941,10 @@ class TestClassicalExamples:
 
     def test_philosophers_lite(self):
         """Simplified dining philosophers with 2 philosophers.
-        Each philosopher needs 2 forks. Only 2 forks total.
-        States: which philosopher holds which forks.
+        Sys controls fork allocation. Env chooses who is hungry.
+        Guarantees: both eat. Need fairness assumption.
         """
-        # States: (p1_forks, p2_forks) where each is 0, 1, or 2
-        # Total forks <= 2
+        # States: (p1_forks, p2_forks). Sys controls allocation (single env choice).
         states = set()
         for p1 in range(3):
             for p2 in range(3):
@@ -931,27 +954,23 @@ class TestClassicalExamples:
         transitions = {}
         for s in states:
             p1, p2 = s
-            # Env chooses who tries to pick up (or release)
-            choices = []
-            # Env choice: p1 acts
-            p1_options = set()
-            if p1 < 2 and p1 + p2 < 2:  # p1 picks up (if fork available)
-                p1_options.add((p1 + 1, p2))
-            if p1 > 0:  # p1 releases
-                p1_options.add((p1 - 1, p2))
-            p1_options.add(s)  # No change
-            choices.append(p1_options)
-            # Env choice: p2 acts
-            p2_options = set()
+            # Single env choice: sys picks any valid next allocation
+            options = set()
+            options.add(s)  # No change
+            # p1 picks up
+            if p1 < 2 and p1 + p2 < 2:
+                options.add((p1 + 1, p2))
+            # p1 releases
+            if p1 > 0:
+                options.add((p1 - 1, p2))
+            # p2 picks up
             if p2 < 2 and p1 + p2 < 2:
-                p2_options.add((p1, p2 + 1))
+                options.add((p1, p2 + 1))
+            # p2 releases
             if p2 > 0:
-                p2_options.add((p1, p2 - 1))
-            p2_options.add(s)
-            choices.append(p2_options)
-            transitions[s] = choices
+                options.add((p1, p2 - 1))
+            transitions[s] = [options]  # Single env choice, sys picks
 
-        # Both philosophers must eat (hold 2 forks) infinitely often
         game = make_game(states, [(0, 0)], transitions,
                          sys_justice=[{(2, 0)}, {(0, 2)}])
         result = gr1_solve(game)

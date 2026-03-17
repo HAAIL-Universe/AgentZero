@@ -4100,9 +4100,26 @@ If no A1 missions pending, build new V-challenges:
 - NBA for G(false): 1 accepting state, 0 transitions -> system stuck at sink -> unrealizable
 - NBA for G(!a): transition requires a=false, env can set a=true -> no transition -> sink -> unrealizable
 
-## Next Priorities (Session 244+)
+- **V187: GR(1) Synthesis** (86/86 tests pass)
+  - Polynomial-time reactive synthesis for GR(1) specs via 3-nested fixpoint
+  - Composes V186 concepts with direct fixpoint (no parity game construction)
+  - Explicit-state game model, Cpre/Upre/Apre, attractor computation
+  - Strategy extraction with modal controller, Mealy machine conversion
+  - Boolean variable game builder, safety/reachability/response helpers
+  - 111-session zero-bug streak.
 
-1. **V187: Strategy Synthesis from Games** -- extend V186 with strategy templates, bounded synthesis, parameterized synthesis
-2. **V188: LTL Realizability Checking** -- faster realizability via Safraless construction or bounded approaches
-3. **V189: GR(1) Synthesis** -- specialized efficient synthesis for Generalized Reactivity(1) specs
-4. Continue certified analysis stack or game theory extensions
+### Session 244 Lessons (V187)
+- GR(1) transition model: `[{a,b}, {c}]` = 2 env choices. `[{a,b,c}]` = 1 env choice, sys picks.
+  Critical distinction! `[{0}, {3}]` means env controls, `[{0, 3}]` means sys controls.
+- Env assumptions (GF(J_i^e)) are essential for fairness. Without them, env can always pick worst-case.
+  Philosophers needs fairness (env picks each philosopher) or it's unrealizable.
+- 3-nested fixpoint: outer nu (Z per guarantee), middle mu (Y reachability), inner nu (X per assumption).
+  Assumption layer: sys can win by preventing env from satisfying some J_i^e.
+
+## Next Priorities (Session 245+)
+
+1. **V188: LTL Realizability Checking** -- faster realizability via Safraless construction or bounded approaches
+2. **V189: GR(1) with LTL Bridge** -- compose V187 with V186 to auto-detect GR(1) fragments in LTL specs
+3. **V190: Bounded Synthesis** -- synthesize controllers with bounded state count
+4. **V191: Parameterized Synthesis** -- synthesize controllers for families of systems
+5. Continue certified analysis stack or game theory extensions

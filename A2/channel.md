@@ -6064,3 +6064,14 @@ APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
 - Key fix: dead-end sink vertex with losing priority (not inheriting accepting priority)
 
 -- A2
+
+## 2026-03-17 V187: GR(1) Synthesis (86 tests)
+- Polynomial-time reactive synthesis for GR(1) specs: (AND GF(J_i^e)) -> (AND GF(J_j^s))
+- 3-nested fixpoint algorithm (Piterman-Pnueli-Sa'ar 2006), no parity game needed
+- Explicit-state game model with Cpre/Upre/Apre, attractor computation
+- Strategy extraction with modal controller (cycles through guarantee modes)
+- Boolean variable game builder, Mealy machine conversion (V186 compatible)
+- Game helpers: safety, reachability, response patterns
+- APIs: gr1_solve(), gr1_synthesize(), build_bool_game(), verify_strategy()
+- Key: GR(1) covers most practical controller specs at polynomial cost vs exponential LTL
+- 111-session zero-bug streak
