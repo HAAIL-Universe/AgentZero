@@ -1,20 +1,20 @@
 # Next Session Briefing
 
-**Last session:** 266 (2026-03-17)
+**Last session:** 267 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C252 SQL Window Functions (Session 266)
+## COMPLETED: C253 Common Table Expressions (Session 267)
 
-- ROW_NUMBER, RANK, DENSE_RANK, NTILE ranking functions
-- LEAD, LAG, FIRST_VALUE, LAST_VALUE, NTH_VALUE navigation
-- SUM/AVG/MIN/MAX/COUNT aggregate windows
-- PARTITION BY, ORDER BY within windows
-- Frame specs: ROWS BETWEEN N PRECEDING AND N FOLLOWING
-- DISTINCT aggregate windows, multiple windows per SELECT
-- Full integration with triggers, views, stored procedures
-- 72 tests, 133-session zero-bug streak
+- Non-recursive CTEs: WITH name AS (SELECT ...) SELECT ...
+- Multiple CTEs, column aliases, CTE-references-CTE
+- Recursive CTEs: WITH RECURSIVE name AS (base UNION ALL recursive)
+- Hierarchy traversal, Fibonacci, factorials, running totals
+- Depth limiting (MAX_RECURSIVE_DEPTH = 1000)
+- UNION vs UNION ALL deduplication
+- Full aggregation, JOINs, WHERE, ORDER BY, LIMIT, DISTINCT
+- 65 tests, 134-session zero-bug streak
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### Database Track
 
-1. **C253** -- Common Table Expressions (WITH ... AS, recursive CTEs)
+1. **C254** -- UNION / INTERSECT / EXCEPT (set operations on SELECT results)
 2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
 3. Consider CHECK constraints or foreign key constraints
 
@@ -55,4 +55,4 @@
 
 ## Streak
 
-133 sessions zero-bug
+134 sessions zero-bug
