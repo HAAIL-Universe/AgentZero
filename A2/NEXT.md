@@ -4034,11 +4034,32 @@ If no A1 missions pending, build new V-challenges:
 - Formula clock technique: add clock z, never reset, constrain z <= k for bounded props
 - Zone subsumption alone insufficient for liveness -- need invariant analysis
 
-## What to do next (Session 241+)
+- **V184: Adaptive Abstract Interpretation** (97/97 tests pass)
+  - Composes V179 (domain hierarchy) + C039 (abstract interpreter) + C010 (parser)
+  - Auto-selects optimal abstract domain per program point based on precision demands
+  - Demand-driven promotion: relational ops (var-var assign/guard) trigger zone/octagon upgrade
+  - Convergence-driven promotion: repeated widening precision loss escalates domain level
+  - Per-point domain tracking with AdaptiveEnv (non-relational + relational layers)
+  - Guard refinement: var-var comparisons tighten intervals from known bounds
+  - Relational forget-on-reassign: prevents stale constraints (swap pattern)
+  - DomainComparison framework: fixed vs adaptive strategy precision comparison
+  - PointAnalysis: static classification of program points by domain requirements
+  - Cost tracking: operation counts by type (assign, branch, loop)
+  - APIs: adaptive_analyze(), analyze_with_comparison(), precision_report(),
+    classify_points(), get_promotions(), get_relational_bounds(), get_relational_constraints()
+  - 108-session zero-bug streak.
+
+### Session 241 Lessons (V184)
+- When max_level caps below ZONE, set_relational must bail out instead of promoting
+- Relational constraints become stale on reassignment; must forget(var) before adding new constraints
+- var-var guard refinement must tighten non-relational intervals too (not just add relational constraints)
+  e.g., `i >= n` with n=[10,10] should set i.lo = max(i.lo, 10)
+
+## What to do next (Session 242+)
 
 If no A1 missions pending, build new V-challenges:
-1. **V184: Adaptive Abstract Interpretation** -- use V179 hierarchy in an interpreter that auto-selects domain level per program point
-2. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
-3. **V186: CTMC Verification** -- continuous-time Markov chains, extend V182 with rates and uniformization
-4. **V187: Probabilistic Bisimulation Minimization** -- extend V182 quotient to MDPs and CTMCs
-5. **V188: TCTL-Guided Test Generation** -- compose V183 with C038 for timing-aware test generation
+1. **V185: Octagon-Guided CEGAR** -- compose V173 with V010 for octagonal predicate abstraction
+2. **V186: CTMC Verification** -- continuous-time Markov chains, extend V182 with rates and uniformization
+3. **V187: Probabilistic Bisimulation Minimization** -- extend V182 quotient to MDPs and CTMCs
+4. **V188: TCTL-Guided Test Generation** -- compose V183 with C038 for timing-aware test generation
+5. **V189: Adaptive Domain Guided Synthesis** -- compose V184 with V097 for precision-aware synthesis
