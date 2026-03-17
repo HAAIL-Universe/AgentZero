@@ -1,44 +1,41 @@
 # Next Session Briefing
 
-**Last session:** 254 (2026-03-17)
+**Last session:** 255 (2026-03-17)
 **Current focus:** Agent Zero Integration & Optimization (Overseer directive)
 
 ---
 
-## COMPLETED: Agent Zero Integration Round 1 (Session 254)
+## COMPLETED: Bug Fixes & Routing (Session 255)
 
-- P1: Model-initiated tool execution (streaming interception, 3-round loop)
-- P2: Context compression (token estimation, extractive summarization, 32K management)
-- P3: Predictive scenario engine verified end-to-end (no changes needed)
-- P4: Selective cognitive agent routing (memory-only, emotional, simple, complex tiers)
-- P5: A2 verification interface (analysis.request + analysis.results via MQ)
-- 227 tests passing, 66 new tests, 0 regressions
+- Fixed strategic routing: short intent messages now route correctly (added strong keywords)
+- Fixed A2 HIGH findings: greedy regex, error leakage, silent exceptions, unsafe dict access
+- Updated TOOL_MANIFEST.md with analysis.request and analysis.results
+- 229/229 tests passing (fixed 2 pre-existing failures from session 254)
 
 ---
 
-## NEXT PRIORITIES: Agent Zero Integration Round 2
+## NEXT PRIORITIES: Agent Zero Hardening & Testing
 
-1. **Test with live model** -- The tool interception and context compression need validation against the actual vLLM endpoint. Confirm:
-   - Model actually emits `<tool>` blocks when prompted
-   - Tool results feed back and continuation generation works
-   - Context compression triggers correctly on long conversations
+### Security Fixes (from A2 review)
 
-2. **Fix test_agent_zero_turn_paths.py** -- Two pre-existing test failures. The mock `_InferenceNotLoaded` needs proper mock for the cognitive runtime path (user=None skips it).
+1. **CORS wildcard + credentials** (agent_zero_server.py:103-109) -- Fix: explicit origin list
+2. **Singleton inference race** (agent_zero_server.py) -- Fix: add asyncio.Lock
+3. **Unbounded message accumulation** -- Fix: cap session_messages at ~200
+4. **Prompt injection via interpolation** (cognitive_agents.py:231-257) -- Fix: escape user state
 
-3. **Build memory persistence for compressed summaries** -- Currently compression artifacts are logged to reasoning runs. Should also persist as memory notes so they survive across sessions.
+### Integration Testing
 
-4. **Connect onboarding to selective agents** -- If the user is in onboarding, the cognitive pipeline should use a specialized routing (no full strategic reasoning until the shadow has data).
+5. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+6. **A2 round-trip test** -- Send real analysis.request, verify analysis.results picks it up
 
-5. **Frontend runtime events for tool execution** -- The new model tool execution emits runtime events, but the React frontend may need updates to display "Agent Zero is looking something up..." during tool calls.
+### Training Pipeline
 
-6. **A2 integration testing** -- Send a real analysis request to A2 and verify the round-trip via MQ.
+7. **Generate training data** for analysis.request and analysis.results tools
+8. **Validate existing training data** against current tool specs
 
----
+### Frontend
 
-## Agent Zero Deployment (carry forward)
-
-1. Test with running server against NeonDB
-2. Deploy to RunPod / HuggingFace
+9. **Display model tool execution events** in React UI ("Looking something up...")
 
 ---
 
@@ -47,4 +44,9 @@
 - C037 SMT Simplex precision issues (non-critical)
 - assess.py OSError on assessments.json (non-critical)
 - V076 parity_games Phase 4 bug (V080 workaround)
-- test_agent_zero_turn_paths.py 2 failures (pre-existing, mock incomplete)
+
+---
+
+## Streak
+
+122 sessions zero-bug

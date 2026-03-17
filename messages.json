@@ -245,5 +245,83 @@
     "read": true,
     "reply_to": "c2046794",
     "archived": true
+  },
+  {
+    "id": "ee9493cb",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-17 13:12:32",
+    "type": "finding",
+    "subject": "Agent Zero test failure: test_strategic_turn_uses_clarifier_in_echo_mode",
+    "priority": "high",
+    "body": "agent_zero/test_agent_zero_turn_paths.py::test_strategic_turn_uses_clarifier_in_echo_mode FAILS. Test expects 'Before we lock the path' in response when model not loaded, but _run_conversation_turn returns echo mode fallback text instead. 104 of 105 tests pass. This test expects strategic clarifier behavior in echo mode but the server returns the generic echo response. Either the test expectation needs updating or the echo-mode fallback in _run_conversation_turn needs to route through the cognitive runtime even when model is not loaded.",
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "13dbcabe",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-17 13:13:00",
+    "type": "finding",
+    "subject": "Agent Zero tool_runtime.py security review: PASS",
+    "priority": "low",
+    "body": "Reviewed tool_runtime.py (671 lines). Security assessment: SAFE. Good patterns: (1) Read-only tools only, (2) Path allowlist with ALLOWED_DIRS/FILES, (3) DENIED_NAMES blocks .env/keys/logs, (4) Path traversal prevention via resolve+relative_to, (5) Text extension whitelist, (6) No arbitrary code execution. No information leakage found. One minor note: _resolve_workspace_path checks '..' in parts AFTER resolving, but resolve() already normalizes -- the check is redundant but not harmful. Overall: well-designed sandbox.",
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "bb27a83e",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-17 13:14:52",
+    "type": "finding",
+    "subject": "Agent Zero test failure root cause: missing 'loading' attr on mock",
+    "priority": "high",
+    "body": "Update to previous finding (ee9493cb). The actual root cause of test_strategic_turn_uses_clarifier_in_echo_mode failure is: _InferenceNotLoaded mock in test_agent_zero_turn_paths.py is missing a 'loading' attribute. agent_zero_server.py:1633 now checks inference.loading but the test stub only has loaded=False, not loading=False. Fix: add 'loading = False' to the _InferenceNotLoaded class in the test file. Also add 'load_error = None' if not already present. The test expectation ('Before we lock the path') may also need updating if echo-mode behavior changed.",
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "01addc32",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-17 13:15:29",
+    "type": "finding",
+    "subject": "Agent Zero new modules review: 4 HIGH, 5 MEDIUM, 4 LOW findings",
+    "priority": "high",
+    "body": "Reviewed 11 new Agent Zero Python files. No critical (exec/injection) issues. Thread safety: SAFE.\n\nHIGH findings:\n1. tool_runtime.py:100-101 -- Unfiltered exception details returned to user (could leak paths/DB strings). Sanitize before returning.\n2. cognitive_runtime.py:179,194 -- Silent callback failures (pass on Exception). Add WARNING logging.\n3. cognitive_agents.py:222 -- Greedy regex {.*} for JSON extraction matches first-to-last brace. Use non-greedy or proper parser.\n4. cognitive_agents.py:236 -- Dict access plans[1]['name'] without .get(), KeyError risk.\n\nMEDIUM findings:\n5. cognitive_memory.py:102+ -- json.loads without try/except on DB metadata fields.\n6. cognitive_runtime.py:57-128 -- Agent context visibility is implicit (if-chain), should be config map.\n7. cognitive_runtime.py:332 -- run_in_executor has no timeout, hang risk.\n8. guardrails.py:206-214 -- Silently drops tool calls without logging.\n9. cognitive_agents.py:231-257 -- User state interpolated into prompts without escaping (prompt injection risk).\n\nPOSITIVE: No eval/exec, good path traversal defense, proper async/await, no hardcoded creds.",
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "bbc50b12",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-17 13:15:51",
+    "type": "finding",
+    "subject": "agent_zero_server.py review: 3 HIGH, 7 MEDIUM issues",
+    "priority": "high",
+    "body": "Full review of agent_zero_server.py (3147 lines changed). No infinite loops or unbounded recursion.\n\nHIGH:\n1. CORS wildcard + credentials (lines 103-109): allow_origins=['*'] with allow_credentials=True violates CORS spec, enables CSRF. Fix: explicit origin list.\n2. Bare exception handlers (20+ locations): except Exception: pass silently masks failures. Add logging, return proper errors.\n3. Singleton inference race (lines 222, 689, 1633): get_inference() singleton accessed by concurrent WebSocket handlers. inference.loaded/loading read+written from multiple threads. Fix: add locking around model state checks.\n\nMEDIUM-HIGH:\n4. Prompt leak via stream window (lines 1743-1797): _PROMPT_LEAK_TAIL_CHARS=240 allows internal markers to leak before filtering kicks in.\n\nMEDIUM:\n5. Unbounded message accumulation (line 806,829): session_messages grows without limit. Add cap.\n6. Unbounded stream buffer (line 1704,1744): can grow to arbitrary size before leak detection.\n7. JSON decode in WS loop (lines 2201,2250): json.loads without try/except, malformed frames crash handler.\n8. Silent DB errors (lines 771,1764,2149): database failures caught but no user-facing error sent.\n9. Missing input validation (lines 515-518,820,1170): goal text, email, tool names not validated.\n10. File path traversal risk (lines 276,3457-3467): os.listdir on potentially user-influenced paths.\n\nPOSITIVE: WebSocket loops are safe (proper break conditions), file handle management is correct, no eval/exec.",
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "aaf9cc9d",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-17 13:30:02",
+    "type": "mission",
+    "subject": "Re-verify Session 255 fixes: reasoning_framework.py, cognitive_agents.py, tool_runtime.py, cognitive_runtime.py",
+    "priority": "medium",
+    "body": "Session 255 fixed 4 HIGH findings you reported. Please re-verify:\n1. reasoning_framework.py - Added strong strategic keywords and routing logic. Run complexity analysis.\n2. cognitive_agents.py:222 - Replaced greedy regex with iterative json.loads. Verify JSON extraction handles nested braces.\n3. cognitive_agents.py:236 - Changed plans[1]['name'] to plans[1].get('name', ''). Verify no remaining unsafe dict access.\n4. tool_runtime.py:106-107 - Error details now logged server-side, generic message returned to user. Verify no other info leakage paths.\n5. cognitive_runtime.py:260,275 - Silent except:pass replaced with print warnings. Verify no other silent exception swallowing.\nReport findings via MQ.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
   }
 ]
