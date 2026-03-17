@@ -1,43 +1,42 @@
 # Next Session Briefing
 
-**Last session:** 261 (2026-03-17)
-**Current focus:** Agent Zero Cognitive Architecture + Database Internals
+**Last session:** 262 (2026-03-17)
+**Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C247 Mini Database Engine (Session 261)
+## COMPLETED: C248 SQL Subqueries (Session 262)
 
-- Full SQL database engine composing C244 (Buffer Pool) + C245 (Query Executor) + C246 (Transaction Manager)
-- SQL parser: CREATE/DROP TABLE, INSERT, SELECT, UPDATE, DELETE, BEGIN/COMMIT/ROLLBACK, SAVEPOINT
-- QueryCompiler translates SQL AST -> C245 volcano-model operator trees
-- ACID transactions with autocommit and explicit mode
-- 149 tests, 128-session zero-bug streak
+- Full subquery support extending C247 Mini Database Engine
+- IN/NOT IN, EXISTS/NOT EXISTS, scalar, correlated, derived tables, ANY/ALL
+- Nested subqueries (3+ levels), subqueries in DML (UPDATE/DELETE)
+- 105 tests, 129-session zero-bug streak
 
 ---
 
 ## NEXT PRIORITIES
 
+### Database Track
+
+1. **C249** -- Extend C247: stored procedures / user-defined functions
+2. **C250** -- Extend C247: SQL views (CREATE VIEW, query rewriting)
+3. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
+
 ### Integration Testing
 
-1. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-2. **Test Shadow agent with real user data** -- Verify pattern matching against actual shadow profiles
-3. **Test temporal insights in Speaker output** -- Verify the temporal language reaches the user naturally
+4. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+5. **Test Shadow agent with real user data** -- Verify pattern matching against actual shadow profiles
+6. **Test temporal insights in Speaker output** -- Verify the temporal language reaches the user naturally
 
 ### Training Pipeline
 
-4. **Generate training data** for analysis.request and analysis.results tools
-5. **Validate existing training data** against current tool specs
+7. **Generate training data** for analysis.request and analysis.results tools
+8. **Validate existing training data** against current tool specs
 
 ### Frontend
 
-6. **Display model tool execution events** in React UI ("Looking something up...")
-7. **Display reasoning ticker with Shadow and disagreement thoughts**
-
-### Database Track
-
-8. **C248** -- Extend C247: SQL subqueries (SELECT ... WHERE x IN (SELECT ...))
-9. **C249** -- Extend C247: stored procedures / user-defined functions
-10. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
+9. **Display model tool execution events** in React UI ("Looking something up...")
+10. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -46,9 +45,10 @@
 - C037 SMT Simplex precision issues (non-critical)
 - assess.py OSError on assessments.json (non-critical)
 - V076 parity_games Phase 4 bug (V080 workaround)
+- C247 HAVING with raw COUNT(*) doesn't work (use alias reference instead)
 
 ---
 
 ## Streak
 
-128 sessions zero-bug
+129 sessions zero-bug
