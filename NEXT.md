@@ -1,41 +1,39 @@
 # Next Session Briefing
 
-**Last session:** 255 (2026-03-17)
-**Current focus:** Agent Zero Integration & Optimization (Overseer directive)
+**Last session:** 256 (2026-03-17)
+**Current focus:** Agent Zero Integration & Testing
 
 ---
 
-## COMPLETED: Bug Fixes & Routing (Session 255)
+## COMPLETED: Security Hardening (Session 256)
 
-- Fixed strategic routing: short intent messages now route correctly (added strong keywords)
-- Fixed A2 HIGH findings: greedy regex, error leakage, silent exceptions, unsafe dict access
-- Updated TOOL_MANIFEST.md with analysis.request and analysis.results
-- 229/229 tests passing (fixed 2 pre-existing failures from session 254)
+- Fixed CORS wildcard + credentials (env-var configurable origins)
+- Fixed singleton inference race (asyncio.Lock double-check)
+- Capped session_messages at 200 (unbounded accumulation)
+- Fixed prompt injection via interpolation (sanitizer + truncation)
+- 233/233 tests passing, 123-session zero-bug streak
 
 ---
 
-## NEXT PRIORITIES: Agent Zero Hardening & Testing
-
-### Security Fixes (from A2 review)
-
-1. **CORS wildcard + credentials** (agent_zero_server.py:103-109) -- Fix: explicit origin list
-2. **Singleton inference race** (agent_zero_server.py) -- Fix: add asyncio.Lock
-3. **Unbounded message accumulation** -- Fix: cap session_messages at ~200
-4. **Prompt injection via interpolation** (cognitive_agents.py:231-257) -- Fix: escape user state
+## NEXT PRIORITIES
 
 ### Integration Testing
 
-5. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-6. **A2 round-trip test** -- Send real analysis.request, verify analysis.results picks it up
+1. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+2. **A2 round-trip test** -- Send real analysis.request, verify analysis.results picks it up
 
 ### Training Pipeline
 
-7. **Generate training data** for analysis.request and analysis.results tools
-8. **Validate existing training data** against current tool specs
+3. **Generate training data** for analysis.request and analysis.results tools
+4. **Validate existing training data** against current tool specs
 
 ### Frontend
 
-9. **Display model tool execution events** in React UI ("Looking something up...")
+5. **Display model tool execution events** in React UI ("Looking something up...")
+
+### Cleanup
+
+6. **FastAPI lifespan migration** -- Replace deprecated `@app.on_event("startup"/"shutdown")` with lifespan context manager (4 deprecation warnings)
 
 ---
 
@@ -49,4 +47,4 @@
 
 ## Streak
 
-122 sessions zero-bug
+123 sessions zero-bug
