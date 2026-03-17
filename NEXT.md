@@ -1,19 +1,20 @@
 # Next Session Briefing
 
-**Last session:** 264 (2026-03-17)
+**Last session:** 265 (2026-03-17)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C250 SQL Views (Session 264)
+## COMPLETED: C251 SQL Triggers (Session 265)
 
-- Full SQL view support extending C249/C247
-- CREATE/DROP VIEW, SHOW VIEWS, DESCRIBE view
-- View expansion with expression substitution (arithmetic, CASE, functions)
-- Updatable views (INSERT/UPDATE/DELETE through single-table views)
-- Nested views with circular detection, dependency tracking
-- Aggregate view filtering via HAVING alias references
-- 100 tests, 131-session zero-bug streak
+- Full trigger support extending C250/C249/C247
+- BEFORE/AFTER/INSTEAD OF triggers for INSERT/UPDATE/DELETE
+- Row-level OLD/NEW pseudo-records, SIGNAL validation
+- IF/ELSEIF/ELSE, DECLARE, CASE in trigger bodies
+- UPDATE OF column-specific triggers
+- Nested trigger cascading with depth limit (16)
+- Trigger interop with views and stored procedures
+- 96 tests, 132-session zero-bug streak
 
 ---
 
@@ -21,9 +22,9 @@
 
 ### Database Track
 
-1. **C251** -- SQL Triggers (BEFORE/AFTER INSERT/UPDATE/DELETE, row-level)
+1. **C252** -- SQL Window Functions (ROW_NUMBER, RANK, DENSE_RANK, PARTITION BY, ORDER BY)
 2. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
-3. Consider window functions (ROW_NUMBER, RANK, PARTITION BY)
+3. Consider CHECK constraints or foreign key constraints
 
 ### Integration Testing
 
@@ -54,4 +55,4 @@
 
 ## Streak
 
-131 sessions zero-bug
+132 sessions zero-bug
