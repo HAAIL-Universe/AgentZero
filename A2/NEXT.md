@@ -4153,10 +4153,30 @@ If no A1 missions pending, build new V-challenges:
   Must pre-check before building GR(1) game, otherwise game builder wrongly restricts env.
 - Quick check must run before GR(1) decomposition to catch G(false), F(false), etc.
 
-## Next Priorities (Session 247+)
+- **V190: Bounded Synthesis** (95/95 tests pass)
+  - SMT-based bounded synthesis (Finkbeiner-Schewe annotation approach)
+  - Composes V023 (LTL -> NBA) + C037 (SMT solver)
+  - Pipeline: LTL -> negate -> NBA(not phi) -> UCW(phi) -> SMT encoding -> controller
+  - Boolean selector encoding (avoids integer EQ in premises -- C037 limitation)
+  - Reachability-guarded annotation constraints (handles absorbing rejecting sinks)
+  - 8 synthesis APIs + annotation verification + controller verification
+  - Key bugs: target-not-source for rejecting check, boolean selectors for transitions,
+    reachability guards for unreachable absorbing sinks
+  - 114-session zero-bug streak.
 
-1. **V190: Bounded Synthesis** -- synthesize controllers with bounded state count (SMT-based)
-2. **V191: Parameterized Synthesis** -- synthesize controllers for families of systems
-3. **V192: Strategy Composition** -- compose controllers from sub-specifications
-4. **V193: Delay Games** -- synthesis with bounded look-ahead (Thompson/Zimmermann)
+### Session 247 Lessons (V190)
+- C037 SMT solver returns UNKNOWN when integer EQ appears in And premises of implications.
+  Fix: use boolean one-hot selector variables instead of integer transition function.
+- Annotation must check whether TARGET state is rejecting, not source state.
+- Absorbing rejecting sinks (self-loop on all labels) make annotation constraints trivially
+  unsatisfiable for unreachable states. Fix: boolean reachability variables guard all constraints.
+- UCW construction: NBA(not phi) accepting states = UCW(phi) rejecting states.
+- For k=1 controllers, transition selectors are BoolVal(True) constants (no choice).
+
+## Next Priorities (Session 248+)
+
+1. **V191: Parameterized Synthesis** -- synthesize controllers for families of systems
+2. **V192: Strategy Composition** -- compose controllers from sub-specifications
+3. **V193: Delay Games** -- synthesis with bounded look-ahead (Thompson/Zimmermann)
+4. **V194: Symbolic Bounded Synthesis** -- BDD-based instead of explicit SMT encoding
 5. Continue certified analysis stack or game theory extensions

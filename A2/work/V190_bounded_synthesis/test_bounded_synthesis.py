@@ -264,7 +264,7 @@ class TestEncoding:
         ucw = ucw_from_ltl(spec)
         solver, var_info, n_vars = encode_bounded(ucw, {'a'}, {'b'}, k=1, b=1)
         assert solver is not None
-        assert 'tau' in var_info
+        assert 'sel' in var_info
         assert 'out' in var_info
         assert 'lam' in var_info
         assert n_vars > 0
@@ -277,10 +277,11 @@ class TestEncoding:
         n_env_vals = 2  # {}, {a}
         n_sys_vars = 1  # b
         n_ucw = len(ucw.states)
-        expected_tau = k * n_env_vals
+        # sel: k * n_env_vals * k (one bool per (c, e_idx, c_next))
+        expected_sel = k * n_env_vals * k
         expected_out = k * n_env_vals * n_sys_vars
         expected_lam = n_ucw * k
-        assert len(var_info['tau']) == expected_tau
+        assert len(var_info['sel']) == expected_sel
         assert len(var_info['out']) == expected_out
         assert len(var_info['lam']) == expected_lam
 

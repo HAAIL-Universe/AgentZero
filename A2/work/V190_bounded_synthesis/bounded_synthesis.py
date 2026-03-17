@@ -184,9 +184,9 @@ def _label_matches(label, valuation):
 def encode_bounded(ucw, env_vars, sys_vars, k, b):
     """Encode bounded synthesis as SMT formula.
 
-    Uses reachability-guarded annotation constraints: only impose
-    annotation decrements for product states (q, c) that the controller
-    can actually reach. This handles absorbing rejecting sinks correctly.
+    Uses fully-boolean encoding for the transition function (sel variables)
+    to avoid integer EQ in implication premises (which causes UNKNOWN in C037).
+    Reachability-guarded annotation constraints handle absorbing rejecting sinks.
 
     Args:
         ucw: Universal Co-Buchi Automaton
@@ -202,21 +202,36 @@ def encode_bounded(ucw, env_vars, sys_vars, k, b):
     env_vals = _all_valuations(env_vars)
     sys_vals = _all_valuations(sys_vars)
 
-    tau = {}   # (c, e_idx) -> SMT int var
+    sel = {}   # (c, e_idx, c_next) -> SMT bool var (transition selector)
     out = {}   # (c, e_idx, v) -> SMT bool var
     lam = {}   # (q, c) -> SMT int var
     reach = {} # (q, c) -> SMT bool var
 
     ucw_states = sorted(ucw.states)
 
-    # Create controller variables
+    # Create controller transition variables (boolean selectors)
     for c in range(k):
-        for e_idx, e_val in enumerate(env_vals):
-            t_var = solver.Int(f'tau_{c}_{e_idx}')
-            tau[(c, e_idx)] = t_var
-            solver.add(t_var >= solver.IntVal(0))
-            solver.add(t_var < solver.IntVal(k))
+        for e_idx in range(len(env_vals)):
+            if k == 1:
+                # Only one choice: always go to state 0
+                sel[(c, e_idx, 0)] = solver.BoolVal(True)
+            else:
+                # Create boolean selector for each possible next state
+                sel_vars = []
+                for c_next in range(k):
+                    sv = solver.Bool(f'sel_{c}_{e_idx}_{c_next}')
+                    sel[(c, e_idx, c_next)] = sv
+                    sel_vars.append(sv)
+                # Exactly-one constraint: at least one, and pairwise exclusion
+                solver.add(solver.Or(*sel_vars))
+                for i in range(len(sel_vars)):
+                    for j in range(i + 1, len(sel_vars)):
+                        solver.add(solver.Or(
+                            solver.Not(sel_vars[i]),
+                            solver.Not(sel_vars[j])
+                        ))
 
+            # Output variables
             for v in sorted(sys_vars):
                 o_var = solver.Bool(f'out_{c}_{e_idx}_{v}')
                 out[(c, e_idx, v)] = o_var
@@ -232,14 +247,10 @@ def encode_bounded(ucw, env_vars, sys_vars, k, b):
             r_var = solver.Bool(f'reach_{q}_{c}')
             reach[(q, c)] = r_var
 
-    # Initial reachability: initial UCW states paired with controller state 0
+    # Initial reachability
     for q in ucw_states:
         if q in ucw.initial:
             solver.add(reach[(q, 0)])
-        else:
-            # Non-initial UCW states at controller state 0 are not initially reachable
-            # (but may become reachable via transitions)
-            pass
 
     # Reachability propagation and annotation constraints
     for q in ucw_states:
@@ -274,15 +285,17 @@ def encode_bounded(ucw, env_vars, sys_vars, k, b):
                         is_rejecting = q_next in ucw.rejecting
 
                         for c_next in range(k):
-                            tau_match = tau[(c, e_idx)] == solver.IntVal(c_next)
-
-                            # Full premise: reachable AND output matches AND tau matches
-                            premise = solver.And(reach[(q, c)], tau_match, out_match)
+                            # Premise: reachable AND sel matches AND output matches
+                            premise = solver.And(
+                                reach[(q, c)],
+                                sel[(c, e_idx, c_next)],
+                                out_match
+                            )
 
                             # Propagate reachability
                             solver.add(solver.Implies(premise, reach[(q_next, c_next)]))
 
-                            # Annotation constraint (guarded by reachability)
+                            # Annotation constraint
                             if is_rejecting:
                                 constraint = lam[(q_next, c_next)] < lam[(q, c)]
                             else:
@@ -291,7 +304,7 @@ def encode_bounded(ucw, env_vars, sys_vars, k, b):
                             solver.add(solver.Implies(premise, constraint))
 
     var_info = {
-        'tau': tau,
+        'sel': sel,
         'out': out,
         'lam': lam,
         'reach': reach,
@@ -302,7 +315,7 @@ def encode_bounded(ucw, env_vars, sys_vars, k, b):
         'ucw_states': ucw_states,
     }
 
-    n_vars = len(tau) + len(out) + len(lam) + len(reach)
+    n_vars = len(sel) + len(out) + len(lam) + len(reach)
 
     return solver, var_info, n_vars
 
@@ -313,7 +326,6 @@ def extract_controller(solver, var_info, env_vars, sys_vars):
     if model is None:
         return None, None
 
-    tau = var_info['tau']
     out = var_info['out']
     lam = var_info['lam']
     env_vals = var_info['env_vals']
@@ -321,15 +333,18 @@ def extract_controller(solver, var_info, env_vars, sys_vars):
     b = var_info['b']
     ucw_states = var_info['ucw_states']
 
-    # Extract transition function
+    # Extract transition function from sel variables
     transitions = {}
     for c in range(k):
         for e_idx, e_val in enumerate(env_vals):
-            # Get next state
-            tau_name = f'tau_{c}_{e_idx}'
-            next_c = model.get(tau_name, 0)
-            if isinstance(next_c, float):
-                next_c = int(next_c)
+            # Find which next state is selected
+            next_c = 0
+            for c_next in range(k):
+                sel_name = f'sel_{c}_{e_idx}_{c_next}'
+                val = model.get(sel_name, False)
+                if val:
+                    next_c = c_next
+                    break
 
             # Get output
             sys_output = set()
@@ -567,46 +582,72 @@ def synthesize_with_constraints(spec, env_vars, sys_vars, constraint_fn,
 def verify_annotation(controller, ucw, annotation):
     """Verify that an annotation witnesses bounded co-Buchi acceptance.
 
+    Only checks reachable product states -- unreachable states may have
+    unsatisfiable annotation constraints (e.g., absorbing rejecting sinks).
+
     Returns (valid, violations) where violations is a list of problematic transitions.
     """
-    violations = []
+    # Compute reachable (q, c) pairs
+    reachable = set()
     env_vals = _all_valuations(controller.env_vars)
 
-    for q in sorted(ucw.states):
+    # Initial: (q0, 0) for each initial UCW state
+    frontier = []
+    for q in ucw.initial:
+        reachable.add((q, 0))
+        frontier.append((q, 0))
+
+    while frontier:
+        q, c = frontier.pop()
         trans_q = ucw.transitions.get(q, [])
-        for c in range(controller.n_states):
-            for e_val in env_vals:
-                result = controller.step(c, e_val)
-                if result is None:
+        for e_val in env_vals:
+            result = controller.step(c, e_val)
+            if result is None:
+                continue
+            next_c, sys_output = result
+            combined = e_val | sys_output
+            for label, q_next in trans_q:
+                if _label_matches(label, combined):
+                    if (q_next, next_c) not in reachable:
+                        reachable.add((q_next, next_c))
+                        frontier.append((q_next, next_c))
+
+    # Check annotation only for reachable states
+    violations = []
+    for q, c in sorted(reachable):
+        trans_q = ucw.transitions.get(q, [])
+        for e_val in env_vals:
+            result = controller.step(c, e_val)
+            if result is None:
+                continue
+            next_c, sys_output = result
+            combined = e_val | sys_output
+
+            for label, q_next in trans_q:
+                if not _label_matches(label, combined):
                     continue
-                next_c, sys_output = result
-                combined = e_val | sys_output
+                if (q_next, next_c) not in reachable:
+                    continue
 
-                for label, q_next in trans_q:
-                    if not _label_matches(label, combined):
-                        continue
+                lam_cur = annotation.values.get((q, c), 0)
+                lam_next = annotation.values.get((q_next, next_c), 0)
 
-                    lam_cur = annotation.values.get((q, c), 0)
-                    lam_next = annotation.values.get((q_next, next_c), 0)
-
-                    if q_next in ucw.rejecting:
-                        # Must strictly decrease
-                        if lam_next >= lam_cur:
-                            violations.append({
-                                'type': 'rejecting_not_decreasing',
-                                'q': q, 'c': c, 'q_next': q_next, 'c_next': next_c,
-                                'lam_cur': lam_cur, 'lam_next': lam_next,
-                                'env': e_val, 'sys': sys_output,
-                            })
-                    else:
-                        # Must not increase
-                        if lam_next > lam_cur:
-                            violations.append({
-                                'type': 'non_rejecting_increasing',
-                                'q': q, 'c': c, 'q_next': q_next, 'c_next': next_c,
-                                'lam_cur': lam_cur, 'lam_next': lam_next,
-                                'env': e_val, 'sys': sys_output,
-                            })
+                if q_next in ucw.rejecting:
+                    if lam_next >= lam_cur:
+                        violations.append({
+                            'type': 'rejecting_not_decreasing',
+                            'q': q, 'c': c, 'q_next': q_next, 'c_next': next_c,
+                            'lam_cur': lam_cur, 'lam_next': lam_next,
+                            'env': e_val, 'sys': sys_output,
+                        })
+                else:
+                    if lam_next > lam_cur:
+                        violations.append({
+                            'type': 'non_rejecting_increasing',
+                            'q': q, 'c': c, 'q_next': q_next, 'c_next': next_c,
+                            'lam_cur': lam_cur, 'lam_next': lam_next,
+                            'env': e_val, 'sys': sys_output,
+                        })
 
     return len(violations) == 0, violations
 

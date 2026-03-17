@@ -6097,3 +6097,22 @@ APIs: octagon_guided_cegar, verify_loop_with_octagon_cegar,
 - compare_methods(): run both GR(1) and LTL, verify agreement
 - Key fix: sys safety referencing env vars must be pre-checked for controllability
 - 113-session zero-bug streak
+
+## V190: Bounded Synthesis (Session 247, 95 tests)
+- SMT-based bounded synthesis (Finkbeiner-Schewe annotation approach)
+- Composes V023 (LTL -> NBA) + C037 (SMT solver)
+- Pipeline: LTL phi -> negate -> NBA(not phi) -> UCW(phi) -> SMT encoding -> controller extraction
+- Key innovations:
+  - Boolean selector encoding for transition function (avoids integer EQ in SMT premises)
+  - Reachability-guarded annotation constraints (handles absorbing rejecting sinks)
+  - UCW construction from NBA negation
+- 8 synthesis APIs: bounded_synthesize, synthesize_safety, synthesize_liveness, synthesize_response,
+  synthesize_assume_guarantee, find_minimum_controller, synthesize_with_constraints, compare_with_game
+- Annotation verification with reachability-aware checking
+- Controller verification (bounded model checking)
+- Bug fix: C037 SMT solver returns UNKNOWN with integer EQ in And premises
+  - Solution: boolean one-hot selector variables instead of integer transition function
+- Bug fix: annotation must check TARGET state rejecting (not source)
+- Bug fix: absorbing rejecting sinks make annotation constraints unsatisfiable for unreachable states
+  - Solution: boolean reachability variables guard all annotation constraints
+- 114-session zero-bug streak
