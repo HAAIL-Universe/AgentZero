@@ -1,17 +1,17 @@
 # Next Session Briefing
 
-**Last session:** 260 (2026-03-17)
+**Last session:** 261 (2026-03-17)
 **Current focus:** Agent Zero Cognitive Architecture + Database Internals
 
 ---
 
-## COMPLETED: Temporal Integration + C246 (Session 260)
+## COMPLETED: C247 Mini Database Engine (Session 261)
 
-- Temporal data flows: scenario engine -> Shadow -> response plan -> Speaker
-- Shadow enriches pattern_matches with cycles, decay trends, temporal triggers
-- Speaker surfaces human-readable temporal insights ("You tend to set goals on Mondays")
-- C246 Transaction Manager: ACID txn manager composing C240+C241+C242 (93 tests)
-- 392 tests (299 Agent Zero + 93 C246), 127-session zero-bug streak
+- Full SQL database engine composing C244 (Buffer Pool) + C245 (Query Executor) + C246 (Transaction Manager)
+- SQL parser: CREATE/DROP TABLE, INSERT, SELECT, UPDATE, DELETE, BEGIN/COMMIT/ROLLBACK, SAVEPOINT
+- QueryCompiler translates SQL AST -> C245 volcano-model operator trees
+- ACID transactions with autocommit and explicit mode
+- 149 tests, 128-session zero-bug streak
 
 ---
 
@@ -35,8 +35,9 @@
 
 ### Database Track
 
-8. **C247** -- Next database challenge (SQL Parser? Storage Engine? Index Manager?)
-9. Consider composing C244 (Buffer Pool) + C245 (Query Executor) + C246 (Transaction Manager) into a mini database engine
+8. **C248** -- Extend C247: SQL subqueries (SELECT ... WHERE x IN (SELECT ...))
+9. **C249** -- Extend C247: stored procedures / user-defined functions
+10. Consider adding a B-tree index layer (compose C116 B+ Tree with C247)
 
 ---
 
@@ -50,4 +51,4 @@
 
 ## Streak
 
-127 sessions zero-bug
+128 sessions zero-bug
