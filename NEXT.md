@@ -1,57 +1,55 @@
 # Next Session Briefing
 
-**Last session:** 312 (2026-03-18)
+**Last session:** 313 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 312
+## COMPLETED: Session 313
 
-### Predictive Scenario Engine Reliability (paper: predictive_engine_reliability.md)
-- Replaced 7 silent except handlers with structured logging (logger.warning)
-- Wired forecast/causal worker timing into TurnEvent observability
-- Replaced sys.path pollution with importlib batch load + cleanup
-- Added degradation metadata to return dict (modules_available, forecast_ran, causal_ran, fallback_count)
-- Extracted 8 magic numbers to Agent ZeroConfig (pse_* fields)
-- 70 tests (65 passed, 5 skipped -- challenge module unavailability on dev machine)
+### Frontend Component Tests (React Error Resilience Phase 6)
+- Set up vitest + @testing-library/react + jsdom test infrastructure
+- ErrorBoundary.test.tsx: 11 tests (catch, fallback, reset, isolation, callbacks)
+- AppShell.test.tsx: 24 tests (toolbar, chat, voice, tab switching)
+- Total: 45 frontend tests, all passing. tsc clean.
+- Added `npm test` script to package.json
 
-**Zero-bug streak: 174 sessions**
+**Zero-bug streak: 175 sessions**
 
 ---
 
 ## NEXT PRIORITIES
 
 ### Agent Zero Track -- Immediate
-2. **Frontend: Component tests** -- ErrorBoundary.test.tsx, AppShell.test.tsx (paper Phase 6)
-3. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
+1. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
+2. **React Frontend Error Resilience** -- Phase 4 (custom hooks extraction from App.tsx) remains
 
 ### Agent Zero Track -- Research Papers (ready_for_implementation)
 
-4. **CSRF and Session Token Storage** (research/papers/csrf_and_session_token_storage.md) -- HIGH, large
-5. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
-6. **React Frontend Error Resilience** (remaining phases) -- MED (Phases 1-3 done)
-7. **JWT Phase 4: Refresh Token Rotation** -- short-lived access + httpOnly refresh cookie (separate task)
+3. **CSRF and Session Token Storage** (research/papers/csrf_and_session_token_storage.md) -- HIGH, large
+4. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
+5. **JWT Phase 4: Refresh Token Rotation** -- short-lived access + httpOnly refresh cookie (separate task)
 
 ### Agent Zero Track -- Architecture
 
-8. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
-9. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
-10. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
+6. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
+7. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
+8. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
 
 ### Research Papers (MED priority)
-11. **Consolidated Rules Growth Cap** (research/papers/consolidated_rules_growth_cap.md)
-12. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
-13. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
-14. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
+9. **Consolidated Rules Growth Cap** (research/papers/consolidated_rules_growth_cap.md)
+10. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
+11. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
+12. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
 
 ### Integration Testing
-15. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-16. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
-17. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
+13. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+14. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
+15. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
 
 ### Frontend
-18. **Display model tool execution events** in React UI ("Looking something up...")
-19. **Display reasoning ticker with Shadow and disagreement thoughts**
+16. **Display model tool execution events** in React UI ("Looking something up...")
+17. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -71,11 +69,10 @@
 ## A2 Verification Pending
 - Session 304: ErrorBoundary + typed props (tsc clean), silent-swallow fixes
 - Session 307: JWT security hardening (22 tests)
-- Session 309: Resource lifecycle management (20 tests) -- A2 VERIFIED PASS
-- Session 310: Database query optimization (29 tests) -- A2 VERIFIED PASS
 - Session 311: Domain-neutral prompt normalization (39 tests)
 - Session 312: PSE reliability and observability (65 tests)
+- Session 313: Frontend component tests (35 tests)
 
 ## Streak
 
-174 sessions zero-bug
+175 sessions zero-bug
