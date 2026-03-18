@@ -1,21 +1,22 @@
 # Next Session Briefing
 
-**Last session:** 306 (2026-03-18)
+**Last session:** 307 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 306
+## COMPLETED: Session 307
 
-### XSS Hardening + Security Headers (paper: frontend_xss_and_csp.md)
-- DOMPurify added to React renderMarkdown() -- defense-in-depth for dangerouslySetInnerHTML
-- Security headers middleware: X-Content-Type-Options, X-Frame-Options, Referrer-Policy, CSP
-- CORS tightened: allow_headers wildcard -> [Authorization, Content-Type]
-- Legacy agent_zero.html: all innerHTML injections escaped, all empty catch blocks fixed
-- 17 tests, all passing
-- tsc clean, Vite build clean
+### JWT Security Hardening (paper: jwt_security_hardening.md, Phases 1-3)
+- Fail-fast secret validation: crash in production if default/weak, warn in dev
+- JTI claims on all tokens + in-memory denylist with TTL cleanup
+- POST /auth/logout endpoint -- server-side token revocation
+- First-message WebSocket auth (both frontends) -- tokens no longer in URLs
+- Backward-compatible fallback for legacy query-param tokens (deprecated)
+- 22 tests, all passing
+- tsc clean, 31 existing auth tests still pass
 
-**Zero-bug streak: 168 sessions**
+**Zero-bug streak: 169 sessions**
 
 ---
 
@@ -28,37 +29,36 @@
 
 ### Agent Zero Track -- Research Papers (ready_for_implementation)
 
-5. **JWT Security Hardening** (research/papers/jwt_security_hardening.md) -- HIGH, medium
-6. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
-7. ~~**Frontend XSS and CSP**~~ -- DONE (Session 306, 17 tests)
-8. **Resource Lifecycle Management** (research/papers/resource_lifecycle_management.md) -- HIGH, medium
-9. **CSRF and Session Token Storage** (research/papers/csrf_and_session_token_storage.md) -- HIGH, large (after XSS/CSP)
-10. **Database Query Optimization** (research/papers/database_query_optimization.md) -- ready_for_implementation
-11. **Domain-Neutral Prompt Normalization** (research/papers/domain_neutral_prompt_normalization.md) -- MED, medium
-12. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
-13. **React Frontend Error Resilience** (remaining phases) -- MED (Phases 1-3 done)
-14. **Predictive Scenario Engine Reliability** (research/papers/predictive_engine_reliability.md) -- MED, medium (new)
+3. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
+4. **Resource Lifecycle Management** (research/papers/resource_lifecycle_management.md) -- HIGH, medium
+5. **CSRF and Session Token Storage** (research/papers/csrf_and_session_token_storage.md) -- HIGH, large
+6. **Database Query Optimization** (research/papers/database_query_optimization.md) -- ready_for_implementation
+7. **Domain-Neutral Prompt Normalization** (research/papers/domain_neutral_prompt_normalization.md) -- MED, medium
+8. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
+9. **React Frontend Error Resilience** (remaining phases) -- MED (Phases 1-3 done)
+10. **Predictive Scenario Engine Reliability** (research/papers/predictive_engine_reliability.md) -- MED, medium
+11. **JWT Phase 4: Refresh Token Rotation** -- short-lived access + httpOnly refresh cookie (separate task)
 
 ### Agent Zero Track -- Architecture
 
-15. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
-16. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
-17. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
+12. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
+13. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
+14. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
 
 ### Research Papers (MED priority)
-18. **Consolidated Rules Growth Cap** (research/papers/consolidated_rules_growth_cap.md)
-19. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
-20. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
-21. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
+15. **Consolidated Rules Growth Cap** (research/papers/consolidated_rules_growth_cap.md)
+16. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
+17. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
+18. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
 
 ### Integration Testing
-22. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-23. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
-24. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
+19. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+20. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
+21. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
 
 ### Frontend
-25. **Display model tool execution events** in React UI ("Looking something up...")
-26. **Display reasoning ticker with Shadow and disagreement thoughts**
+22. **Display model tool execution events** in React UI ("Looking something up...")
+23. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -77,7 +77,8 @@
 ## A2 Verification Pending
 - Session 304: ErrorBoundary + typed props (tsc clean), silent-swallow fixes
 - Session 306: XSS hardening + security headers (17 tests)
+- Session 307: JWT security hardening (22 tests)
 
 ## Streak
 
-168 sessions zero-bug
+169 sessions zero-bug
