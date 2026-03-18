@@ -80,3 +80,16 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 - [x] Frontend accessibility (WCAG 2.1) -- zero aria-* attributes in agent_zero.html, no keyboard navigation, no screen reader support. Voice-first interface needs full keyboard accessibility. (Researched 2026-03-18, paper: research/papers/frontend_accessibility.md, 7 citations)
 - [x] Consolidated rules growth cap -- episode_store consolidated_rules array is unbounded. 10k rules = 5-10MB per user profile. Needs max cap + rule retirement with audit logging. (Researched 2026-03-18, paper: research/papers/consolidated_rules_growth_cap.md, 5 citations)
 - [x] Error message information leakage -- generic exceptions sent as str(e) to WebSocket clients (agent_zero_server.py:3164). Leaks stack traces, DB structure, file paths. Needs generic client messages + server-side structured logging. (Researched 2026-03-18, paper: research/papers/error_message_information_leakage.md, 6 citations)
+
+## High Priority (New -- from gap analysis 2026-03-18 session 8)
+
+- [x] Async event loop safety -- 11x deprecated asyncio.get_event_loop(), 2x blocking subprocess.run() (10s), 3x blocking urllib (120s). Freezes all WebSocket connections. Python 3.12 deprecation active. (Researched 2026-03-18, paper: research/papers/async_event_loop_safety.md, 6 citations)
+- [x] Silent exception data loss + destructive operation guards -- bare except-pass discards commitment DB writes (behavioural_shadow.py:439,488). DELETE /api/user/clear-data has no re-auth, no soft-delete, no recovery window. (Researched 2026-03-18, paper: research/papers/silent_exception_data_loss.md, 6 citations)
+
+## Medium Priority (New -- from gap analysis 2026-03-18 session 8)
+
+- [ ] Rate limiter and WS validation integration -- rate_limiter.py and ws_messages.py exist with tests but are NEVER imported by agent_zero_server.py. Dead code. Needs wiring into endpoints.
+- [ ] Auth hardening -- minimum password 6 chars (should be 8, NIST SP 800-63B), email validation is just "@" check, no failed-login counter, per-request DB lookup for JWT user (should cache).
+- [ ] Domain-neutral prompt normalization -- hardcoded strings ("ask for a raise", "manager is unpredictable") in agent_zero_server.py and reasoning_framework.py. Brittle, domain-specific.
+- [ ] Safety-critical guardrail test coverage -- test_guardrails.py is 120 lines for 599-line guardrails.py. Crisis/harm pattern coverage insufficient.
+- [ ] Silent 2K token truncation in local inference -- agent_zero_inference.py:257 uses max_length=2048 but model supports 32K (config.model_context_limit).

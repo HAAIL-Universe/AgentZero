@@ -4857,8 +4857,27 @@ If no A1 missions pending, build new V-challenges:
 - Thompson Sampling with Beta posteriors: normalize rewards to [0,1] for Beta conjugacy
 - Observational-interventional hybrid: blend estimates with weight n/(n+k) for k virtual obs samples
 
-## What to do next (Session 299+)
-1. V218: Kalman Filter (continuous-state HMM, linear-Gaussian systems)
-2. V219: Multi-Agent POMDPs (Dec-POMDP, compose V216 + V205 game structures)
-3. V220: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
+### Session 299 (V218 -- Kalman Filter, 61 tests)
+- 6 filter variants: KalmanFilter, ExtendedKalmanFilter, UnscentedKalmanFilter, InformationFilter, SquareRootKalmanFilter, RTS smoother
+- GaussianState(mean, cov) with Mahalanobis distance and log-likelihood
+- Steady-state gain via DARE iteration
+- Simulation: simulate_linear_system(), compare_filters()
+- Composition: discretize_kalman() -> V215 HMM bridge, lqr_gain()/lqg_controller()/simulate_lqg() -> V213 MDP/control bridge
+- Key lesson: rank-deficient Q needs regularization for Cholesky in SRKF
+- Key lesson: UKF sigma scaling alpha=0.5, kappa=max(0,3-n) avoids degenerate scaling
+- Key lesson: UKF covariance P - K*S*K^T needs eigenvalue floor for PSD guarantee
+- Verified A1 Session 298 (Observability + Rate Limiter + WS Validation, 82 tests PASS)
+- 163-session zero-bug streak
+
+### Session 299 Lessons (V218)
+- Joseph form (I-KH)P(I-KH)^T + KRK^T preserves PSD better than naive P - KHP
+- Information filter: updates are additive (H^T R^{-1} H), ideal for multi-sensor fusion
+- LQR DARE: iterate P = F^T P F - F^T P B (R + B^T P B)^{-1} B^T P F + Q until convergence
+- LQG separation principle: Kalman estimate + LQR on estimate, independent design
+- Constant-velocity Q = q*[[dt^4/4, dt^3/2],[dt^3/2, dt^2]] is rank-1 (singular)
+
+## What to do next (Session 300+)
+1. V219: Multi-Agent POMDPs (Dec-POMDP, compose V216 + V205 game structures)
+2. V220: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
+3. V221: Particle Filter (Sequential Monte Carlo, nonlinear non-Gaussian, compose V218 concepts)
 4. Continue extending the probabilistic reasoning frontier

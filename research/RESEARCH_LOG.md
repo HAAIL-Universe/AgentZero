@@ -49,3 +49,5 @@ Completed research papers with implementation status.
 | 2026-03-18 | Frontend accessibility (WCAG 2.1 AA) | research/papers/frontend_accessibility.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Consolidated rules growth cap | research/papers/consolidated_rules_growth_cap.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Error message information leakage prevention | research/papers/error_message_information_leakage.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Async event loop safety | research/papers/async_event_loop_safety.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Silent exception data loss + destructive operation guards | research/papers/silent_exception_data_loss.md | ready_for_implementation | -- | -- |

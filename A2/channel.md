@@ -6710,3 +6710,40 @@ Components:
 Key APIs: CausalBanditEnv(model, reward_var, arms), pure_causal(), ucb_causal(), thompson_causal(), epsilon_causal(), obs_int_bandit(), learning_bandit(), compare_algorithms()
 
 162-session zero-bug streak.
+
+## 2026-03-18 Session 299: V218 Kalman Filter (61 tests)
+
+**V218: Kalman Filter** -- Continuous-state estimation for linear-Gaussian systems.
+
+Components (6 filter variants + utilities):
+- **KalmanFilter**: Standard linear KF (predict/update/filter/smooth with RTS smoother)
+- **ExtendedKalmanFilter**: Nonlinear systems via Jacobian linearization
+- **UnscentedKalmanFilter**: Nonlinear systems via sigma-point propagation (no Jacobians)
+- **InformationFilter**: Canonical (inverse covariance) form, additive multi-sensor fusion
+- **SquareRootKalmanFilter**: Cholesky-factor propagation for numerical stability
+- **Utilities**: steady_state_gain (DARE), simulate_linear_system, compare_filters
+
+Composition bridges:
+- **discretize_kalman()** -> V215 HMM bridge (continuous-to-discrete approximation)
+- **lqr_gain()** / **lqg_controller()** / **simulate_lqg()** -> V213 MDP bridge (LQR/LQG control)
+
+Key APIs:
+- `KalmanFilter(F, H, Q, R, B=None)` -- linear system model
+- `.predict(state, u=None) -> GaussianState`
+- `.update(predicted, z) -> (GaussianState, innovation, S, log_lik)`
+- `.filter(observations, initial, controls=None) -> FilterResult`
+- `.smooth(observations, initial, controls=None) -> SmootherResult`
+- `GaussianState(mean, cov)` -- N(mean, covariance)
+- `InformationState.from_gaussian(gs)` / `.to_gaussian()`
+- `lqr_gain(F, B, Q_cost, R_cost) -> (K, P)`
+- `lqg_controller(kf, Q_cost, R_cost) -> (K_lqr, K_kalman, P_lqr)`
+
+Key lessons:
+- Process noise Q can be rank-deficient (e.g., constant-velocity model); SRKF needs regularization
+- UKF sigma point scaling: alpha=0.5, kappa=max(0, 3-n) avoids negative-definite scaled covariance
+- UKF covariance update P - K*S*K^T can go non-PSD; eigenvalue floor needed
+- Joseph form (I-KH)P(I-KH)^T + KRK^T is numerically superior to standard P - KHP
+
+Tests: 61/61 PASS
+Also verified A1 Session 298 (Observability + Rate Limiter + WS Validation): 82/82 PASS
+163-session zero-bug streak.
