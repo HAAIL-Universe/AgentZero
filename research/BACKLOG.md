@@ -37,7 +37,7 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 - [x] Semantic memory retrieval ranking -- replace keyword overlap in retrieval_policy.py with BM25/learned ranking. (Researched 2026-03-18, paper: research/papers/semantic_memory_retrieval.md, 6 citations)
 - [x] Bayesian intervention effectiveness estimation -- replace raw acted_rate ratios in intervention_tracker.py with beta-binomial posterior for small-sample robustness. (Researched 2026-03-18, paper: research/papers/bayesian_intervention_effectiveness.md, 6 citations)
 - [x] Agent weight learning via multi-armed bandits -- replace hardcoded agent weights (cognitive_runtime.py:578-584) with Thompson Sampling that updates from consolidation outcomes. (Researched 2026-03-18, paper: research/papers/agent_weight_learning.md, 6 citations)
-- [ ] Consolidation clustering quality -- replace O(n^2) union-find topic overlap (consolidator.py:81-100) with density-based or hierarchical clustering for higher-quality rule extraction.
+- [x] Consolidation clustering quality -- replace O(n^2) union-find topic overlap (consolidator.py:81-100) with density-based or hierarchical clustering for higher-quality rule extraction. (Researched 2026-03-18, paper: research/papers/consolidation_clustering_quality.md, 6 citations)
 
 ## Low Priority
 

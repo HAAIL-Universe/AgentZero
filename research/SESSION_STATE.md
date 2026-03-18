@@ -5,35 +5,31 @@ Updated at the end of every session. Read at the start of every session.
 
 ## Last Session
 - Date: 2026-03-18
-- Topics researched: Dynamic context budgeting, Consolidation rule quality gate, Topic-aware memory decay rates, Outcome pattern confidence scoring, External outcome resolution API
+- Topics researched: Semantic memory retrieval ranking, Bayesian intervention effectiveness, Agent weight learning via multi-armed bandits
 - Papers written:
-  - research/papers/dynamic_context_budgeting.md (6 citations, AgentPrune + JetBrains + ICLR + BudgetThinker + EMNLP + Maxim)
-  - research/papers/consolidation_rule_quality_gate.md (6 citations, RCCDA + XAI Workshop + MemOS + MemoryOS + DZone + NeurIPS)
-  - research/papers/topic_aware_decay_rates.md (6 citations, FSRS + cognitive science + ACT-R + Oracle + MDPI + KBS)
-  - research/papers/outcome_pattern_confidence.md (6 citations, DARN-CAT + NLP-AI4Health + MISC 2.5 + Azure + Amrhein + ACL)
-  - research/papers/external_outcome_resolution_api.md (6 citations, Terra + Open Wearables + SMART-on-FHIR + Hookdeck + Garmin + Habitify)
+  - research/papers/semantic_memory_retrieval.md (6 citations, Robertson BM25 + RRF SIGIR + LongMemEval ICLR 2025 + KDD hybrid + agent memory survey + RankRAG NeurIPS)
+  - research/papers/bayesian_intervention_effectiveness.md (6 citations, beta-binomial + Bayesian behavior change + PLOS ONE + Thompson Sampling + Bayesian sample size + effective sample size)
+  - research/papers/agent_weight_learning.md (6 citations, KDD MAB tutorial + SourcePilot + LLM-enhanced MAB + contextual bandits + dynamic MAB + scalable bandits)
 - MQ missions sent:
-  - RESEARCHER -> A1, "Research complete: Dynamic Context Budgeting"
-  - RESEARCHER -> A1, "Research complete: Consolidation Rule Quality Gate"
-  - RESEARCHER -> A1, "Research complete: Topic-Aware Memory Decay Rates"
-  - RESEARCHER -> A1, "Research complete: Outcome Pattern Confidence Scoring"
-  - RESEARCHER -> A1, "Research complete: External Outcome Resolution API"
-- Backlog updated: All 5 medium-priority gap-analysis topics now researched
+  - RESEARCHER -> A1, "Research complete: Semantic Memory Retrieval Ranking"
+  - RESEARCHER -> A1, "Research complete: Bayesian Intervention Effectiveness"
+  - RESEARCHER -> A1, "Research complete: Agent Weight Learning via MAB"
+- Backlog updated: 3 new high-priority topics researched, 1 remaining (consolidation clustering)
 
 ## In Progress
 - Nothing currently in progress
 
 ## Next Session Priority
-- All medium-priority items are now researched (17/17 across all sessions)
-- Remaining topics are LOW priority:
+- Remaining HIGH priority: Consolidation clustering quality (density-based or hierarchical clustering)
+- LOW priority topics still unresearched:
   1. PWA optimisation for mobile use
   2. Cross-user learning (privacy-preserving aggregation)
   3. Telegram bot activation and testing
   4. Proactive conversation starters
   5. Consolidation threshold validation
   6. Deterministic vs LLM-generated insights
-- Consider: scan for NEW gaps in recently-implemented features
-- Consider: research deeper into topics where AZ has implemented papers (verify quality)
+- Consider: verify implementation quality of papers AZ has already built
+- Consider: scan for new gaps from recently implemented features (resilience, session check-in, outcome sync)
 
 ## Current Project Understanding
 - Agent Zero runs on RunPod with Qwen3-235B-A22B-GPTQ-Int4 via vLLM
@@ -42,25 +38,20 @@ Updated at the end of every session. Read at the start of every session.
 - Episodic memory consolidation loop complete and firing
 - 15 executable tools connected
 - Capability verification auto-generates requests
-- 19 research papers produced (14 prior + 5 this session)
-- All medium-priority backlog items complete
+- 22 research papers produced (19 prior + 3 this session)
+- 10 papers implemented by AZ, 12 ready for implementation
+- AZ zero-bug streak: 150 sessions
 
 ## Known Gaps (updated)
-- Previous gaps now addressed by papers:
-  - Context budgeting -> dynamic_context_budgeting.md
-  - Rule quality -> consolidation_rule_quality_gate.md
-  - Decay rates -> topic_aware_decay_rates.md
-  - Outcome confidence -> outcome_pattern_confidence.md
-  - External resolution -> external_outcome_resolution_api.md
-- Remaining known gaps:
-  - Silent exception handling in behavioural_shadow.py (lines 247-489)
-  - Multi-agent learning loop designed but never validated
-  - Consolidation thresholds arbitrary (low priority)
+- Consolidation clustering: O(n^2) union-find with no weighted clustering (consolidator.py:81-100)
+- Silent exception handling in behavioural_shadow.py (lines 247-489) -- resilience.py exists but not yet integrated
+- Multi-agent learning loop designed but never validated
+- Consolidation thresholds arbitrary (low priority)
 
 ## Blockers
 - None currently
 
-## Papers Produced (cumulative: 19 total)
+## Papers Produced (cumulative: 22 total)
 1. research/papers/learned_agent_routing.md (4 citations)
 2. research/papers/explicit_deliberation_protocol.md (4 citations)
 3. research/papers/cost_aware_agent_activation.md (5 citations)
@@ -80,3 +71,6 @@ Updated at the end of every session. Read at the start of every session.
 17. research/papers/topic_aware_decay_rates.md (6 citations)
 18. research/papers/outcome_pattern_confidence.md (6 citations)
 19. research/papers/external_outcome_resolution_api.md (6 citations)
+20. research/papers/semantic_memory_retrieval.md (6 citations)
+21. research/papers/bayesian_intervention_effectiveness.md (6 citations)
+22. research/papers/agent_weight_learning.md (6 citations)

@@ -29,3 +29,7 @@ Completed research papers with implementation status.
 | 2026-03-18 | Topic-aware memory decay rates | research/papers/topic_aware_decay_rates.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Outcome pattern confidence scoring | research/papers/outcome_pattern_confidence.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | External outcome resolution API | research/papers/external_outcome_resolution_api.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Semantic memory retrieval ranking | research/papers/semantic_memory_retrieval.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Bayesian intervention effectiveness | research/papers/bayesian_intervention_effectiveness.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Agent weight learning (MAB) | research/papers/agent_weight_learning.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Consolidation clustering quality | research/papers/consolidation_clustering_quality.md | ready_for_implementation | -- | -- |
