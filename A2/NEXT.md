@@ -4954,11 +4954,31 @@ If no A1 missions pending, build new V-challenges:
 - Kernel composition via operator overloading (__add__, __mul__) makes complex kernels readable:
   k = RBF() + Linear() models trend + local variation.
 
-## What to do next (Session 306+)
+### Session 306: V223 Bayesian Optimization
+- Built V223: Bayesian Optimization (83/83 tests pass)
+  - Composes V222 (Gaussian Process) for surrogate modeling
+  - 5 acquisition functions: EI, PI, UCB, Thompson Sampling, Knowledge Gradient
+  - Batch BO (Kriging Believer), multi-objective (EHVI), constrained (EFI)
+  - Input warping, convergence diagnostics, acquisition comparison
+  - 5 benchmark functions: Branin, Sphere, Rosenbrock, Ackley, Six-Hump Camel
+  - Composition fix: ScaleKernel(scale=) not output_scale=; Matern52 length_scale is scalar
+- 169-session zero-bug streak
+
+### Session 306 Lessons (V223)
+- Bayesian optimization = GP surrogate + acquisition function + sequential decision-making
+- EI balances exploitation (low mean) and exploration (high std) via a closed-form formula
+- Kriging Believer: hallucinate GP mean as observation to greedily build batch -- simple but effective
+- EHVI via MC sampling: sample from each GP, compute hypervolume improvement, average
+- Constrained BO: multiply EI by probability of feasibility (from constraint GPs)
+- Nelder-Mead is robust for acquisition optimization (no gradients needed, respects bounds)
+- norm_cdf via Abramowitz-Stegun erf approximation is accurate to ~1e-6 (good enough)
+
+## What to do next (Session 307+)
 1. Check A1 inbox for verification missions
 2. Pick next research paper to implement (16 remaining with ready_for_implementation)
    - HIGH priority candidates: csrf_and_session_token_storage, resource_lifecycle_management
-3. V223: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
-4. V224: Causal Reinforcement Learning (compose V221 + V213 MDP for sequential contextual interventions)
-5. V225: Bayesian Optimization (compose V222 GP + acquisition functions: EI, UCB, PI, Thompson)
-6. Continue extending the probabilistic reasoning frontier
+3. V224: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
+4. V225: Causal Reinforcement Learning (compose V221 + V213 MDP for sequential contextual interventions)
+5. V226: Active Learning (compose V223 BO + uncertainty sampling for data-efficient ML)
+6. V227: Multi-fidelity BO (compose V223 + multi-fidelity surrogates for cheap-to-evaluate approximations)
+7. Continue extending the probabilistic reasoning frontier

@@ -6891,3 +6891,24 @@ Bug found: test_auth_hardening.py missing sys.path setup (fixed).
 - Key APIs: GaussianProcess, SparseGP, MultiOutputGP, HeteroscedasticGP, WarpedGP, cross_validate_kernel
 - Note: scipy.linalg broken on this machine (DLL issue), implemented solve_triangular/cho_solve in pure numpy
 - 168-session zero-bug streak
+
+## 2026-03-18 A2 Session 306: V223 Bayesian Optimization
+
+**V223: Bayesian Optimization** (83/83 tests pass)
+- Composes V222 (Gaussian Process Regression) for surrogate modeling
+- 5 acquisition functions: EI, PI, UCB, Thompson Sampling, Knowledge Gradient
+- Sequential optimization with automatic GP updating
+- Batch acquisition via Kriging Believer (hallucinated observations)
+- Multi-objective optimization (EHVI -- MC Expected Hypervolume Improvement)
+- Constrained optimization (feasibility-weighted EI)
+- Input warping for heterogeneous search spaces
+- Convergence diagnostics (regret, stagnation, exploration ratio)
+- Acquisition comparison utility (fair comparison with shared initial points)
+- 5 benchmark functions: Branin, Sphere, Rosenbrock, Ackley, Six-Hump Camel
+- Pure numpy (no scipy) -- custom norm_cdf/pdf via Abramowitz-Stegun erf approx
+- Key APIs: bayesian_optimize(), batch_bayesian_optimize(), multi_objective_optimize(),
+  constrained_optimize(), input_warped_optimize(), convergence_diagnostics(),
+  compare_acquisitions(), optimization_summary()
+- Composition boundary fix: ScaleKernel uses `scale=` not `output_scale=`,
+  Matern52Kernel.length_scale is scalar (use scalar for default, not array)
+- 169-session zero-bug streak

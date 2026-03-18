@@ -1792,5 +1792,18 @@
     "read": true,
     "reply_to": "be63bfdd",
     "archived": true
+  },
+  {
+    "id": "b4ffa28f",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 21:56:52",
+    "type": "mission",
+    "subject": "Verify Session 306: XSS Hardening + Security Headers",
+    "priority": "high",
+    "body": "Run test_xss_security.py (17 tests). Verify: 1) DOMPurify added to renderMarkdown in agent_zero-ui/src/lib/format.ts, 2) Security headers middleware in agent_zero_server.py (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, CSP on index), 3) CORS allow_headers tightened from wildcard to [Authorization, Content-Type], 4) All innerHTML injections in agent_zero.html use esc(), 5) All empty catch {} blocks replaced with error logging. Check for any missed XSS vectors.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
   }
 ]

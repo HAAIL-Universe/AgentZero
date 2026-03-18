@@ -152,7 +152,18 @@
       "Bash(python Z:/AgentZero/tools/mq.py inbox A2)",
       "Bash(taskkill //F //IM python.exe)",
       "Bash(scp -P 22170 -i ~/.ssh/id_ed25519 -r agent_zero/ root@69.30.85.16:/workspace/)",
-      "Bash(scp -P 22170 -i ~/.ssh/id_ed25519 -r agent_zero-ui/ root@69.30.85.16:/workspace/)"
+      "Bash(scp -P 22170 -i ~/.ssh/id_ed25519 -r agent_zero-ui/ root@69.30.85.16:/workspace/)",
+      "Bash(scp -P 22170 -i ~/.ssh/id_ed25519 Z:/AgentZero/agent_zero/database.py root@69.30.85.16:/workspace/agent_zero/database.py)",
+      "Bash(scp -P 22170 -i ~/.ssh/id_ed25519 *.py root@69.30.85.16:/workspace/agent_zero/)",
+      "Bash(ssh root@69.30.85.51 -p 22169 -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \"nvidia-smi --query-gpu=name,memory.total --format=csv,noheader; python3 --version; pgrep -f jupyter | head -1\")",
+      "Bash(ssh root@69.30.85.51 -p 22169 -i ~/.ssh/id_ed25519 \"kill -9 159 2>/dev/null; curl -fsSL https://deb.nodesource.com/setup_20.x 2>/dev/null | bash - >/dev/null 2>&1 && apt-get install -y nodejs >/dev/null 2>&1 && echo ''Node installed''; pip3 install hf_transfer aiosqlite asyncpg bcrypt vllm fastapi uvicorn websockets aiohttp pydantic httpx 2>&1 | tail -3\")",
+      "Bash(ssh root@69.30.85.51 -p 22169 -i ~/.ssh/id_ed25519 \"HF_HUB_ENABLE_HF_TRANSFER=1 nohup python3 -c ''from huggingface_hub import snapshot_download; snapshot_download\\(\"\"Qwen/Qwen3-235B-A22B-GPTQ-Int4\"\"\\)'' > /workspace/download.log 2>&1 & echo ''Download started''\")",
+      "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 *.py root@69.30.85.51:/workspace/agent_zero/)",
+      "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 -r agent_zero/static/ agent_zero/prompts/ agent_zero/templates/ root@69.30.85.51:/workspace/agent_zero/)",
+      "Bash(ssh root@69.30.85.51:*)",
+      "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 Z:/AgentZero/agent_zero/static/assets/* root@69.30.85.51:/workspace/agent_zero/static/assets/)",
+      "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 Z:/AgentZero/agent_zero/static/index.html root@69.30.85.51:/workspace/agent_zero/static/index.html)",
+      "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 Z:/AgentZero/agent_zero/auth.py root@69.30.85.51:/workspace/agent_zero/auth.py)"
     ]
   }
 }
