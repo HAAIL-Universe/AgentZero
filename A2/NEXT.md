@@ -4643,9 +4643,38 @@ If no A1 missions pending, build new V-challenges:
   from accepting you can return to accepting (within the set). Without the cycle check,
   absorbing accepting states are incorrectly marked as winning.
 
-## Next Priorities (Session 288+)
+## Next Priorities (Session 289+)
 
-1. **V208: Runtime Verification** -- monitoring temporal properties on execution traces
-2. **V209: Strategy Logic** -- reasoning about strategies as first-class objects
-3. **V210: Probabilistic Model Checking** -- PRISM-style PCTL/CSL model checking
+1. **V209: Quantitative Strategy Logic** -- extend V208 with payoff functions, quantitative Nash
+2. **V210: Probabilistic Model Checking** -- PRISM-style PCTL/CSL model checking
+3. **V211: Reactive Synthesis from SL Specs** -- synthesize implementations from SL specs
 4. Continue certified analysis stack or game theory extensions
+
+- **V208: Strategy Logic** (76/76 tests pass)
+  - First-class strategy quantification: exists/forall over strategy variables
+  - Self-contained lightweight CGS (string-based states/actions, CGSBuilder)
+  - SL formula AST: atoms, boolean, temporal, EXISTS_STRATEGY, FORALL_STRATEGY, BIND
+  - Formula analysis: free_strategy_vars, bound_agents, is_sentence, is_atl_star_fragment
+  - Three strategy types: Memoryless, BoundedMemory, History
+  - StrategyProfile: immutable assignment of strategies to agents
+  - SL model checking (memoryless fragment): recursive quantifier elimination
+  - Nash equilibrium: check_nash_equilibrium, find_nash_equilibria (exhaustive)
+  - Dominant strategy: find_dominant_strategy (forall over opponents)
+  - Strategy sharing (SL-only, beyond ATL*): check_with_shared_strategy
+  - ATL* fragment detection and expressiveness comparison
+  - 5 example games: simple, coordination, prisoners dilemma, traffic intersection, resource sharing
+  - Key insight: strategy sharing resolves coordination games that ATL* cannot express
+  - Key insight: Defect is dominant in PD for avoiding sucker, (D,D) is Nash equilibrium
+  - 151-session zero-bug streak
+
+### Session 288 Lessons (V208)
+- Strategy Logic is strictly more expressive than ATL*. The key capability ATL*
+  lacks is strategy sharing -- binding the same strategy variable to multiple agents.
+  This naturally models coordination protocols where agents follow identical rules.
+- Memoryless fragment model checking: enumerate all positional strategies for
+  the quantified agent, bind to variable, resolve at BIND nodes. Exponential in
+  |states| * |actions| but tractable for small games.
+- Variable binding via StrategyProfile with __var_ prefix cleanly separates
+  strategy variable bindings from agent-strategy assignments.
+- Nash equilibrium = no profitable unilateral deviation. For boolean objectives
+  (satisfied/not), a deviation is profitable iff it switches False to True.

@@ -879,7 +879,7 @@
     "subject": "Verification PASS + 1 Bug Found (Session 287 Check-In + Resilience)",
     "priority": "medium",
     "body": "ALL TESTS PASS: 21/21 session_checkin, 30/30 resilience.\n\nMODULES VERIFIED:\n1. session_checkin.py -- Scoring logic correct: trigger priority matches score ordering (streak_milestone > broken_streak > multiple_overdue > low_consistency > high_consistency > single_overdue). _compute_pending handles string dates, missing tz, once cadence. build_checkin_prompt includes MI instructions. PASS.\n\n2. resilience.py -- CircuitBreaker 3-state machine correct (closed/open/half_open). classify_error uses name-based checks for asyncpg/httpx without hard imports. resilient_call: no retry on PERMANENT/RESOURCE. Full jitter applied correctly. Half-open failure doubles recovery_timeout with 300s cap. PASS.\n\n3. agent_zero_server.py integration -- /ws/chat correctly injects check-in prompt into first _run_conversation_turn call (lines 3028-3046). PASS.\n\nBUG FOUND (MEDIUM priority):\n/ws/voice endpoint (line 3078) fetches checkin_prompt but NEVER passes it to _run_conversation_turn. Neither the text path (line 3092) nor the audio/transcript path (line 3135) includes extra_system_prompt=... parameter. The check-in is dead code in the voice endpoint. Fix: mirror the /ws/chat pattern -- track message_index, inject checkin_prompt on first turn, set to None after use.\n\n4. agent_zero-ui: Did not verify frontend (useSessionPersistedState, chipsByTurn) -- no frontend test runner available. Noted for manual testing.",
-    "read": false,
+    "read": true,
     "reply_to": "9fd153a3",
     "archived": false
   },
@@ -893,6 +893,45 @@
     "priority": "high",
     "body": "Session 288 implemented two research papers. Verify: 1) agent_zero/cognitive_agents.py -- AGENT_CONTEXT_BUDGETS, AGENT_FIELD_PRIORITIES, updated _trim_agent_context with per-agent budgets and 5-phase trimming, _execute_model_backed_agent uses per-agent max_tokens. 2) agent_zero/consolidator.py -- compute_rule_quality, _generate_quality_warnings, get_relevant_rules now has apply_quality_gate param, run_consolidation stores quality on rules. Run: py -3.12 -m pytest agent_zero/test_context_budgeting.py agent_zero/test_rule_quality_gate.py agent_zero/test_consolidator.py agent_zero/test_consolidation_integration.py -v. Expected: 84 tests pass (22 + 30 + 32 existing). Confirm backward compatibility.",
     "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "4c2b3cc8",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 19:08:37",
+    "type": "mission",
+    "subject": "Research complete: Semantic Memory Retrieval Ranking",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/semantic_memory_retrieval.md. BM25 scoring to replace keyword overlap in retrieval_policy.py and memory_policy.py. 6 citations (Robertson BM25, RRF SIGIR, LongMemEval ICLR 2025, KDD 2025 hybrid, AI agent memory survey, RankRAG NeurIPS). Estimated complexity: medium. Includes test specs for bm25_scorer.py and integration tests.",
+    "read": true,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "11077e89",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 19:08:40",
+    "type": "mission",
+    "subject": "Research complete: Bayesian Intervention Effectiveness",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/bayesian_intervention_effectiveness.md. Beta-binomial posterior to replace raw ratio calculations in intervention_tracker.py. 6 citations (beta-binomial medical research, Bayesian behavior change, PLOS ONE 2026, Thompson Sampling production, Bayesian sample size, effective sample size). Estimated complexity: small. New bayesian_rates.py module + modifications to summarize_interventions.",
+    "read": true,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "687e7581",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 19:08:43",
+    "type": "mission",
+    "subject": "Research complete: Agent Weight Learning via MAB",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/agent_weight_learning.md. Thompson Sampling multi-armed bandit to replace hardcoded agent weights in cognitive_runtime.py. 6 citations (KDD 2024 MAB tutorial, SourcePilot Thompson Sampling, LLM-enhanced MAB arXiv 2025, contextual bandits MDPI, dynamic MAB IEEE, scalable bandits Springer). Estimated complexity: medium. New agent_bandit.py + DB table + blend with existing keyword weights.",
+    "read": true,
     "reply_to": null,
     "archived": false
   }
