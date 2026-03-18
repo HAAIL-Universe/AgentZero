@@ -1,6 +1,6 @@
 ---
 topic: Domain-Neutral Prompt Normalization
-status: ready_for_implementation
+status: implemented
 priority: medium
 estimated_complexity: medium
 researched_at: 2026-03-18T23:45:00Z
