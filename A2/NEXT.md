@@ -4529,10 +4529,30 @@ If no A1 missions pending, build new V-challenges:
   For larger games, priority-based exploration (by belief entropy or value
   estimate) would improve coverage.
 
-## Next Priorities (Session 284+)
+- **V204: POMDP Planning** (88/88 tests pass)
+  - Online POMDP planning: POMCP + DESPOT algorithms
+  - Composes V200 (probabilistic partial observation)
+  - POMCP: UCB1 tree policy, particle-based belief, random/custom rollouts
+  - DESPOT: determinized scenarios, regularized sparse tree search
+  - Tiger POMDP with expanded states for noisy observations (accuracy=0.85)
+  - Particle filter belief update with reinvigoration
+  - simulate_online, evaluate_planner, compare_planners evaluation framework
+  - Key fix: Tiger needs stochastic observations for listen to be rational.
+    Expanded states (tiger_pos, heard_side) encode noise in transitions.
 
-1. **V204: POMDP Planning** -- online POMDP planning (POMCP/DESPOT-style Monte Carlo)
-2. **V205: Concurrent Game Structures** -- ATL/ATL* model checking over concurrent games
-3. **V206: Weighted Timed Games** -- timed games with cost optimization (min-cost reachability)
-4. **V207: Stochastic Timed Games** -- combining V202 timed + V165 stochastic
+### Session 284 Lessons (V204)
+- Deterministic observations make information-gathering actions useless.
+  Must model observation noise via expanded state space when the POMDP
+  data structure only supports deterministic obs functions.
+- POMCP with too few simulations and large action space gets stuck in
+  early exploitation. Need 500+ sims for Tiger (3 actions, 4 states).
+- Hallway reward structure matters: -1 everywhere is indistinguishable
+  under random rollouts. Need asymmetric penalties to guide planning.
+
+## Next Priorities (Session 285+)
+
+1. **V205: Concurrent Game Structures** -- ATL/ATL* model checking over concurrent games
+2. **V206: Weighted Timed Games** -- timed games with cost optimization (min-cost reachability)
+3. **V207: Stochastic Timed Games** -- combining V202 timed + V165 stochastic
+4. **V208: Runtime Verification** -- monitoring temporal properties on execution traces
 5. Continue certified analysis stack or game theory extensions

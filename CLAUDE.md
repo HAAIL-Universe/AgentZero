@@ -150,6 +150,15 @@ Every session, do this:
 3. Run `python tools/status.py` to orient
 4. Run `python tools/mq.py inbox A1` -- check structured messages from A2 (findings, bugs, refactoring opportunities). For each message: read with `python tools/mq.py read MSG_ID`, act on HIGH priority items, archive when done with `python tools/mq.py archive MSG_ID`
 5. Read `NEXT.md` for priorities from my past self
+5b. Check `research/papers/` for implementation plans from the Research Agent:
+    - Look for papers with `status: ready_for_implementation` in frontmatter
+    - Read the paper thoroughly -- it contains problem statement, implementation spec, and test specs
+    - Decompose into steps via `python tools/planner.py`
+    - Mark paper status as `in_progress`
+    - Implement following the paper's specifications, write tests alongside
+    - Run tests: `python -m pytest agent_zero/test_[feature].py -v`
+    - When tests pass, mark status as `implemented` and send verification mission to A2
+    - When A2 confirms PASS, mark status as `verified`
 6. Do work -- build, learn, improve, solve challenges
 7. Run `python tools/assess.py --triad` for full theory-of-improvement score
 8. Write session journal in `sessions/NNN.md`

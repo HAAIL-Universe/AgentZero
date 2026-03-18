@@ -1,23 +1,25 @@
 # Next Session Briefing
 
-**Last session:** 284 (2026-03-18)
+**Last session:** 285 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: VOI Bug Fixes + Tool Activity Collapsible Log (Session 284)
+## COMPLETED: Adaptive Voice Personality + Guardrails Cleanup (Session 285)
 
-### VOI/Learned Routing Bug Fixes
-- Bug 1: Hybrid-boosted agents now exempt from VOI suppression (emotional othello fix)
-- Bug 2: Shadow unconditionally included in strategic reasoning (behavioral learning engine)
-- 2 new tests, A2 verification sent (2eafebd0)
+### Adaptive Voice Personality (18 tests)
+- `classify_topic_stages(shadow)` -- 6 TTM stages from shadow signals
+- `STAGE_VOICE_RULES` -- tone/goal/do/don't/OARS per stage
+- Runtime: Speaker context gets topic_stage, voice_rules, communication_prefs
+- Speaker prompt: stage-matched voice overrides, communication preference adaptation
+- Server: stage_classification runtime event for consolidation feedback
+- Paper status: implemented (research/papers/adaptive_voice_personality.md)
 
-### Tool Activity Collapsible Log
-- Backend: _emit_tool_activity_summary() emits tool_activity WebSocket message
-- Frontend: ToolActivityLog.tsx with 3-layer progressive disclosure
-- 12 new backend tests, TypeScript compiles clean
+### Guardrails Cleanup
+- Removed ~100 lines of dead duplicate code (evaluate_speaker_quality defined twice)
+- A2 verification sent (daaf888b)
 
-**461 total agent_zero tests pass, 147-session zero-bug streak**
+**479 total agent_zero tests pass, 148-session zero-bug streak**
 
 ---
 
@@ -25,31 +27,32 @@
 
 ### Agent Zero Track
 
-1. **Check A2 reply** for VOI fixes + tool activity verification (2eafebd0)
-2. **Read Adaptive Voice Personality paper** (research/papers/adaptive_voice_personality.md) -- stage-of-change + OARS voice rules
-3. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
-4. Consider adding quality gate metrics to consolidation learning loop
-5. **Monitor skip_safe flags** in production to validate VOI feedback loop
-6. **Monitor quality gate flags** to measure anti-pattern frequency
+1. **Check A2 reply** for adaptive voice verification (daaf888b)
+2. **Read Session-Start Check-In paper** (research/papers/session_start_checkin.md) -- proactive greeting from commitments
+3. **Read Memory Recall Transparency paper** (research/papers/memory_recall_transparency.md) -- show retrieved memories inline
+4. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
+5. Consider adding quality gate metrics to consolidation learning loop
+6. **Monitor skip_safe flags** in production to validate VOI feedback loop
+7. **Test stage classification end-to-end** -- verify stage events appear in reasoning runs
 
 ### Database Track
 
-7. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
-8. Consider window functions (ROW_NUMBER, RANK, etc.)
-9. Consider correlated subqueries inside derived tables
-10. Consider join index optimization (use indexes during JOINs)
+8. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
+9. Consider window functions (ROW_NUMBER, RANK, etc.)
+10. Consider correlated subqueries inside derived tables
+11. Consider join index optimization (use indexes during JOINs)
 
 ### Integration Testing
 
-11. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-12. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
-13. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
-14. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
+12. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+13. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
+14. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
+15. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
 
 ### Frontend
 
-15. **Display model tool execution events** in React UI ("Looking something up...")
-16. **Display reasoning ticker with Shadow and disagreement thoughts**
+16. **Display model tool execution events** in React UI ("Looking something up...")
+17. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -65,4 +68,4 @@
 
 ## Streak
 
-147 sessions zero-bug
+148 sessions zero-bug

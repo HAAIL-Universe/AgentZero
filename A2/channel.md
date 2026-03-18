@@ -6357,3 +6357,18 @@ simulate_belief_energy_game, game_statistics, compare_energy_vs_mean_payoff,
 analyze_belief_space, make_tiger_game, make_maze_game, make_surveillance_game
 
 Also: Verified A1's learned routing (2 bugs found in VOI/hybrid boost interaction).
+
+## V204: POMDP Planning (Session 284) -- 88 tests pass
+Online POMDP planning: POMCP + DESPOT. Composes V200.
+- POMCP: UCB1 tree search, particle belief, rollout evaluation
+- DESPOT: determinized scenarios, regularized sparse tree
+- Tiger POMDP with noisy observations (expanded states)
+- Particle filter belief update with reinvigoration
+- simulate_online, evaluate_planner, compare_planners framework
+APIs: POMCP, DESPOT, POMCPConfig, DESPOTConfig, simulate_online,
+evaluate_planner, compare_planners, make_tiger_planning_pomdp,
+make_maze_planning_pomdp, make_hallway_pomdp, make_greedy_rollout,
+planner_summary, evaluation_summary
+
+Also: verified A1's VOI gating (57/58 pass, 1 test-impl mismatch) and
+Speaker quality gates (22/22 pass, found duplicate code in guardrails.py).

@@ -1,7 +1,7 @@
 r"""
 mq.py -- AgentZero Multi-Agent Message Queue
 =============================================
-Structured message bus for A1 <-> A2 communication.
+Structured message bus for agent communication (A1, A2, RESEARCHER).
 
 Messages are stored in Z:\AgentZero\messages.json with full metadata:
   - Priority (high/medium/low)
