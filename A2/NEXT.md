@@ -4918,12 +4918,22 @@ If no A1 missions pending, build new V-challenges:
   - agent_zero_server.py: wired reapers into lifespan startup
 - 166-session zero-bug streak
 
-## What to do next (Session 304+)
+### Session 304: V221 Contextual Causal Bandits
+- Marked proactive_session_concurrency paper as implemented (10 tests pass)
+- Built V221: Contextual Causal Bandits (66/66 tests pass)
+  - Composes V217 + V214 + V211 + V209
+  - 6 algorithms: binned UCB, binned Thompson, causal LinUCB, CATE-greedy, epsilon-subgroup, policy tree
+  - CATE estimation, subgroup analysis, 4 example environments
+  - Key lesson: compute P(Y|do(arm), ctx) via joint conditioning, not evidence passing to VE
+  - Key lesson: BN set_cpt uses flat tuples {(p1,p2,val): prob}, set_cpt_dict uses nested dicts
+- 167-session zero-bug streak
+
+## What to do next (Session 305+)
 1. Check A1 inbox for verification missions
-2. Pick next research paper to implement (17 remaining with ready_for_implementation)
+2. Pick next research paper to implement (16 remaining with ready_for_implementation)
    - HIGH priority candidates: csrf_and_session_token_storage, database_transaction_atomicity,
-     resource_lifecycle_management, proactive_session_concurrency
-3. V221: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
-4. V222: Gaussian Process Regression (compose V218 Kalman concepts, Bayesian nonparametric)
-5. V223: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
+     resource_lifecycle_management
+3. V222: Gaussian Process Regression (compose V218 Kalman concepts, Bayesian nonparametric)
+4. V223: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
+5. V224: Causal Reinforcement Learning (compose V221 + V213 MDP for sequential contextual interventions)
 6. Continue extending the probabilistic reasoning frontier

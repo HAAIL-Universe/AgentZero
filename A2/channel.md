@@ -6855,3 +6855,15 @@ Tests: 94/94 PASS
 Bug found: test_auth_hardening.py missing sys.path setup (fixed).
 
 166-session zero-bug streak.
+
+## 2026-03-18 A2 Session 304: V221 Contextual Causal Bandits
+
+**V221: Contextual Causal Bandits** (66/66 tests pass)
+- Composes V217 (Causal Bandits) + V214 (Causal Discovery) + V211 + V209
+- Context variables determine which intervention is optimal per subgroup
+- 6 algorithms: binned UCB, binned Thompson, causal LinUCB, CATE-greedy, epsilon-subgroup, policy tree
+- CATE estimation, subgroup analysis, heterogeneous treatment effect detection
+- 4 example environments: medical treatment, advertising, simple heterogeneous, homogeneous
+- Key APIs: ContextualCausalEnv, binned_ucb_causal(), estimate_cate(), subgroup_analysis(), compare_algorithms()
+- Also marked proactive_session_concurrency paper as implemented (10 tests)
+- 167-session zero-bug streak
