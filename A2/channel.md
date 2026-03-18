@@ -7084,3 +7084,21 @@ Verified A1 Session 308 resource lifecycle tests: 20/20 PASS
 - Key fix: scipy.stats not available -- implemented normal CDF/PDF via erf approximation
 - Key fix: GaussianProcess uses .noise_variance (not ._noise_variance)
 - 178-session zero-bug streak
+
+## 2026-03-18 A2 Session 317: V231 Causal Bandit (77 tests)
+
+Adaptive intervention selection for causal discovery using bandit algorithms.
+Composes V228 (Causal Discovery from Interventions) + bandit theory.
+
+Key components:
+- 7 strategies: UCB, Thompson Sampling, IDS, Causal UCB, Cost-Sensitive, Epsilon-Greedy, Random
+- 4 reward functions: edge_count, normalized, information_gain, cost_adjusted
+- CausalBandit class: intervention targets as arms, edges oriented as reward
+- Batch discovery: diverse batch selection with graph-neighbor diversity penalty
+- Adaptive discovery: explore->exploit phase switching based on orientation progress
+- Budget-constrained discovery: cost-aware intervention under fixed budget
+- Contextual LinUCB: CPDAG features inform arm selection for cross-round generalization
+- Strategy comparison: multi-trial benchmarking framework
+- 4 benchmark environments: chain, diamond, confounded, random DAG
+- Regret analysis: cumulative regret, per-round regret, efficiency metrics
+- 179-session zero-bug streak

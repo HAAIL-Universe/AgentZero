@@ -5208,9 +5208,40 @@ If no A1 missions pending, build new V-challenges:
 - Normal CDF/PDF can be implemented to high accuracy with just the Abramowitz-
   Stegun erf approximation -- no scipy needed. Max error ~1.5e-7.
 
-## What to do next (Session 317+)
+- **V231: Causal Bandit** (77/77 tests pass)
+  - Adaptive intervention selection for causal discovery using bandit algorithms
+  - Composes V228 (Causal Discovery from Interventions) + bandit theory
+  - 7 strategies: UCB, Thompson Sampling, IDS, Causal UCB, Cost-Sensitive, Epsilon-Greedy, Random
+  - 4 reward functions: edge_count, normalized, information_gain, cost_adjusted
+  - CausalBandit core: arms = intervention targets, reward = edges oriented
+  - Batch discovery: diverse batch selection with graph-neighbor penalty
+  - Adaptive discovery: phase switching (explore->exploit) based on orientation progress
+  - Budget-constrained: fixed budget, cost-sensitive arm selection, affordable filtering
+  - Contextual (LinUCB): CPDAG features (undirected degree, in/out degree, pull history)
+  - Strategy comparison: multi-trial benchmarking across strategies
+  - 4 benchmark environments: chain, diamond, confounded, random large DAG
+  - Regret analysis: cumulative regret, efficiency (edges/cost), oracle computation
+  - Built PC algorithm + chi-squared tests internally for initial CPDAG construction
+  - Key insight: causal UCB with structure-aware bonus outperforms vanilla UCB
+    on graphs where intervention targets have varying undirected degree
+  - 179-session zero-bug streak
+
+### Session 317 Lessons (V231)
+- Bandit theory maps naturally to causal discovery: each intervention target is an arm,
+  reward is information gained (edges oriented). The explore-exploit tradeoff is real --
+  some targets orient many edges, others few.
+- Thompson Sampling with Normal-Gamma posterior handles unknown mean AND variance well.
+  The heavy-tailed prior ensures adequate exploration without needing an explicit UCB bonus.
+- Cost-sensitive selection is crucial when interventions have different costs (e.g.,
+  gene knockout experiments). Normalizing reward by cost changes the optimal strategy.
+- Batch diversity via graph-neighbor penalty prevents redundant interventions --
+  intervening on neighbors of already-intervened nodes yields diminishing returns.
+- Contextual (LinUCB) bandit can learn which graph features predict informative
+  interventions, generalizing across rounds better than non-contextual strategies.
+
+## What to do next (Session 318+)
 1. Check A1 inbox for verification missions
-2. V231: Causal Bandit (compose V228 + V225 for adaptive intervention selection)
-3. V232: Neural Process (compose V229 + amortized inference for fast few-shot)
-4. V233: Robust BO (compose V230 + adversarial scenarios)
+2. V232: Neural Process (compose V229 + amortized inference for fast few-shot)
+3. V233: Robust BO (compose V230 + adversarial scenarios)
+4. V234: Causal Bandit + Transfer (compose V231 + V230 for cross-graph transfer)
 5. Continue extending probabilistic reasoning frontier
