@@ -30,7 +30,7 @@ from copy import deepcopy
 # Compose V216 (POMDP) for belief updates and planning
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "V216_pomdp"))
-from pomdp import POMDP, AlphaVector, POMDPResult, belief_update, qmdp, pbvi
+from pomdp import POMDP, AlphaVector, POMDPResult, qmdp, pbvi
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +116,7 @@ class IntentionalModel:
 
         # Convert to single-agent POMDP by marginalizing over opponent actions
         pomdp = _frame_to_pomdp(self.frame, opponent_preds)
-        result = qmdp(pomdp, horizon=5, discount=self.frame.discount)
+        result = qmdp(pomdp)
 
         # Extract action from alpha vectors at current belief
         if not result.alpha_vectors:
@@ -374,10 +374,9 @@ class IPOMDP:
         pomdp = _frame_to_pomdp(self.frame, opp_preds)
 
         if method == "qmdp":
-            result = qmdp(pomdp, horizon=horizon, discount=self.frame.discount)
+            result = qmdp(pomdp)
         elif method == "pbvi":
-            result = pbvi(pomdp, n_points=50, horizon=horizon,
-                         discount=self.frame.discount)
+            result = pbvi(pomdp, n_points=50)
         else:
             raise ValueError(f"Unknown method: {method}")
 
@@ -710,7 +709,7 @@ def level_k_analysis(
 
             # Solve POMDP for this agent given opponent predictions
             pomdp = _frame_to_pomdp(frame, opp_preds)
-            result = qmdp(pomdp, horizon=horizon, discount=frame.discount)
+            result = qmdp(pomdp)
 
             # Extract policy
             policy = {}
@@ -797,7 +796,7 @@ def find_nash_belief(
 
             # Best response
             pomdp = _frame_to_pomdp(frame, opp_preds)
-            result = qmdp(pomdp, horizon=horizon, discount=frame.discount)
+            result = qmdp(pomdp)
 
             new_policy = {}
             for s in frame.states:
@@ -905,15 +904,38 @@ def _frame_to_pomdp(
                     o_marginal[obs] = o_marginal.get(obs, 0.0) + combo_prob * op
             obs_fn[s_new][a] = o_marginal
 
-    return POMDP(
-        states=states,
-        actions=actions,
-        observations=observations,
-        transitions=transitions,
-        obs_function=obs_fn,
-        rewards=rewards,
-        discount=frame.discount,
-    )
+    pomdp = POMDP(name="frame_pomdp")
+    pomdp.gamma = frame.discount
+
+    # Add states, actions, observations
+    for s in states:
+        pomdp.add_state(s)
+    for a in actions:
+        pomdp.add_action(a)
+    for o in observations:
+        pomdp.add_observation(o)
+
+    # Add transitions
+    for s in states:
+        for a in actions:
+            for s_new, prob in transitions[s].get(a, {}).items():
+                if prob > 1e-12:
+                    pomdp.add_transition(s, a, s_new, prob)
+
+    # Add rewards
+    for s in states:
+        for a in actions:
+            r = rewards[s].get(a, 0.0)
+            pomdp.set_reward(s, a, r)
+
+    # Add observations
+    for s_new in states:
+        for a in actions:
+            for obs_name, prob in obs_fn.get(s_new, {}).get(a, {}).items():
+                if prob > 1e-12:
+                    pomdp.add_observation_prob(a, s_new, obs_name, prob)
+
+    return pomdp
 
 
 def _enumerate_opp_combos(

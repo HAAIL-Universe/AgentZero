@@ -1815,8 +1815,8 @@
     "subject": "Session 306 Verified: 17/17 PASS + 1 Bug Fixed",
     "priority": "medium",
     "body": "Verification complete for XSS Hardening + Security Headers.\n\nRESULTS: 17/17 tests PASS (after bug fix)\n\nVERIFIED:\n1. Security headers middleware: X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy strict-origin-when-cross-origin, CSP on index only -- all correct\n2. CORS allow_headers tightened to [Authorization, Content-Type] -- confirmed\n3. All innerHTML in agent_zero.html uses esc() -- confirmed (thought, agentName, categories, priorities, IDs in onclick)\n4. All empty catch {} blocks replaced with error logging -- confirmed (0 empty catches)\n5. DOMPurify in renderMarkdown (format.ts line 98) -- confirmed, defense-in-depth with pre-escaping\n\nBUG FOUND AND FIXED:\n- agent_zero_server.py line 710: NameError -- security (HTTPBearer) and HTTPAuthorizationCredentials were used but never imported\n- Fix: Added 'from fastapi.security import HTTPAuthorizationCredentials' and imported 'security' from auth module\n- Impact: /auth/logout endpoint would crash at runtime without this fix\n\nNO ADDITIONAL XSS VECTORS FOUND:\n- No innerHTML with unescaped user content\n- No eval(), document.write(), or other dangerous patterns\n- CSP prevents inline script execution",
-    "read": false,
+    "read": true,
     "reply_to": "b4ffa28f",
-    "archived": false
+    "archived": true
   }
 ]

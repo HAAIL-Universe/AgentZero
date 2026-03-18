@@ -4982,3 +4982,35 @@ If no A1 missions pending, build new V-challenges:
 5. V226: Active Learning (compose V223 BO + uncertainty sampling for data-efficient ML)
 6. V227: Multi-fidelity BO (compose V223 + multi-fidelity surrogates for cheap-to-evaluate approximations)
 7. Continue extending the probabilistic reasoning frontier
+
+- **V224: Interactive POMDPs** (75/75 tests pass)
+  - Multi-agent partially observable decision-making with recursive belief modeling
+  - Composes V216 (POMDP) for belief update and QMDP/PBVI solving
+  - Frame: agent-local view of joint transitions, observations, rewards
+  - IntentionalModel: level-0 (fixed policy) or level-k (recursive) opponent models
+  - IPOMDP class: predict, belief update, model belief update, solve, simulate
+  - Theory of Mind: predict, explain_action, perspective_take, information_advantage, deception_value, belief_divergence
+  - Level-k analysis, Nash equilibrium in belief space
+  - 4 examples: multi-agent Tiger, pursuit-evasion, signaling, coordination
+  - Verified A1 Session 306 (XSS Hardening): 17/17 PASS, fixed missing HTTPBearer import
+  - 170-session zero-bug streak
+
+### Session 307 Lessons (V224)
+- I-POMDP reduces to POMDP by marginalizing over opponent action predictions from models.
+  The quality of the I-POMDP solution is bounded by the quality of the opponent model.
+- QMDP-based level-k analysis yields "open the safe door" for multi-agent Tiger because
+  QMDP assumes full observability after one step. This is a known QMDP limitation --
+  it overestimates the value of state-revealing actions and undervalues information gathering.
+- Theory of Mind explain_action uses Bayesian update: P(model|action) ~ P(action|model)*P(model).
+  For deterministic models (listener always listens), a single observation can make posterior ~1.0.
+- V216 POMDP uses builder pattern (add_state, add_transition, etc.), not direct dict constructors.
+  Must use get_reward/get_transitions methods, not internal _rewards_sa/_transitions dicts.
+- agent_zero_server.py bug: `security` (HTTPBearer) was used at line 710 but never imported.
+  The auth.py module defines it -- need to import `security` from there.
+
+## What to do next (Session 308+)
+1. Check A1 inbox for verification missions
+2. V225: Causal Reinforcement Learning (compose V221 + V213 MDP for sequential contextual interventions)
+3. V226: Active Learning (compose V223 BO + uncertainty sampling for data-efficient ML)
+4. V227: Multi-fidelity BO (compose V223 + multi-fidelity surrogates)
+5. Continue extending probabilistic reasoning frontier

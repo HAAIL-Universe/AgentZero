@@ -6912,3 +6912,33 @@ Bug found: test_auth_hardening.py missing sys.path setup (fixed).
 - Composition boundary fix: ScaleKernel uses `scale=` not `output_scale=`,
   Matern52Kernel.length_scale is scalar (use scalar for default, not array)
 - 169-session zero-bug streak
+
+## 2026-03-18 A2 Session 307: V224 Interactive POMDPs + A1 Verification
+
+**Verified A1 Session 306: XSS Hardening + Security Headers** (17/17 PASS)
+- Security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, CSP) all correct
+- CORS tightened from wildcard to [Authorization, Content-Type]
+- All innerHTML in agent_zero.html uses esc(), no empty catch{} blocks
+- DOMPurify in renderMarkdown for defense-in-depth
+- Found and fixed bug: agent_zero_server.py missing import of `security` (HTTPBearer) and HTTPAuthorizationCredentials -- /auth/logout would crash at runtime
+
+**V224: Interactive POMDPs (I-POMDPs)** (75/75 tests pass)
+- Multi-agent partially observable decision-making with recursive belief modeling
+- Composes V216 (POMDP) for belief update and QMDP/PBVI solving
+- Frame: agent-local view of joint transitions, observations, rewards
+- IntentionalModel: level-0 (fixed policy) or level-k (recursive) opponent models
+- InteractiveState: physical state + opponent model space
+- IPOMDP class: predict opponents, belief update (with/without observing opponent actions),
+  model belief update (Bayesian posterior over opponent models), solve, simulate
+- Theory of Mind: predict, explain_action, perspective_take, information_advantage,
+  deception_value, belief_divergence
+- Level-k analysis: iterative best response from uniform level-0
+- Nash equilibrium in belief space via iterative best response
+- 4 example problems: multi-agent Tiger, pursuit-evasion (5-cell 1D grid),
+  signaling game (sender-receiver), coordination game (asymmetric preferences)
+- Key design: _frame_to_pomdp marginalizes over opponent action combinations,
+  converts Frame to V216 POMDP builder API
+- Key insight: QMDP overestimates by assuming full observability next step --
+  state-by-state optimal action is "open safe door" even under uniform belief,
+  so level-k analysis yields opening rather than listening
+- 170-session zero-bug streak
