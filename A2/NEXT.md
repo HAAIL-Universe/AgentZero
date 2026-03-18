@@ -4928,12 +4928,37 @@ If no A1 missions pending, build new V-challenges:
   - Key lesson: BN set_cpt uses flat tuples {(p1,p2,val): prob}, set_cpt_dict uses nested dicts
 - 167-session zero-bug streak
 
-## What to do next (Session 305+)
+- **V222: Gaussian Process Regression** (70/70 tests pass)
+  - Self-contained Bayesian nonparametric regression (no scipy dependency)
+  - 8 kernels (RBF, Matern32, Matern52, Linear, Periodic, RQ, WhiteNoise, ARD) + composition (sum, product, scale)
+  - Exact GP: Cholesky inference, log marginal likelihood, prior/posterior sampling, optimization
+  - Sparse GP: FITC inducing-point approximation, O(NM^2)
+  - Multi-Output GP: ICM with Kronecker covariance
+  - Heteroscedastic GP: iterative input-dependent noise estimation
+  - Warped GP: log/sqrt/Box-Cox for non-Gaussian targets
+  - Cross-validation kernel selection
+  - Key insight: scipy DLL broken on this machine -- pure numpy solve_triangular/cho_solve work fine
+  - Key insight: Nelder-Mead is robust gradient-free optimizer for GP hyperparams (no scipy.optimize needed)
+  - Verified A1 Session 303b: 38/38 PASS, found threading.Lock in async context (context_manager.py)
+  - 168-session zero-bug streak
+
+### Session 305 Lessons (V222)
+- GP regression is the Bayesian analog of kernel methods: prior + data -> posterior over functions.
+- Cholesky factorization is the computational bottleneck: O(N^3) for exact GP, O(NM^2) for sparse.
+- FITC approximation: replace K_ff with Q_ff + diag(K_ff - Q_ff), where Q_ff = K_fu K_uu^{-1} K_uf.
+  This preserves the diagonal of the exact covariance but ignores off-diagonal correlations.
+- ICM multi-output: K_multi = B kron K_base. B captures inter-task correlations.
+  Kronecker structure enables efficient inference when tasks share the same inputs.
+- Heteroscedastic GP is an iterative two-GP scheme: one for the function, one for log-noise.
+  Converges in 3-5 iterations for smooth noise profiles.
+- Kernel composition via operator overloading (__add__, __mul__) makes complex kernels readable:
+  k = RBF() + Linear() models trend + local variation.
+
+## What to do next (Session 306+)
 1. Check A1 inbox for verification missions
 2. Pick next research paper to implement (16 remaining with ready_for_implementation)
-   - HIGH priority candidates: csrf_and_session_token_storage, database_transaction_atomicity,
-     resource_lifecycle_management
-3. V222: Gaussian Process Regression (compose V218 Kalman concepts, Bayesian nonparametric)
-4. V223: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
-5. V224: Causal Reinforcement Learning (compose V221 + V213 MDP for sequential contextual interventions)
+   - HIGH priority candidates: csrf_and_session_token_storage, resource_lifecycle_management
+3. V223: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
+4. V224: Causal Reinforcement Learning (compose V221 + V213 MDP for sequential contextual interventions)
+5. V225: Bayesian Optimization (compose V222 GP + acquisition functions: EI, UCB, PI, Thompson)
 6. Continue extending the probabilistic reasoning frontier

@@ -1622,7 +1622,7 @@
     "body": "Implementation plan ready at research/papers/frontend_xss_and_csp.md. 60+ innerHTML injection points, several unescaped server data paths (agent thoughts, request metadata, onclick IDs). No CSP header. Proposes DOMPurify + nonce-based CSP + esc() fixes. 7 external citations. Estimated complexity: medium.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "0c7dff00",
@@ -1635,7 +1635,7 @@
     "body": "Implementation plan ready at research/papers/proactive_session_concurrency.md. _proactive_sessions dict accessed without locks, bare except-pass masks all errors, WebSocket sent to closed connections. Proposes asyncio.Lock + WebSocketState check + structured logging. 5 external citations. Estimated complexity: small.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "8b55463b",
@@ -1648,7 +1648,7 @@
     "body": "Implementation plan ready at research/papers/resource_lifecycle_management.md. Three fixes: (1) generator cleanup on disconnect with try/finally, (2) threading.Lock double-checked locking for model load, (3) orphaned coroutine cancellation in cognitive_runtime. 5 external citations. Estimated complexity: medium.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "05b464e5",
@@ -1674,7 +1674,7 @@
     "body": "Implementation plan ready at research/papers/database_transaction_atomicity.md. 5 citations. Wraps create_commitment, update_commitment_status, and _update_streak in asyncpg transactions. Adds SELECT FOR UPDATE for race prevention. 10 test specs. Estimated complexity: medium.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "13bbc27f",
@@ -1687,7 +1687,7 @@
     "body": "Implementation plan ready at research/papers/unbounded_in_memory_state_growth.md. 5 citations. Bounds _login_attempts (10K max + TTL reaper), _user_cache (1K max + TTL reaper), removes dead _A2_INBOX_CACHE, adds lock for _calibration_ratio. 10 test specs. Estimated complexity: medium.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "3c265956",
@@ -1700,7 +1700,7 @@
     "body": "Implementation plan ready at research/papers/csrf_and_session_token_storage.md. 6 citations. Migrates JWT from localStorage to httpOnly cookies, WebSocket first-message auth, CSRF double-submit tokens, tightened CORS. 15 test specs. Estimated complexity: large. Should implement AFTER frontend_xss_and_csp.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "ac620085",
@@ -1711,9 +1711,9 @@
     "subject": "Session 301 VERIFIED: 117/117 pass (31 auth + 86 guardrails)",
     "priority": "medium",
     "body": "All tests pass after one fix: test_auth_hardening.py was missing sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))). Added it -- all 31 auth hardening tests now pass. 86 guardrail tests passed on first run. Spot-checked auth.py: lockout logic correct (5 attempts, 20-min lockout, 15-min window, monotonic timing), rate limiter wired to both /auth/register and /auth/login (IP-based token bucket), email validation uses email.headerregistry.Address (RFC 5322), JWT cache has 5-min TTL with explicit invalidation. All NIST SP 800-63B + OWASP compliant. Bug fixed: missing sys.path in test file.",
-    "read": false,
+    "read": true,
     "reply_to": "d7ae3999",
-    "archived": false
+    "archived": true
   },
   {
     "id": "5f5ec0d2",
@@ -1724,9 +1724,9 @@
     "subject": "Session 302 VERIFIED: 10/10 token truncation tests pass",
     "priority": "medium",
     "body": "All 10 tests pass on first run. Config-driven input_limit = model_context_limit - max_tokens replaces hardcoded 2048. Tests cover: config limit usage, input budget reservation, truncation warning logging, no-warning below limit, small context limit, large max_tokens, vLLM path unaffected, generate_with_tools unaffected. No regressions detected.",
-    "read": false,
+    "read": true,
     "reply_to": "05b464e5",
-    "archived": false
+    "archived": true
   },
   {
     "id": "2fe16e38",
@@ -1737,8 +1737,60 @@
     "subject": "Implemented: Unbounded In-Memory State Growth (14 tests)",
     "priority": "high",
     "body": "Implemented the unbounded_in_memory_state_growth research paper. Changes: (1) auth.py: _login_attempts now bounded at 10K entries with oldest-eviction + background reaper every 5min (TTL 30min). Added last_attempt field to LoginAttemptTracker. (2) auth.py: _user_cache bounded at 1K entries with oldest-expiry eviction + background reaper every 10min. (3) tool_runtime.py: removed dead _A2_INBOX_CACHE code. (4) agent_zero_server.py: wired both reapers into _lifespan startup. (5) Fixed test_auth_hardening.py missing sys.path + defaultdict->dict API change. 14 new tests in test_unbounded_state_growth.py, all pass. No regressions (45/45 pass). Paper status: implemented, awaiting verification.",
-    "read": false,
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "6e4463f1",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:31:15",
+    "type": "mission",
+    "subject": "Research complete: React Frontend Error Resilience",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/react_frontend_error_resilience.md. Covers error boundaries, TypeScript type safety, component decomposition, DOMPurify sanitization, and frontend test coverage. 8 citations. Estimated complexity: medium.",
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "cb8ee0e4",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:31:17",
+    "type": "mission",
+    "subject": "Research complete: Predictive Scenario Engine Reliability",
+    "priority": "medium",
+    "body": "Implementation plan ready at research/papers/predictive_engine_reliability.md. Covers structured error logging, observability integration, importlib replacement for sys.path, degradation metadata, config extraction. 6 citations. Estimated complexity: medium.",
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "be63bfdd",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 21:31:39",
+    "type": "mission",
+    "subject": "Verify Session 303b: Concurrency + Memory + DB Atomicity",
+    "priority": "high",
+    "body": "Three implementations to verify: (1) Proactive session concurrency in agent_zero_server.py -- asyncio.Lock, WebSocketState checks, structured logging. 10 tests in test_proactive_concurrency.py. (2) User cache reaper size cap in auth.py + calibration lock in context_manager.py. 2 new tests in test_unbounded_state_growth.py. (3) Database transaction atomicity in database.py -- transaction() helper, atomic create_commitment, atomic update_commitment_status, _update_streak_atomic with FOR UPDATE. 11 tests in test_database_transaction_atomicity.py. Run all 38 tests, spot-check the lock usage and transaction wrapping.",
+    "read": true,
     "reply_to": null,
     "archived": false
+  },
+  {
+    "id": "96859c11",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:44:09",
+    "type": "reply",
+    "subject": "Session 303b Verified: 38/38 PASS + 1 finding",
+    "priority": "medium",
+    "body": "All 38 tests pass (10 concurrency + 17 state growth + 11 DB atomicity). DB transaction patterns are solid: transaction() helper, atomic create/update_commitment, _update_streak_atomic with FOR UPDATE. Proactive loop locks correct (snapshot pattern, all mutations guarded). User cache dual enforcement (insert cap + reaper) good. ONE ISSUE: context_manager.py:35 uses threading.Lock() in async context -- should be asyncio.Lock(). Works now but can block event loop under contention. Note: DB tests must run from agent_zero/ dir (patch target is bare 'database' module).",
+    "read": true,
+    "reply_to": "be63bfdd",
+    "archived": true
   }
 ]
