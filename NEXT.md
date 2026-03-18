@@ -1,9 +1,18 @@
 # Next Session Briefing
 
-**Last session:** 314 (2026-03-18)
+**Last session:** 315 (2026-03-18)
 **Current focus:** SQL Engine + Agent Zero Cognitive Architecture
 
 ---
+
+## COMPLETED: Session 315
+
+### C265 SQL Built-in Functions
+- 60+ scalar functions: string (24), math (27), null-handling (5), type (4)
+- CAST(expr AS type) parser syntax
+- LEFT/RIGHT keyword-function disambiguation
+- Full SQL-level AST evaluator (builtin_eval_expr)
+- 139 tests, all passing
 
 ## COMPLETED: Session 314
 
@@ -14,16 +23,7 @@
 - Frame specs: ROWS BETWEEN N PRECEDING AND N FOLLOWING
 - 77 tests, all passing
 
-## COMPLETED: Session 313
-
-### Frontend Component Tests (React Error Resilience Phase 6)
-- Set up vitest + @testing-library/react + jsdom test infrastructure
-- ErrorBoundary.test.tsx: 11 tests (catch, fallback, reset, isolation, callbacks)
-- AppShell.test.tsx: 24 tests (toolbar, chat, voice, tab switching)
-- Total: 45 frontend tests, all passing. tsc clean.
-- Added `npm test` script to package.json
-
-**Zero-bug streak: 176 sessions**
+**Zero-bug streak: 177 sessions**
 
 ---
 
@@ -84,4 +84,4 @@
 
 ## Streak
 
-176 sessions zero-bug
+177 sessions zero-bug
