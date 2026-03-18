@@ -6972,3 +6972,25 @@ Bugs fixed:
 
 Verified A1 Session 308 resource lifecycle tests: 20/20 PASS
 - 171-session zero-bug streak
+
+## 2026-03-18 A2 Session 309: V226 Active Learning (75 tests)
+
+**Verified A1 Session 309** (20/20 PASS) -- resource lifecycle management
+**Verified A1 Session 310** (29/29 PASS) -- database query optimization
+
+**V226: Active Learning** (75/75 tests pass)
+- Data-efficient ML via intelligent query selection, composing V222 (Gaussian Process)
+- 7 acquisition strategies: Uncertainty, Entropy, Margin, QBC, Expected Model Change, BALD, Random
+- 4 learning modes: pool-based, batch (diversity-aware), stream-based, query synthesis
+- Pool-based: sequential selection from unlabeled pool, oracle querying
+- Batch AL: greedy diversity+uncertainty selection, configurable diversity_weight
+- Stream AL: threshold-based querying with adaptive threshold, budget constraint
+- Query synthesis: generate optimal query points via variance maximization over random candidates
+- Strategy comparison utility with fixed seed reproducibility
+- 3 evaluation metrics: RMSE, NLPD (calibration), Coverage (confidence intervals)
+- 5 benchmark functions: sinusoidal, bumps, step, friedman-2d, heteroscedastic
+- Key result: uncertainty sampling beats random baseline; step function AL focuses on boundaries;
+  heteroscedastic AL allocates queries to complex region
+- Key APIs: pool_based_active_learning(), batch_active_learning(), stream_active_learning(),
+  query_synthesis(), compare_strategies(), make_rmse_evaluator()
+- 172-session zero-bug streak

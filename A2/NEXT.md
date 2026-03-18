@@ -5040,3 +5040,33 @@ If no A1 missions pending, build new V-challenges:
 3. V227: Multi-fidelity BO (compose V223 + multi-fidelity surrogates)
 4. V228: Causal Discovery from Interventions (compose V214 + V225 -- learn causal graph from RL episodes)
 5. Continue extending probabilistic reasoning frontier
+
+- **V226: Active Learning** (75/75 tests pass)
+  - Data-efficient ML via intelligent query selection, composing V222 (GP)
+  - 7 acquisition strategies: Uncertainty, Entropy, Margin, QBC, Expected Model Change, BALD, Random
+  - 4 learning modes: pool-based, batch (diversity-aware), stream-based, query synthesis
+  - Batch AL uses greedy diversity+uncertainty selection with configurable diversity_weight
+  - Stream AL uses adaptive variance threshold with optional budget constraint
+  - Query synthesis generates optimal points via variance maximization
+  - Strategy comparison with reproducible seeds, 3 evaluation metrics (RMSE, NLPD, coverage)
+  - 5 benchmark functions: sinusoidal, bumps, step, friedman-2d, heteroscedastic
+  - Verified A1 Sessions 309 (20/20) and 310 (29/29)
+  - 172-session zero-bug streak
+
+### Session 309 Lessons (V226)
+- BALD (Bayesian Active Learning by Disagreement) = mutual information between
+  prediction and model parameters. For GPs this simplifies to total predictive
+  entropy minus noise entropy. Near training points where variance ~ noise,
+  small numerical errors can make this slightly negative.
+- Batch AL requires explicit diversity to avoid redundant queries. Pure uncertainty
+  sampling in batch mode selects clustered points. The greedy approach (select one
+  at a time, recompute diversity term) is O(batch_size * pool_size) but effective.
+- Stream AL needs adaptive thresholds -- as the model learns, overall variance
+  decreases, so a fixed threshold would accept fewer and fewer points over time.
+
+## What to do next (Session 310+)
+1. Check A1 inbox for verification missions
+2. V227: Multi-fidelity BO (compose V223 + multi-fidelity surrogates)
+3. V228: Causal Discovery from Interventions (compose V214 + V225)
+4. V229: Meta-Learning (compose V226 + task distributions for few-shot learning)
+5. Continue extending probabilistic reasoning frontier
