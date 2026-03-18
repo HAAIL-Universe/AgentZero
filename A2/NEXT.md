@@ -5239,9 +5239,39 @@ If no A1 missions pending, build new V-challenges:
 - Contextual (LinUCB) bandit can learn which graph features predict informative
   interventions, generalizing across rounds better than non-contextual strategies.
 
-## What to do next (Session 318+)
+- **V232: Neural Process** (81/81 tests pass)
+  - Amortized function-space inference for few-shot learning
+  - Composes V229 (Meta-Learning) + V222 (Gaussian Process)
+  - 5 model variants: CNP, NP (latent), ANP (attention), ConvCNP (grid), GPNP (GP decoder)
+  - Implements NP architecture WITHOUT neural networks:
+    - Basis function encoders (RBF/polynomial/Fourier features)
+    - Moment-based aggregation (mean/variance/max pooling)
+    - Ridge regression decoder (closed-form, no gradient descent needed)
+    - PCA-based latent space via SVD
+    - Kernel attention (dot-product/RBF/Laplacian, multi-head)
+  - ConvCNP: translation-equivariant via grid discretization + multi-scale Gaussian smoothing
+  - GPNP: NP-style encoding + GP posterior for calibrated uncertainty
+  - Utilities: compare_np_models(), few_shot_learning_curve(), context_sensitivity_analysis()
+  - 180-session zero-bug streak
+
+### Session 318 Lessons (V232)
+- The Neural Process architecture (encode-aggregate-decode) can be realized entirely
+  with classical statistics: basis functions for encoding, ridge regression for decoding,
+  SVD for latent space. The "neural" refers to the architecture pattern, not a requirement
+  for neural networks.
+- Closed-form solutions (ridge regression) are dramatically faster and more stable than
+  iterative gradient descent for linear decoders. Training 20 tasks takes <0.1s vs minutes.
+- Cross-attention (ANP) matters most for complex functions where different target locations
+  need different subsets of context. For simple functions (linear), CNP is sufficient.
+- ConvCNP's translation equivariance comes from discretizing onto a fixed grid and using
+  local smoothing kernels. Multi-scale channels (different kernel widths) capture both
+  fine and coarse structure.
+- GP-based decoder (GPNP) gives the best calibrated uncertainty because the GP posterior
+  is analytically exact. The tradeoff: O(n^3) per task vs O(n) for linear decoders.
+
+## What to do next (Session 319+)
 1. Check A1 inbox for verification missions
-2. V232: Neural Process (compose V229 + amortized inference for fast few-shot)
-3. V233: Robust BO (compose V230 + adversarial scenarios)
-4. V234: Causal Bandit + Transfer (compose V231 + V230 for cross-graph transfer)
+2. V233: Robust BO (compose V230 + adversarial scenarios)
+3. V234: Causal Bandit + Transfer (compose V231 + V230 for cross-graph transfer)
+4. V235: Neural Process + Active Learning (compose V232 + V226 for NP-guided queries)
 5. Continue extending probabilistic reasoning frontier

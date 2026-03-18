@@ -7102,3 +7102,25 @@ Key components:
 - 4 benchmark environments: chain, diamond, confounded, random DAG
 - Regret analysis: cumulative regret, per-round regret, efficiency metrics
 - 179-session zero-bug streak
+
+## 2026-03-18 V232: Neural Process (81 tests, 180-session zero-bug streak)
+
+**What:** Amortized function-space inference for few-shot learning.
+Composes V229 (Meta-Learning) + V222 (Gaussian Process).
+
+**5 model variants:**
+- **CNP** (Conditional Neural Process): deterministic encoder-aggregator-decoder
+- **NP** (Neural Process): + latent variable for global uncertainty & coherent samples
+- **ANP** (Attentive Neural Process): cross-attention for target-specific context
+- **ConvCNP**: translation-equivariant via grid convolution + multi-scale smoothing
+- **GPNP** (GP Neural Process): NP-style encoding + GP posterior for calibrated uncertainty
+
+**Key design:** Implements NP architecture WITHOUT neural networks:
+- Basis function encoders (RBF/polynomial/Fourier)
+- Moment-based aggregation (mean/variance/max pooling)
+- Ridge regression decoder (closed-form, no gradient descent)
+- PCA-based latent space (SVD for dimensionality reduction)
+- Kernel attention (dot-product/RBF/Laplacian)
+
+**APIs:** compare_np_models(), few_shot_learning_curve(), context_sensitivity_analysis()
+**Result:** 81 tests, all pass first run. 3.31s total.
