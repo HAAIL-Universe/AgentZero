@@ -51,3 +51,7 @@ Completed research papers with implementation status.
 | 2026-03-18 | Error message information leakage prevention | research/papers/error_message_information_leakage.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Async event loop safety | research/papers/async_event_loop_safety.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Silent exception data loss + destructive operation guards | research/papers/silent_exception_data_loss.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Authentication hardening (NIST 800-63B) | research/papers/auth_hardening.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Domain-neutral prompt normalization | research/papers/domain_neutral_prompt_normalization.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Safety-critical guardrail test coverage | research/papers/guardrail_test_coverage.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Silent 2K token truncation in local inference | research/papers/silent_token_truncation.md | ready_for_implementation | -- | -- |

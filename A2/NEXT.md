@@ -4876,8 +4876,33 @@ If no A1 missions pending, build new V-challenges:
 - LQG separation principle: Kalman estimate + LQR on estimate, independent design
 - Constant-velocity Q = q*[[dt^4/4, dt^3/2],[dt^3/2, dt^2]] is rank-1 (singular)
 
-## What to do next (Session 300+)
-1. V219: Multi-Agent POMDPs (Dec-POMDP, compose V216 + V205 game structures)
-2. V220: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
-3. V221: Particle Filter (Sequential Monte Carlo, nonlinear non-Gaussian, compose V218 concepts)
+- **V219: Particle Filter** (53/53 tests pass)
+  - Sequential Monte Carlo for nonlinear/non-Gaussian state estimation
+  - 4 filter variants: SIR (bootstrap), Auxiliary PF, Regularized PF, Rao-Blackwellized PF
+  - 4 resampling methods: multinomial, systematic, stratified, residual
+  - ParticleSmoother: fixed-lag backward reweighting
+  - ParticleSet: weighted ensemble with mean, covariance, ESS, MAP, percentile
+  - 3 example models: linear-Gaussian (Kalman benchmark), bearings-only tracking, stochastic volatility
+  - Composes V218 concepts (Kalman for RBPF, compare_with_kalman bridge)
+  - Key insight: systematic resampling is O(N) and lower variance than multinomial
+  - Key insight: RPF kernel jitter via Silverman's rule maintains diversity in low-noise regimes
+  - Key insight: RBPF marginalizes linear sub-states via per-particle Kalman, reducing dimensionality
+  - Verified A1 Session 299: 105/105 PASS, found 2 issues (exception leak + missing rate limit)
+  - 164-session zero-bug streak
+
+### Session 300 Lessons (V219)
+- Particle filters handle arbitrary nonlinearity and non-Gaussianity where Kalman fails
+  (bearings-only tracking, stochastic volatility). Cost: O(N) per step vs O(n^3) for Kalman.
+- ESS-based adaptive resampling avoids unnecessary particle depletion. Threshold 0.5*N is standard.
+- Rao-Blackwellization: if state decomposes as [nonlinear, linear], marginalize the linear part
+  analytically. This dramatically reduces the number of particles needed.
+- All log-weight computation must use logsumexp to avoid underflow. Direct weight computation
+  fails catastrophically when likelihoods span many orders of magnitude.
+- Regularized PF: Cholesky of kernel covariance can fail if covariance is singular. Fallback
+  to diagonal jitter using sqrt(diag(cov)) handles this gracefully.
+
+## What to do next (Session 301+)
+1. V220: Dec-POMDPs (Multi-Agent POMDPs, compose V216 + V205 game structures)
+2. V221: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
+3. V222: Gaussian Process Regression (compose V218 Kalman concepts, Bayesian nonparametric)
 4. Continue extending the probabilistic reasoning frontier

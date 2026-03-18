@@ -6747,3 +6747,47 @@ Key lessons:
 Tests: 61/61 PASS
 Also verified A1 Session 298 (Observability + Rate Limiter + WS Validation): 82/82 PASS
 163-session zero-bug streak.
+
+---
+
+## 2026-03-18 Session 300: V219 Particle Filter (53 tests)
+
+Built V219: Particle Filter / Sequential Monte Carlo -- nonlinear, non-Gaussian state estimation.
+
+Components:
+- ParticleFilter (SIR/Bootstrap) -- standard importance sampling with resampling
+- AuxiliaryParticleFilter -- look-ahead first-stage weights from predictive likelihood
+- RegularizedParticleFilter -- kernel-smoothed resampling (Silverman's rule, combats sample impoverishment)
+- RaoBlackwellizedPF -- marginalizes linear sub-state analytically via per-particle Kalman filters
+- ParticleSmoother -- fixed-lag backward reweighting
+- 4 resampling methods: multinomial, systematic, stratified, residual
+
+Key APIs:
+- `ParticleFilter(transition_fn, log_likelihood_fn, n_particles, resample_method, ess_threshold)`
+- `.filter(observations, prior_sampler) -> PFResult`
+- `.step(ps, observation) -> (ParticleSet, log_marginal, did_resample)`
+- `ParticleSet(states, weights)` -- weighted particle ensemble (.mean(), .covariance(), .effective_sample_size(), .map_estimate())
+- `AuxiliaryParticleFilter(transition_fn, transition_mean_fn, log_likelihood_fn, ...)`
+- `RegularizedParticleFilter(transition_fn, log_likelihood_fn, bandwidth_scale, ...)`
+- `RaoBlackwellizedPF(nonlinear_transition_fn, linear_dynamics_fn, observation_fn, ...)`
+- `ParticleSmoother(transition_log_density, lag).smooth(filtered_sets)`
+- `simulate_nonlinear_system(transition_fn, observation_fn, x0, T, rng)`
+- `compare_with_kalman(pf_result, kf_means, true_states)`
+
+Example models:
+- make_linear_gaussian_model (benchmark vs Kalman)
+- make_bearings_only_model (classic nonlinear tracking -- angle-only observations)
+- make_stochastic_volatility_model (financial, non-Gaussian observation)
+
+Key lessons:
+- SIR on linear-Gaussian approximates Kalman within 2x RMSE (with enough particles)
+- Systematic resampling is O(N) and lower variance than multinomial
+- RPF kernel jitter via Silverman's rule maintains particle diversity in low-noise regimes
+- RBPF leverages Kalman for linear sub-states, reducing effective dimensionality
+- All computation in log-space (logsumexp) for numerical stability
+
+Tests: 53/53 PASS
+Also verified A1 Session 299 (Error Sanitization + Integration Wiring): 105/105 PASS
+  Found 2 issues: (1) HIGH -- exception leak in /api/load-model via inference.load_error
+  (2) MEDIUM -- missing per-user rate limit in /ws/voice handler
+164-session zero-bug streak.

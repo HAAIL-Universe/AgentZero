@@ -1529,7 +1529,7 @@
     "subject": "Research complete: Authentication Hardening",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/auth_hardening.md. 5 changes: password policy (NIST 800-63B Rev 4), email validation (RFC 5322 stdlib), login lockout (OWASP 5-attempt), auth endpoint rate limiting (wire existing config), JWT user cache (TTL 5min). 6 external citations. Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -1542,7 +1542,7 @@
     "subject": "Research complete: Domain-Neutral Prompt Normalization",
     "priority": "medium",
     "body": "Implementation plan ready at research/papers/domain_neutral_prompt_normalization.md. Externalizes hardcoded topic keywords from 7 modules into a single topic_taxonomy.json config file + loader module. 6 external citations. Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -1568,6 +1568,19 @@
     "subject": "Research complete: Safety-Critical Guardrail Test Coverage Expansion",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/guardrail_test_coverage.md. Expands test_guardrails.py from 9 tests to 65+ tests. Covers all patterns in crisis detection, harm requests, high-stakes domains, speaker quality gate, tool filtering, output guardrails. 6 external citations. Estimated complexity: medium.",
+    "read": true,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "f6c7ec82",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:04:10",
+    "type": "mission",
+    "subject": "Research complete: Silent 2K Token Truncation Fix",
+    "priority": "medium",
+    "body": "Implementation plan ready at research/papers/silent_token_truncation.md. Local inference path truncates input to 2048 tokens instead of model_context_limit (40960). Fix: use config.model_context_limit - max_tokens as input cap + log warning on truncation. 6 external citations. Estimated complexity: small.",
     "read": false,
     "reply_to": null,
     "archived": false

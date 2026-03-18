@@ -88,8 +88,8 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 
 ## Medium Priority (New -- from gap analysis 2026-03-18 session 8)
 
-- [ ] Rate limiter and WS validation integration -- rate_limiter.py and ws_messages.py exist with tests but are NEVER imported by agent_zero_server.py. Dead code. Needs wiring into endpoints.
-- [ ] Auth hardening -- minimum password 6 chars (should be 8, NIST SP 800-63B), email validation is just "@" check, no failed-login counter, per-request DB lookup for JWT user (should cache).
-- [ ] Domain-neutral prompt normalization -- hardcoded strings ("ask for a raise", "manager is unpredictable") in agent_zero_server.py and reasoning_framework.py. Brittle, domain-specific.
-- [ ] Safety-critical guardrail test coverage -- test_guardrails.py is 120 lines for 599-line guardrails.py. Crisis/harm pattern coverage insufficient.
-- [ ] Silent 2K token truncation in local inference -- agent_zero_inference.py:257 uses max_length=2048 but model supports 32K (config.model_context_limit).
+- [x] Rate limiter and WS validation integration -- RESOLVED: already wired into agent_zero_server.py (lines 123-127, 3353, 3373, 3389, 3442, 3461, 3467). Confirmed 2026-03-18.
+- [x] Auth hardening -- minimum password 6 chars (should be 8, NIST SP 800-63B), email validation is just "@" check, no failed-login counter, per-request DB lookup for JWT user (should cache). (Researched 2026-03-18, paper: research/papers/auth_hardening.md, 6 citations)
+- [x] Domain-neutral prompt normalization -- hardcoded strings ("ask for a raise", "manager is unpredictable") in agent_zero_server.py and reasoning_framework.py. Brittle, domain-specific. (Researched 2026-03-18, paper: research/papers/domain_neutral_prompt_normalization.md, 6 citations)
+- [x] Safety-critical guardrail test coverage -- test_guardrails.py is 120 lines for 599-line guardrails.py. Crisis/harm pattern coverage insufficient. (Researched 2026-03-18, paper: research/papers/guardrail_test_coverage.md, 6 citations)
+- [x] Silent 2K token truncation in local inference -- agent_zero_inference.py:257 uses max_length=2048 but model supports 40960 (config.model_context_limit). (Researched 2026-03-18, paper: research/papers/silent_token_truncation.md, 6 citations)
