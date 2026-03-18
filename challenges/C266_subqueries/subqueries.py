@@ -446,6 +446,31 @@ def _get_cmp_fn(op):
 class SubqueryDB(BuiltinDB):
     """BuiltinDB extended with subquery support."""
 
+    def _expr_has_builtin(self, expr) -> bool:
+        """Override to fix else_result attribute name and handle subquery nodes."""
+        if isinstance(expr, (SqlSubquery, SqlExists, SqlInSubquery, SqlQuantifiedComparison)):
+            return False  # Not a builtin -- subquery handler will deal with these
+        if isinstance(expr, SqlCast):
+            return True
+        if isinstance(expr, SqlFuncCall):
+            fn = expr.func_name.upper()
+            if fn in BUILTIN_FUNC_NAMES:
+                return True
+            return any(self._expr_has_builtin(a) for a in expr.args)
+        if isinstance(expr, SqlBinOp):
+            return self._expr_has_builtin(expr.left) or self._expr_has_builtin(expr.right)
+        if isinstance(expr, SqlComparison):
+            return self._expr_has_builtin(expr.left) or (expr.right and self._expr_has_builtin(expr.right))
+        if isinstance(expr, SqlLogic):
+            return any(self._expr_has_builtin(o) for o in expr.operands)
+        if isinstance(expr, SqlCase):
+            for cond, val in expr.whens:
+                if self._expr_has_builtin(cond) or self._expr_has_builtin(val):
+                    return True
+            if expr.else_result and self._expr_has_builtin(expr.else_result):
+                return True
+        return False
+
     def execute(self, sql: str) -> ResultSet:
         """Execute SQL with subquery support."""
         stmt = parse_subquery_sql(sql)
@@ -551,9 +576,22 @@ class SubqueryDB(BuiltinDB):
         if stmt.where:
             rows = [r for r in rows if subquery_eval_expr(stmt.where, r, self)]
 
-        # Step 5: Handle GROUP BY
+        # Step 5: Handle GROUP BY or implicit aggregation
         if stmt.group_by:
             return self._exec_grouped_with_subqueries(stmt, rows)
+
+        # Check if columns contain aggregates (COUNT, SUM, etc.) -- implicit GROUP BY
+        has_agg = any(isinstance(col.expr, SqlAggCall) for col in stmt.columns)
+        if has_agg:
+            return self._exec_grouped_on_rows(
+                SelectStmt(
+                    columns=stmt.columns,
+                    group_by=[],  # empty = whole-table group
+                    having=stmt.having,
+                    order_by=stmt.order_by,
+                    limit=stmt.limit,
+                    offset=stmt.offset,
+                ), rows)
 
         # Step 6: Evaluate column expressions
         output_columns = []
@@ -572,7 +610,7 @@ class SubqueryDB(BuiltinDB):
             out_row = []
             for col in stmt.columns:
                 if isinstance(col.expr, SqlStar):
-                    for v in row.data.values():
+                    for v in row._data.values():
                         out_row.append(v)
                 else:
                     out_row.append(subquery_eval_expr(col.expr, row, self))
@@ -580,7 +618,7 @@ class SubqueryDB(BuiltinDB):
 
         # Handle star column names
         if any(isinstance(c.expr, SqlStar) for c in stmt.columns):
-            star_cols = list(rows[0].data.keys()) if rows else []
+            star_cols = list(rows[0]._data.keys()) if rows else []
             output_columns = []
             for col in stmt.columns:
                 if isinstance(col.expr, SqlStar):
@@ -619,7 +657,7 @@ class SubqueryDB(BuiltinDB):
         """Execute a subquery, optionally with outer row context for correlation."""
         # For correlated subqueries, we need to inject outer row values
         # into column references that don't match subquery tables
-        if outer_row is not None and outer_row.data:
+        if outer_row is not None and outer_row._data:
             return self._exec_correlated_subquery(query, outer_row)
         return self._execute_subquery_stmt(query)
 
@@ -632,11 +670,12 @@ class SubqueryDB(BuiltinDB):
         inner_cols = set()
         if query.from_table and not isinstance(query.from_table, SubqueryTableRef):
             table_name = query.from_table.table_name
-            if table_name in self.tables:
-                inner_cols = set(self.tables[table_name]['columns'])
-            # Also add aliased table refs
-            if query.from_table.alias:
-                inner_cols.update(f"{query.from_table.alias}.{c}" for c in self.tables.get(table_name, {}).get('columns', []))
+            if self.storage.catalog.has_table(table_name):
+                col_names = self.storage.catalog.get_table(table_name).column_names()
+                inner_cols = set(col_names)
+                # Also add aliased table refs
+                if query.from_table.alias:
+                    inner_cols.update(f"{query.from_table.alias}.{c}" for c in col_names)
 
         # Rewrite WHERE clause to substitute outer references
         rewritten_where = self._rewrite_correlated_expr(query.where, outer_row, inner_cols, query) if query.where else None
@@ -677,8 +716,15 @@ class SubqueryDB(BuiltinDB):
                 if query.from_table and not isinstance(query.from_table, SubqueryTableRef):
                     inner_table = query.from_table.table_name
                     inner_alias = query.from_table.alias
-                    if expr.table == inner_table or expr.table == inner_alias:
-                        return expr  # Inner table reference, keep as-is
+                    # If inner table has an alias, only the alias is valid for inner refs
+                    # (the original name may refer to the outer query's same-named table)
+                    if inner_alias:
+                        if expr.table == inner_alias:
+                            # Strip alias -- base engine uses unqualified column names
+                            return SqlColumnRef(table=None, column=expr.column)
+                    else:
+                        if expr.table == inner_table:
+                            return SqlColumnRef(table=None, column=expr.column)
 
                 # Check joins
                 for join in query.joins:
@@ -687,15 +733,15 @@ class SubqueryDB(BuiltinDB):
                             return expr  # Join table reference
 
                 # Must be an outer reference
-                if qualified in outer_row.data:
-                    return SqlLiteral(outer_row.data[qualified])
-                if expr.column in outer_row.data:
-                    return SqlLiteral(outer_row.data[expr.column])
+                if qualified in outer_row._data:
+                    return SqlLiteral(outer_row._data[qualified])
+                if expr.column in outer_row._data:
+                    return SqlLiteral(outer_row._data[expr.column])
             else:
                 # Unqualified column -- outer if not in inner table
                 if expr.column not in inner_cols:
-                    if expr.column in outer_row.data:
-                        return SqlLiteral(outer_row.data[expr.column])
+                    if expr.column in outer_row._data:
+                        return SqlLiteral(outer_row._data[expr.column])
             return expr
 
         if isinstance(expr, SqlBinOp):
@@ -901,16 +947,17 @@ class SubqueryDB(BuiltinDB):
                         data[f"{alias}.{col_name}"] = raw_row[i]
                     right_rows.append(Row(data))
             else:
-                # Regular table join
+                # Regular table join -- use SELECT * to get rows
                 table_name = join.table.table_name
                 table_alias = join.table.alias or table_name
-                if table_name not in self.tables:
-                    raise CompileError(f"Table '{table_name}' does not exist")
-                table_data = self.tables[table_name]
+                join_result = self._execute_builtin_stmt(SelectStmt(
+                    columns=[SelectExpr(expr=SqlStar())],
+                    from_table=join.table,
+                ))
                 right_rows = []
-                for raw_row in table_data['rows']:
+                for raw_row in join_result.rows:
                     data = {}
-                    for i, col_name in enumerate(table_data['columns']):
+                    for i, col_name in enumerate(join_result.columns):
                         data[col_name] = raw_row[i]
                         data[f"{table_alias}.{col_name}"] = raw_row[i]
                         data[f"{table_name}.{col_name}"] = raw_row[i]
@@ -922,32 +969,32 @@ class SubqueryDB(BuiltinDB):
             if join_type == 'cross':
                 for lr in result:
                     for rr in right_rows:
-                        merged = Row({**lr.data, **rr.data})
+                        merged = Row({**lr._data, **rr._data})
                         new_result.append(merged)
             elif join_type in ('inner', 'join'):
                 for lr in result:
                     for rr in right_rows:
-                        merged = Row({**lr.data, **rr.data})
+                        merged = Row({**lr._data, **rr._data})
                         if join.condition is None or subquery_eval_expr(join.condition, merged, self):
                             new_result.append(merged)
             elif join_type == 'left':
                 for lr in result:
                     matched = False
                     for rr in right_rows:
-                        merged = Row({**lr.data, **rr.data})
+                        merged = Row({**lr._data, **rr._data})
                         if join.condition is None or subquery_eval_expr(join.condition, merged, self):
                             new_result.append(merged)
                             matched = True
                     if not matched:
                         # Add null columns from right side
-                        null_data = {k: None for k in (right_rows[0].data if right_rows else {})}
-                        merged = Row({**lr.data, **null_data})
+                        null_data = {k: None for k in (right_rows[0]._data if right_rows else {})}
+                        merged = Row({**lr._data, **null_data})
                         new_result.append(merged)
             else:
                 # Default to inner join
                 for lr in result:
                     for rr in right_rows:
-                        merged = Row({**lr.data, **rr.data})
+                        merged = Row({**lr._data, **rr._data})
                         if join.condition is None or subquery_eval_expr(join.condition, merged, self):
                             new_result.append(merged)
 
@@ -975,7 +1022,7 @@ class SubqueryDB(BuiltinDB):
             out_row = []
             for col in columns:
                 if isinstance(col.expr, SqlStar):
-                    for v in row.data.values():
+                    for v in row._data.values():
                         # Skip alias-qualified duplicates
                         out_row.append(v)
                 else:
@@ -986,7 +1033,7 @@ class SubqueryDB(BuiltinDB):
         if has_star and rows:
             # Get non-duplicate columns (skip alias.col entries)
             star_cols = []
-            for k in rows[0].data.keys():
+            for k in rows[0]._data.keys():
                 if '.' not in k:
                     star_cols.append(k)
 
@@ -1008,7 +1055,7 @@ class SubqueryDB(BuiltinDB):
                 for col in columns:
                     if isinstance(col.expr, SqlStar):
                         for k in star_cols:
-                            out_row.append(row.data.get(k))
+                            out_row.append(row._data.get(k))
                     else:
                         out_row.append(subquery_eval_expr(col.expr, row, self))
                 output_rows.append(out_row)
@@ -1059,9 +1106,9 @@ class SubqueryDB(BuiltinDB):
                 having_row = Row({})
                 for j, col in enumerate(stmt.columns):
                     col_name = output_columns[j]
-                    having_row.data[col_name] = output_rows[i][j]
+                    having_row._data[col_name] = output_rows[i][j]
                 # Also add representative data
-                having_row.data.update(group_rows[0].data)
+                having_row._data.update(group_rows[0]._data)
                 if subquery_eval_expr(stmt.having, having_row, self):
                     filtered.append(output_rows[i])
             output_rows = filtered

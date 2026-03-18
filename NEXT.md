@@ -1,29 +1,25 @@
 # Next Session Briefing
 
-**Last session:** 315 (2026-03-18)
+**Last session:** 316 (2026-03-18)
 **Current focus:** SQL Engine + Agent Zero Cognitive Architecture
 
 ---
+
+## COMPLETED: Session 316
+
+### C266 SQL Subqueries
+- 7 subquery types: scalar, IN/NOT IN, EXISTS/NOT EXISTS, ALL/ANY/SOME, derived tables, correlated, nested
+- Derived table JOINs, implicit aggregation detection
+- Correlated subquery via expr rewriting (outer refs -> literals)
+- 110 tests, all passing
 
 ## COMPLETED: Session 315
 
 ### C265 SQL Built-in Functions
 - 60+ scalar functions: string (24), math (27), null-handling (5), type (4)
-- CAST(expr AS type) parser syntax
-- LEFT/RIGHT keyword-function disambiguation
-- Full SQL-level AST evaluator (builtin_eval_expr)
 - 139 tests, all passing
 
-## COMPLETED: Session 314
-
-### C264 Window Functions (SQL Engine)
-- Full window function support: ROW_NUMBER, RANK, DENSE_RANK, NTILE, LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE
-- PERCENT_RANK, CUME_DIST
-- Aggregate windows: SUM/AVG/COUNT/MIN/MAX OVER (PARTITION BY ... ORDER BY ...)
-- Frame specs: ROWS BETWEEN N PRECEDING AND N FOLLOWING
-- 77 tests, all passing
-
-**Zero-bug streak: 177 sessions**
+**Zero-bug streak: 178 sessions**
 
 ---
 

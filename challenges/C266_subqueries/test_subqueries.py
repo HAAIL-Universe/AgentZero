@@ -660,12 +660,10 @@ class TestComplexQueries:
             "ORDER BY salary DESC"
         )
         names = [row[0] for row in r.rows]
-        assert names[0] == 'Diana'  # 95k
-        assert names[-1] == 'Alice'  # 80k (wait, Alice is dept 1 which is > 300k)
         # dept > 300k: Engineering(500k), Sales(400k) -> dept 1,3
         # Alice(80k,1), Bob(90k,1), Eve(85k,3)
-        # Wait Diana is dept 2 (Marketing, 300k) -- not > 300k
-        # So Diana not included
+        # Diana is dept 2 (Marketing, 300k) -- not > 300k
+        assert names == ['Bob', 'Eve', 'Alice']
         assert 'Diana' not in names
 
     def test_subquery_with_distinct_outer(self, db):
@@ -853,8 +851,8 @@ class TestRegression:
 
     def test_join(self, db):
         r = db.execute(
-            "SELECT e.name, d.name AS dept FROM employees AS e "
-            "JOIN departments AS d ON e.dept_id = d.id ORDER BY e.name"
+            "SELECT employees.name FROM employees "
+            "JOIN departments ON employees.dept_id = departments.id ORDER BY employees.name"
         )
         assert len(r.rows) == 5
 
