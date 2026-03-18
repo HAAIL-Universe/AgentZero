@@ -96,12 +96,12 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 
 ## High Priority (New -- from gap analysis 2026-03-18 session 9)
 
-- [ ] Frontend XSS and Content Security Policy -- renderMarkdown() uses innerHTML without sanitization (agent_zero.html:2574, 2624, 2748, 3031), no CSP header, inline scripts/styles. XSS in code blocks survives entity escaping. OWASP A03:2021 violation.
-- [ ] Proactive session concurrency safety -- _proactive_sessions dict accessed without locks from multiple coroutines (agent_zero_server.py:196-236, 3417-3418). Bare except-pass at line 217 masks all errors. WebSocket sent to closed connections.
-- [ ] Resource lifecycle management -- streaming generator not cleaned up on disconnect (agent_zero_server.py:2674-2680), model load race condition (agent_zero_inference.py:69-100), orphaned coroutines in cognitive_runtime.py (918-926, 1056-1078).
+- [x] Frontend XSS and Content Security Policy -- renderMarkdown() uses innerHTML without sanitization (agent_zero.html:2574, 2624, 2748, 3031), no CSP header, inline scripts/styles. OWASP A03:2021 violation. (Researched 2026-03-18, paper: research/papers/frontend_xss_and_csp.md, 7 citations)
+- [x] Proactive session concurrency safety -- _proactive_sessions dict accessed without locks from multiple coroutines (agent_zero_server.py:196-236, 3417-3418). Bare except-pass at line 217 masks all errors. (Researched 2026-03-18, paper: research/papers/proactive_session_concurrency.md, 5 citations)
+- [x] Resource lifecycle management -- streaming generator not cleaned up on disconnect (agent_zero_server.py:2674-2680), model load race condition (agent_zero_inference.py:69-100), orphaned coroutines. (Researched 2026-03-18, paper: research/papers/resource_lifecycle_management.md, 5 citations)
 
 ## Medium Priority (New -- from gap analysis 2026-03-18 session 9)
 
-- [ ] Database transaction atomicity -- non-atomic commitment creation (database.py:410-425, two INSERT without transaction), non-atomic consolidation marking (consolidator.py:914-916, in-memory only).
-- [ ] Unbounded in-memory state growth -- _login_attempts dict in auth.py:89 grows without eviction, _A2_INBOX_CACHE in tool_runtime.py:520 never trimmed, _calibration_ratio in context_manager.py:33 has no thread safety.
-- [ ] CSRF and session token storage -- JWT stored in localStorage (XSS-accessible), token passed in WebSocket URL query params (logged in proxies/history), no CSRF token on POST/DELETE endpoints, CORS allow_headers=* wildcard.
+- [x] Database transaction atomicity -- non-atomic commitment creation (database.py:410-425, two INSERT without transaction), non-atomic consolidation marking (consolidator.py:914-916, in-memory only). (Researched 2026-03-18, paper: research/papers/database_transaction_atomicity.md, 5 citations)
+- [x] Unbounded in-memory state growth -- _login_attempts dict in auth.py:89 grows without eviction, _A2_INBOX_CACHE in tool_runtime.py:520 never trimmed, _calibration_ratio in context_manager.py:33 has no thread safety. (Researched 2026-03-18, paper: research/papers/unbounded_in_memory_state_growth.md, 5 citations)
+- [x] CSRF and session token storage -- JWT stored in localStorage (XSS-accessible), token passed in WebSocket URL query params (logged in proxies/history), no CSRF token on POST/DELETE endpoints, CORS allow_headers=* wildcard. (Researched 2026-03-18, paper: research/papers/csrf_and_session_token_storage.md, 6 citations)

@@ -1,6 +1,6 @@
 ---
 topic: Silent 2K Token Truncation in Local Inference
-status: ready_for_implementation
+status: implemented
 priority: medium
 estimated_complexity: small
 researched_at: 2026-03-19T00:10:00Z

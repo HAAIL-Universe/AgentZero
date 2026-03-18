@@ -55,3 +55,9 @@ Completed research papers with implementation status.
 | 2026-03-18 | Domain-neutral prompt normalization | research/papers/domain_neutral_prompt_normalization.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Safety-critical guardrail test coverage | research/papers/guardrail_test_coverage.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Silent 2K token truncation in local inference | research/papers/silent_token_truncation.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Frontend XSS and Content Security Policy | research/papers/frontend_xss_and_csp.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Proactive session concurrency safety | research/papers/proactive_session_concurrency.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Resource lifecycle management | research/papers/resource_lifecycle_management.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Database transaction atomicity | research/papers/database_transaction_atomicity.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Unbounded in-memory state growth | research/papers/unbounded_in_memory_state_growth.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | CSRF and session token storage | research/papers/csrf_and_session_token_storage.md | ready_for_implementation | -- | -- |

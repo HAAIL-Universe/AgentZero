@@ -1,28 +1,28 @@
 # Next Session Briefing
 
-**Last session:** 301 (2026-03-18)
+**Last session:** 302 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 301
+## COMPLETED: Session 302
 
-### Auth Hardening (paper: implemented)
-- NIST SP 800-63B Rev 4 password policy (8-64 chars, common password blocklist)
-- RFC 5322 email validation (stdlib parser)
-- OWASP login lockout (5 attempts / 15min window -> 20min lock)
-- Auth endpoint rate limiting (wired existing config to /auth/register, /auth/login)
-- JWT user cache with TTL (5min, invalidate on clear-data)
-- 31 new tests in test_auth_hardening.py
+### Token Truncation Fix (paper: implemented)
+- Local inference `max_length` now uses `config.model_context_limit - max_tokens` (was hardcoded 2048)
+- Warning logged on truncation
+- 10 new tests in test_inference_truncation.py
 
-### Guardrail Test Coverage (paper: implemented)
-- test_guardrails.py expanded from 9 to 86 tests
-- All crisis/harm/domain/scope/speaker/tool/output/fragment patterns covered
+### Soft-Delete for clear_user_data (paper: implemented)
+- `pending_data_deletions` table with 48-hour grace period
+- `POST /api/user/undo-clear-data` cancels pending deletion
+- `POST /admin/purge-expired-deletions` triggers actual cleanup
+- `purge_user_data()` and `purge_expired_deletions()` in database.py
+- 17 new tests in test_soft_delete.py
 
 ### Bug Fix
-- test_config.py model_context_limit assertion updated (32768 -> 40960)
+- Added missing `Request` import to agent_zero_server.py FastAPI imports
 
-**Total: 117 new tests, 163-session zero-bug streak**
+**Total: 27 new tests, 164-session zero-bug streak**
 
 ---
 
@@ -30,33 +30,31 @@
 
 ### Agent Zero Track -- Immediate
 
-1. **Soft-delete for clear_user_data** -- Complete silent_exception_data_loss.md Part 2 (DB migration, deleted_at column, purge job)
-2. **Audit remaining silent-swallow sites** -- agent_zero_server.py has 12 except:pass sites
+1. **Audit remaining silent-swallow sites** -- agent_zero_server.py has 12 except:pass sites (Part 2 of silent_exception_data_loss.md)
+2. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data is triggered
 
 ### Agent Zero Track -- Research Papers (ready_for_implementation)
 
-3. **Domain-Neutral Prompt Normalization** (research/papers/domain_neutral_prompt_normalization.md) -- MED, medium (MQ: b7741bc4, unarchived)
+3. **Domain-Neutral Prompt Normalization** (research/papers/domain_neutral_prompt_normalization.md) -- MED, medium
 4. **JWT Security Hardening** (research/papers/jwt_security_hardening.md) -- HIGH, medium
 5. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
 6. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
+7. **Frontend XSS and CSP** (research/papers/frontend_xss_and_csp.md) -- ready_for_implementation
+8. **Proactive Session Concurrency** (research/papers/proactive_session_concurrency.md) -- ready_for_implementation
+9. **Resource Lifecycle Management** (research/papers/resource_lifecycle_management.md) -- ready_for_implementation
+10. **Database Query Optimization** (research/papers/database_query_optimization.md) -- ready_for_implementation
 
 ### Agent Zero Track -- Architecture
 
-7. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
-8. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
-9. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
+11. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
+12. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
+13. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
 
 ### Research Papers (MED priority)
-10. **Consolidated Rules Growth Cap** (research/papers/consolidated_rules_growth_cap.md)
-11. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
-12. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
-13. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
-
-### Integration Remaining
-14. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
-15. **Monitor skip_safe flags** in production to validate VOI feedback loop
-16. **Add /admin/config endpoint** -- expose config.model_dump() for runtime visibility
-17. **A2 verification**: Awaiting verification of Session 301 changes
+14. **Consolidated Rules Growth Cap** (research/papers/consolidated_rules_growth_cap.md)
+15. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
+16. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
+17. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
 
 ### Integration Testing
 18. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
@@ -81,6 +79,9 @@
 
 ---
 
+## A2 Verification Pending
+- Session 302: Token truncation fix (10 tests) + soft-delete (17 tests)
+
 ## Streak
 
-163 sessions zero-bug
+164 sessions zero-bug
