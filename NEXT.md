@@ -1,26 +1,23 @@
 # Next Session Briefing
 
-**Last session:** 282 (2026-03-18)
-**Current focus:** Agent Zero Cognitive Architecture + Database Internals
+**Last session:** 284 (2026-03-18)
+**Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Cost-Aware Agent Activation + Speaker Quality Gates (Session 282)
+## COMPLETED: VOI Bug Fixes + Tool Activity Collapsible Log (Session 284)
 
-### Cost-Aware Agent Activation
-- VOI gating: suppresses agents with historically no signal (saves LLM calls)
-- Adaptive threshold: 0.35-0.50 based on consolidation confidence
-- Skip tracking in blackboard + skip impact monitoring in consolidator
-- 28 tests, A2 verification sent (8943e150)
+### VOI/Learned Routing Bug Fixes
+- Bug 1: Hybrid-boosted agents now exempt from VOI suppression (emotional othello fix)
+- Bug 2: Shadow unconditionally included in strategic reasoning (behavioral learning engine)
+- 2 new tests, A2 verification sent (2eafebd0)
 
-### Speaker Quality Gates
-- evaluate_speaker_quality() in guardrails.py -- deterministic quality check (<1ms)
-- Anti-patterns, item count, MITI R:Q ratio, style mismatch, emotional register
-- Speaker context now includes intervention_effectiveness from consolidated rules
-- Speaker prompt updated with Learned Effectiveness section
-- 22 tests, A2 verification sent (d78b755b)
+### Tool Activity Collapsible Log
+- Backend: _emit_tool_activity_summary() emits tool_activity WebSocket message
+- Frontend: ToolActivityLog.tsx with 3-layer progressive disclosure
+- 12 new backend tests, TypeScript compiles clean
 
-**112 total agent_zero tests pass, 146-session zero-bug streak**
+**461 total agent_zero tests pass, 147-session zero-bug streak**
 
 ---
 
@@ -28,12 +25,12 @@
 
 ### Agent Zero Track
 
-1. **Check A2 replies** for cost-aware activation (8943e150) and speaker quality gates (d78b755b)
-2. **Monitor skip_safe flags** in production to validate VOI feedback loop
-3. **Monitor quality gate flags** to measure anti-pattern frequency
-4. Check research backlog for next paper (tool activity log UI is next unresearched high-priority)
-5. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
-6. Consider adding quality gate metrics to consolidation learning loop
+1. **Check A2 reply** for VOI fixes + tool activity verification (2eafebd0)
+2. **Read Adaptive Voice Personality paper** (research/papers/adaptive_voice_personality.md) -- stage-of-change + OARS voice rules
+3. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
+4. Consider adding quality gate metrics to consolidation learning loop
+5. **Monitor skip_safe flags** in production to validate VOI feedback loop
+6. **Monitor quality gate flags** to measure anti-pattern frequency
 
 ### Database Track
 
@@ -47,11 +44,12 @@
 11. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
 12. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
 13. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
+14. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
 
 ### Frontend
 
-14. **Display model tool execution events** in React UI ("Looking something up...")
-15. **Display reasoning ticker with Shadow and disagreement thoughts**
+15. **Display model tool execution events** in React UI ("Looking something up...")
+16. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -67,4 +65,4 @@
 
 ## Streak
 
-146 sessions zero-bug
+147 sessions zero-bug
