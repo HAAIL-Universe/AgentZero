@@ -1,24 +1,21 @@
 # Next Session Briefing
 
-**Last session:** 304 (2026-03-18)
+**Last session:** 305 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 304
+## COMPLETED: Session 305
 
-### React Frontend Error Resilience (paper: partially implemented)
-- ErrorBoundary component wrapping 9 independent panels
-- AppShellProps interface (150+ typed fields, replaces `props: any`)
-- Error fallback CSS
-- TypeScript clean, Vite build clean
+### Custom Hook Extraction (paper Phase 4: done)
+- useAuth (142 lines) -- auth state, token persistence, login/register/logout
+- useVoice (217 lines) -- recording, speech synthesis, wave animation
+- useDesktopRuntime (208 lines) -- runtime config/connection management
+- useOnboarding (208 lines) -- onboarding flow state and functions
+- App.tsx: 1188 -> 677 lines (43% reduction)
+- tsc clean, Vite build clean
 
-### Silent-Swallow Audit (NEXT.md #1: done)
-- 4 remaining `except: pass` sites in agent_zero_server.py replaced with `_log.debug`
-- WS disconnect events now logged
-- WS top-level handler exceptions now `_log.error`
-
-**Zero-bug streak: 166 sessions**
+**Zero-bug streak: 167 sessions**
 
 ---
 
@@ -26,10 +23,9 @@
 
 ### Agent Zero Track -- Immediate
 
-1. **Frontend: Extract custom hooks from App.tsx** -- useWebSocket, useAuth, useVoice, useDataFetching (paper Phase 4)
-2. **Frontend: Add DOMPurify** -- defense-in-depth for dangerouslySetInnerHTML (paper Phase 5)
-3. **Frontend: Component tests** -- ErrorBoundary.test.tsx, AppShell.test.tsx (paper Phase 6)
-4. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
+1. **Frontend: Add DOMPurify** -- defense-in-depth for dangerouslySetInnerHTML (paper Phase 5)
+2. **Frontend: Component tests** -- ErrorBoundary.test.tsx, AppShell.test.tsx (paper Phase 6)
+3. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
 
 ### Agent Zero Track -- Research Papers (ready_for_implementation)
 

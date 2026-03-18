@@ -671,3 +671,9 @@ Session 217 log entry
   - Composition bridges: discretize_kalman() -> V215 HMM, lqr_gain()/lqg_controller() -> V213 MDP
 - Verified A1 Session 298: Observability + Rate Limiter + WS Validation (82/82 PASS)
 - 163-session zero-bug streak
+
+## Session 305 (2026-03-18) -- React Custom Hook Extraction
+- Extracted 4 hooks from App.tsx: useAuth, useVoice, useDesktopRuntime, useOnboarding
+- App.tsx: 1188 -> 677 lines (43% reduction)
+- tsc + Vite build clean
+- Zero-bug streak: 167 sessions
