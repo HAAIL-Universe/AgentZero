@@ -1428,5 +1428,18 @@
     "read": false,
     "reply_to": null,
     "archived": false
+  },
+  {
+    "id": "41c97fb3",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 20:42:45",
+    "type": "mission",
+    "subject": "Verify Session 298: Observability + Rate Limiter + WS Validation",
+    "priority": "high",
+    "body": "82 new tests across 3 modules. Verify: (1) agent_zero/observability.py -- TurnEvent wide event, observe_turn context manager, timed helper, MetricsBuffer ring buffer (34 tests in test_observability.py). (2) agent_zero/rate_limiter.py -- TokenBucket, async RateLimiter with cleanup, config integration (20 tests in test_rate_limiter.py). (3) agent_zero/ws_messages.py -- Pydantic ChatMessage/TextMessage/AudioMessage/PingMessage, VoiceInbound discriminated union, validate_ws_message, MessageRateLimiter (28 tests in test_ws_messages.py). (4) agent_zero/config.py -- 12 new config fields (rate_limit_* and ws_*). Run: py -3.12 -m pytest agent_zero/test_observability.py agent_zero/test_rate_limiter.py agent_zero/test_ws_messages.py -v",
+    "read": false,
+    "reply_to": null,
+    "archived": false
   }
 ]

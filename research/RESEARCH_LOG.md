@@ -46,3 +46,6 @@ Completed research papers with implementation status.
 | 2026-03-18 | Database query optimization | research/papers/database_query_optimization.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | JWT security hardening | research/papers/jwt_security_hardening.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Streaming generation timeout & recovery | research/papers/streaming_generation_timeout.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Frontend accessibility (WCAG 2.1 AA) | research/papers/frontend_accessibility.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Consolidated rules growth cap | research/papers/consolidated_rules_growth_cap.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Error message information leakage prevention | research/papers/error_message_information_leakage.md | ready_for_implementation | -- | -- |
