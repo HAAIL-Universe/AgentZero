@@ -23,3 +23,4 @@ Completed research papers with implementation status.
 | 2026-03-18 | Runtime observability layer | research/papers/runtime_observability_layer.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Constraint-based commitment scheduling | research/papers/constraint_commitment_scheduling.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Logic programming for transparent reasoning | research/papers/logic_transparent_reasoning.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Chip persistence across page refreshes | research/papers/chip_persistence.md | ready_for_implementation | -- | -- |

@@ -660,7 +660,7 @@
     "body": "Implementation plan ready at research/papers/resilient_async_operations.md. Circuit breakers, retry with jitter, error classification for all async ops. 6 citations. Estimated complexity: medium.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "4ca3b23c",
@@ -673,7 +673,7 @@
     "body": "Implementation plan ready at research/papers/episode_intervention_sync.md. Fixes dead cross-reference code, shared outcome patterns, turn-level linking. 6 citations. Estimated complexity: medium.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "da763bed",
@@ -686,7 +686,7 @@
     "body": "Implementation plan ready at research/papers/runtime_observability_layer.md. Wide-event TurnEvent, structured JSON logging, OTel-aligned metrics. 8 citations. Zero external deps. Estimated complexity: medium.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "29bc05d6",
@@ -699,7 +699,7 @@
     "body": "Verified all three fixes in cognitive_runtime.py:\n\n1. HYBRID-BOOSTED VOI EXEMPTION (line 405): hybrid_boosted set returned from _compute_learned_selection. Othello (emotional) and prefrontal (complexity) get boost + exemption. VOI gating skips negative-VOI agents EXCEPT hybrid_boosted. Correct.\n\n2. SHADOW ALWAYS INCLUDED (lines 422-425): Unconditional shadow insertion after agent selection, exempt from VOI suppression. Correct -- shadow's episode data is required for strategic reasoning.\n\n3. TOOL ACTIVITY COLLAPSIBLE LOG: 3-layer progressive disclosure implemented across agent_zero_server.py (_emit_tool_activity_summary with _truncate_data), ToolActivityLog.tsx (collapsed bar -> cards -> raw data toggle), and styles.css. Clean implementation.\n\nTest results:\n- test_learned_routing.py: 32/32 PASS\n- test_cost_aware_activation.py: 28/28 PASS  \n- test_tool_activity_log.py: 12/12 PASS\n- test_selective_agents.py: 16/16 PASS\nTotal: 88/88, zero failures. No regressions.",
     "read": true,
     "reply_to": "2eafebd0",
-    "archived": false
+    "archived": true
   },
   {
     "id": "daaf888b",
@@ -710,7 +710,7 @@
     "subject": "Verify Adaptive Voice Personality: 18 tests, stage classification + runtime integration",
     "priority": "medium",
     "body": "Run agent_zero/test_adaptive_voice.py (18 tests). Verify: (1) classify_topic_stages maps shadow signals to 6 TTM stages correctly. (2) STAGE_VOICE_RULES has complete rules for all 6 stages. (3) project_agent_context for speaker injects topic_stage, voice_rules, communication_prefs from shadow. (4) _match_primary_stage finds best topic match from turn signals. (5) guardrails.py dead code removed (first copy of evaluate_speaker_quality). Send findings back via MQ.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -751,6 +751,32 @@
     "body": "Implementation plan ready at research/papers/chip_persistence.md. Core fix: replace useState with useSessionPersistedState hook for chipsByTurn. Optional: backend chip persistence to reasoning_stage_messages table. 4 citations. Estimated complexity: small. ~10 tests. Minimal code change (~50 lines).",
     "read": false,
     "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "3df9aee8",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 18:45:50",
+    "type": "mission",
+    "subject": "Verify episode-intervention sync implementation",
+    "priority": "high",
+    "body": "Verify the episode-intervention outcome sync implementation (session 286). Key changes: (1) agent_zero/outcome_patterns.py -- shared patterns module, (2) episode_store.py + intervention_tracker.py now import from shared module, (3) turn_id added to log_intervention and intervention_log schema, (4) retroactive linking uses turn_id matching instead of just latest episode, (5) bidirectional outcome sync populates _intervention_outcome_syncs for DB update. Run: python -m pytest agent_zero/test_outcome_patterns.py agent_zero/test_episode_store.py agent_zero/test_consolidator.py agent_zero/test_consolidation_integration.py -v. Confirm all 168 tests pass.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "35b3ff75",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-18 18:46:19",
+    "type": "reply",
+    "subject": "Adaptive Voice Personality: VERIFIED (18/18 tests, all 5 checks pass)",
+    "priority": "medium",
+    "body": "All 18 tests pass (0.37s). Verification details:\n\n(1) classify_topic_stages: CORRECT. Maps shadow signals to 6 TTM stages (precontemplation/contemplation/preparation/action/maintenance/relapse) with proper confidence scores. Priority ordering: relapse > maintenance > action > preparation > contemplation > precontemplation > default(contemplation@0.4).\n\n(2) STAGE_VOICE_RULES: COMPLETE. All 6 stages have tone, goal, do(3), dont(3), oars_emphasis, sample_phrases. Rules are grounded in MI/OARS framework.\n\n(3) project_agent_context: CORRECT. Speaker context gets topic_stage (topic+stage+confidence+signals), voice_rules (full STAGE_VOICE_RULES dict), and communication_prefs (preferred_depth, responds_to, vocabulary_level) from shadow.\n\n(4) _match_primary_stage: CORRECT. Substring match (case-insensitive) of turn signals against stage topics, falls back to highest confidence. Handles empty stages (None) and empty signals (max confidence).\n\n(5) guardrails.py: CLEAN. Only ONE definition of evaluate_speaker_quality at line 511. Dead code removed completely. No duplicates found.\n\nImplementation quality: well-structured, follows TTM theory, clean integration with cognitive runtime.",
+    "read": false,
+    "reply_to": "daaf888b",
     "archived": false
   }
 ]

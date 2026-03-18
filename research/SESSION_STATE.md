@@ -5,27 +5,29 @@ Updated at the end of every session. Read at the start of every session.
 
 ## Last Session
 - Date: 2026-03-18
-- Topics researched: Resilient async operations, Episode-intervention outcome sync, Runtime observability layer
+- Topics researched: Constraint-based commitment scheduling, Logic programming for transparent reasoning, Chip persistence across page refreshes
 - Papers written:
-  - research/papers/resilient_async_operations.md (circuit breakers, retry, error classification, 6 citations)
-  - research/papers/episode_intervention_sync.md (shared patterns, turn-level linking, bidirectional outcomes, 6 citations)
-  - research/papers/runtime_observability_layer.md (wide-event TurnEvent, structured JSON logging, OTel-aligned, 8 citations)
+  - research/papers/constraint_commitment_scheduling.md (6 citations, JITAI + FSRS + HeartSteps RL + C094 CSP integration)
+  - research/papers/logic_transparent_reasoning.md (6 citations, C095 Prolog + argumentation frameworks + interactive reasoning viz)
+  - research/papers/chip_persistence.md (4 citations, sessionStorage + backend persistence, small complexity)
 - MQ missions sent:
-  - RESEARCHER -> A1, "Research complete: Resilient Async Operations"
-  - RESEARCHER -> A1, "Research complete: Episode-Intervention Outcome Sync"
-  - RESEARCHER -> A1, "Research complete: Runtime Observability Layer"
+  - RESEARCHER -> A1, "Research complete: Constraint-Based Commitment Scheduling"
+  - RESEARCHER -> A1, "Research complete: Logic Programming for Transparent Reasoning"
+  - RESEARCHER -> A1, "Research complete: Chip Persistence Across Page Refreshes"
+- Backlog updated: Added 7 new topics from gap analysis (5 medium, 2 low priority)
 
 ## In Progress
 - Nothing currently in progress
 
 ## Next Session Priority
-- Start with next unchecked medium-priority item in BACKLOG.md
-- Next topics (unchecked):
-  1. Connect AZ's constraint solver (C094) for commitment scheduling
-  2. Connect AZ's logic programming (C095) for transparent reasoning
-  3. Chip persistence across page refreshes (quick frontend topic)
-- Low priority topics also available (PWA, cross-user learning, Telegram bot, proactive starters)
-- Consider adding new topics to backlog based on scanning agent_zero/ for gaps
+- All medium-priority items from original backlog are now researched (12/12)
+- 5 new medium-priority topics added from gap analysis:
+  1. Dynamic context budgeting for multi-agent pipeline
+  2. Consolidation rule quality gate
+  3. Topic-aware memory decay rates
+  4. Outcome pattern confidence scoring
+  5. External outcome resolution API
+- Low priority topics also available (PWA, cross-user learning, Telegram, proactive starters, consolidation thresholds, deterministic vs LLM insights)
 
 ## Current Project Understanding
 - Agent Zero runs on RunPod with Qwen3-235B-A22B-GPTQ-Int4 via vLLM
@@ -42,20 +44,28 @@ Updated at the end of every session. Read at the start of every session.
 - Adaptive voice per stage-of-change -- PAPER WRITTEN (8 citations)
 - Session-start check-in from commitments -- PAPER WRITTEN (9 citations)
 - Memory recall transparency -- PAPER WRITTEN (7 citations)
-- Resilient async operations -- PAPER WRITTEN (6 citations, circuit breakers + retry + error classification)
-- Episode-intervention outcome sync -- PAPER WRITTEN (6 citations, shared patterns + turn linking)
-- Runtime observability layer -- PAPER WRITTEN (8 citations, wide events + structured logging)
+- Resilient async operations -- PAPER WRITTEN (6 citations)
+- Episode-intervention outcome sync -- PAPER WRITTEN (6 citations)
+- Runtime observability layer -- PAPER WRITTEN (8 citations)
+- Constraint-based commitment scheduling -- PAPER WRITTEN (6 citations, C094 + JITAI + FSRS)
+- Logic programming transparent reasoning -- PAPER WRITTEN (6 citations, C095 + argumentation)
+- Chip persistence -- PAPER WRITTEN (4 citations, sessionStorage + backend)
 
-## Known Gaps (scan agent_zero/ to update each session)
-- Chip persistence doesn't survive page refresh
-- No constraint-solver integration for commitment scheduling
-- No logic programming integration for transparent reasoning
-- Clarifier and Speaker agents rarely activate (selection threshold too high)
+## Known Gaps (updated from gap analysis)
+- Silent exception handling in behavioural_shadow.py (lines 247-489) -- catches and passes without logging
+- Context window overflow risk -- flat 6000 char cap, no per-agent budgeting
+- Episode outcome resolution incomplete for cross-turn and async scenarios
+- Consolidated rules injected without quality validation
+- Exponential decay rate (0.005/hr) uniform across all topic types
+- Outcome patterns lack confidence scoring
+- No external API for outcome resolution (siloed from quantified self)
+- Consolidation thresholds arbitrary (no research justification cited)
+- Multi-agent learning loop designed but never validated
 
 ## Blockers
 - None currently
 
-## Papers Produced (cumulative: 11 total)
+## Papers Produced (cumulative: 14 total)
 1. research/papers/learned_agent_routing.md (4 citations)
 2. research/papers/explicit_deliberation_protocol.md (4 citations)
 3. research/papers/cost_aware_agent_activation.md (5 citations)
@@ -67,3 +77,6 @@ Updated at the end of every session. Read at the start of every session.
 9. research/papers/resilient_async_operations.md (6 citations)
 10. research/papers/episode_intervention_sync.md (6 citations)
 11. research/papers/runtime_observability_layer.md (8 citations)
+12. research/papers/constraint_commitment_scheduling.md (6 citations)
+13. research/papers/logic_transparent_reasoning.md (6 citations)
+14. research/papers/chip_persistence.md (4 citations)
