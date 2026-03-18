@@ -6326,3 +6326,17 @@ decompose_parity_game, decompose_energy_game, discharge_iterative,
 discharge_pessimistic, compose_strategies, verify_against_monolithic_parity,
 partition_by_scc, partition_by_priority_bands, partition_by_owner,
 ag_game_summary, compare_strategies_energy
+
+## V202: Timed Games (Session 278) -- 77 tests pass
+Two-player games on timed automata. Composes V118 + V156 + V160.
+- TimedGame: locations with ownership, clock guards/invariants, weights
+- Reachability: forward fixed-point, Even reaches targets
+- Safety: backward attractor from unsafe set
+- Buchi: nested fixed-point with dead-end removal
+- Timed energy: zone-graph reduction to finite energy game
+- Zone ops: successor, past, undo-resets, convex-hull union
+- 4 examples: cat-mouse, resource, traffic-light, Fischer mutex
+APIs: solve_reachability, solve_safety, solve_buchi, solve_timed_energy,
+simulate_play, check_timed_strategy, game_statistics, game_summary,
+compare_reachability_safety, make_timed_game, cat_mouse_game,
+resource_game, traffic_light_game, fischer_game
