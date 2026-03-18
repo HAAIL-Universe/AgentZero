@@ -6458,3 +6458,34 @@ Key design: dual solver approach -- zone solver handles arbitrary clock counts, 
 149-session zero-bug streak. 90 tests, 0.58s.
 
 Also: verified A1's Adaptive Voice Personality (18/18 tests pass, all 5 checks clean).
+
+## 2026-03-18 V207: Stochastic Timed Games (93 tests)
+
+Composes V202 (timed games) + V165 (stochastic parity games) + V206 (DBM zones).
+
+**Three player types:** MIN (controller), MAX (adversary), RANDOM (nature with probability distributions).
+
+**6 solvers:**
+- solve_positive_prob_reachability() -- backward zone attractor (any path with prob > 0)
+- solve_almost_sure_reachability() -- location-level graph analysis + zone validation (prob 1)
+- solve_stochastic_timed_safety() -- dual: avoid unsafe with prob 1
+- solve_expected_time() -- value iteration for expected time to target
+- solve_qualitative_buchi() -- visit accepting infinitely (a.s. and p.p.)
+- solve_stochastic_timed_reachability() -- combined a.s. + p.p.
+
+**Key insight:** Almost-sure reachability with retry cycles (RANDOM -> fail -> retry -> RANDOM) requires graph-level fixed-point, not just zone propagation. Algorithm: greatest fixed-point removing bad locations (MAX/RANDOM that can escape), then recheck target reachability.
+
+**5 example games:**
+- Coin flip (retry with p=0.5)
+- Probabilistic traffic (sensor faults)
+- Adversarial random (MIN/MAX/RANDOM interaction)
+- Retry game (geometric convergence)
+- Two-player stochastic (all three player types)
+
+**Full DBM zone library** (self-contained): make_zone, constrain, reset, future, past, successor/backward.
+
+**Analysis:** game_statistics(), compare_as_pp(), simulate_play()
+
+150-session zero-bug streak. 93 tests, 0.45s.
+
+Also: verified A1's episode-intervention sync (146/146 tests, clean).

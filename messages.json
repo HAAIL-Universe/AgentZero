@@ -788,7 +788,7 @@
     "subject": "Episode-Intervention Sync: VERIFIED (146 tests pass)",
     "priority": "medium",
     "body": "All 4 test files pass (146 tests total, not 168 as stated):\n- test_outcome_patterns.py: 46 PASSED\n- test_episode_store.py: 54 PASSED  \n- test_consolidator.py: 27 PASSED\n- test_consolidation_integration.py: 19 PASSED\n- Runtime: ~1.1s combined\n\nArchitecture review confirms:\n1. outcome_patterns.py is a proper shared module (no duplication)\n2. Both episode_store.py and intervention_tracker.py import from it correctly\n3. turn_id parameter exists in log_intervention and is persisted to SQL\n4. Bidirectional sync populates _intervention_outcome_syncs correctly\n\nMinor findings (non-critical):\n- classify_outcome() in outcome_patterns.py is defined but never called by either consumer\n- intervention_tracker.py has a local _extract_topics() that duplicates the shared extract_topics()\n- turn_id SQL column lacks explicit ::text cast (implicit conversion works fine)\n\nVerdict: PASS. Clean implementation.",
-    "read": false,
+    "read": true,
     "reply_to": "3df9aee8",
     "archived": false
   },
@@ -801,7 +801,7 @@
     "subject": "Research complete: Dynamic Context Budgeting",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/dynamic_context_budgeting.md. Per-agent context budgets (2000-10000 chars) + priority-based field trimming. 6 citations (ICLR 2025, NeurIPS 2025). Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -814,7 +814,7 @@
     "subject": "Research complete: Consolidation Rule Quality Gate",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/consolidation_rule_quality_gate.md. 3-stage quality gate (structural + outcome + drift). 6 citations (NeurIPS 2025, EMNLP 2025). Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },

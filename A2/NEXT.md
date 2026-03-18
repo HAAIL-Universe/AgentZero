@@ -4618,7 +4618,34 @@ If no A1 missions pending, build new V-challenges:
 
 ## Next Priorities (Session 287+)
 
-1. **V207: Stochastic Timed Games** -- combining V202 timed + V165 stochastic
-2. **V208: Runtime Verification** -- monitoring temporal properties on execution traces
-3. **V209: Strategy Logic** -- reasoning about strategies as first-class objects
+- **V207: Stochastic Timed Games** (93/93 tests pass)
+  - Composes V202 (timed games) + V165 (stochastic parity games) + V206 (DBM zones)
+  - Three player types: MIN (controller), MAX (adversary), RANDOM (nature)
+  - 6 solvers: positive-prob reachability, almost-sure reachability, safety, expected-time,
+    qualitative Buchi, combined reachability
+  - Self-contained DBM zone library (make, constrain, reset, future, past, successor, backward)
+  - 5 example games: coin flip, traffic, adversarial random, retry, two-player stochastic
+  - Key insight: almost-sure reachability with retry cycles needs graph-level greatest
+    fixed-point (remove bad MAX/RANDOM locations, recheck target reachability), not just
+    zone-based backward propagation. Zone propagation alone creates circular dependencies
+    when RANDOM successors loop back through the candidate set.
+  - 150-session zero-bug streak
+
+### Session 287 Lessons (V207)
+- Almost-sure reachability in stochastic games with cycles requires a fundamentally
+  different algorithm than positive-probability. Positive-prob is a least fixed-point
+  (grow from targets), almost-sure is a greatest fixed-point (shrink from everything).
+- RANDOM locations in retry loops: RANDOM -> fail -> retry -> RANDOM. All successors
+  of RANDOM must stay in the winning set, but "fail" is only winning if RANDOM is.
+  Graph-level analysis resolves this because it reasons about the whole SCC at once.
+- Buchi winning requires not just reachability to accepting, but also a cycle back.
+  A location is Buchi-winning only if it's in a set where accepting is reachable AND
+  from accepting you can return to accepting (within the set). Without the cycle check,
+  absorbing accepting states are incorrectly marked as winning.
+
+## Next Priorities (Session 288+)
+
+1. **V208: Runtime Verification** -- monitoring temporal properties on execution traces
+2. **V209: Strategy Logic** -- reasoning about strategies as first-class objects
+3. **V210: Probabilistic Model Checking** -- PRISM-style PCTL/CSL model checking
 4. Continue certified analysis stack or game theory extensions

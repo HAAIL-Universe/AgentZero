@@ -614,27 +614,87 @@ def solve_positive_prob_reachability(game, targets, max_iterations=100):
     return result
 
 
+def _graph_reachable(game, sources, candidate):
+    """BFS: which locations in candidate can reach sources?"""
+    # Build reverse adjacency within candidate
+    reached = set(sources & candidate)
+    worklist = list(reached)
+    while worklist:
+        loc = worklist.pop()
+        for idx, edge in enumerate(game.edges):
+            if edge.target == loc and edge.source in candidate and edge.source not in reached:
+                reached.add(edge.source)
+                worklist.append(edge.source)
+    return reached
+
+
 def solve_almost_sure_reachability(game, targets, max_iterations=100):
     """Almost-sure timed reachability.
 
-    MIN wins at location l if there EXISTS a strategy that reaches
-    targets with probability 1. This requires:
-    - MIN locations: at least one edge leads to winning zone
-    - MAX locations: ALL edges lead to winning zone
-    - RANDOM locations: ALL successors with prob > 0 lead to winning zone
+    Uses location-level graph analysis (handles retry cycles correctly):
+    1. Start with candidate = all locations that can reach targets
+    2. Remove 'bad' locations:
+       - MAX with any edge leaving candidate
+       - RANDOM with any positive-prob edge leaving candidate
+    3. Recompute reachability to targets within remaining candidate
+    4. Repeat until fixed point
 
-    Uses iterative refinement: start with positive-prob winning set,
-    then remove RANDOM locations where some successor escapes.
+    Then validates with zone-based analysis.
     """
     clock_names = sorted(game.clocks)
 
-    # Start with all reachable zones
-    reachable = explore_reachable(game, clock_names)
+    # Phase 1: Location-level almost-sure analysis
+    candidate = set(game.locations)
 
-    # Initialize: targets are winning
+    for iteration in range(max_iterations):
+        # Keep only locations that can reach targets within candidate
+        candidate = _graph_reachable(game, targets, candidate)
+
+        # Remove bad locations
+        changed = False
+        to_remove = set()
+        for loc in candidate:
+            if loc in targets:
+                continue
+            owner = game.owner.get(loc, PlayerType.MIN)
+            out_edges = game.get_edges_from(loc)
+
+            if owner == PlayerType.MAX:
+                # MAX: if ANY edge leaves candidate, MAX takes it
+                for idx, edge in out_edges:
+                    if edge.target not in candidate:
+                        to_remove.add(loc)
+                        break
+
+            elif owner == PlayerType.RANDOM:
+                # RANDOM: if ANY positive-prob edge leaves, not a.s.
+                for idx, edge in out_edges:
+                    prob = game.get_probability(idx)
+                    if prob > 0 and edge.target not in candidate:
+                        to_remove.add(loc)
+                        break
+
+            elif owner == PlayerType.MIN:
+                # MIN: needs at least one edge staying in candidate
+                has_good = False
+                for idx, edge in out_edges:
+                    if edge.target in candidate:
+                        has_good = True
+                        break
+                if not has_good and out_edges:
+                    to_remove.add(loc)
+
+        if to_remove:
+            candidate -= to_remove
+            changed = True
+
+        if not changed:
+            break
+
+    # Phase 2: Zone-based validation
     winning = {}
     for loc in game.locations:
-        if loc in targets:
+        if loc in candidate:
             z = make_zone(clock_names)
             inv = game.get_invariant(loc)
             z = apply_invariant(z, inv)
@@ -642,151 +702,7 @@ def solve_almost_sure_reachability(game, targets, max_iterations=100):
         else:
             winning[loc] = []
 
-    total_iters = 0
-    for outer in range(max_iterations):
-        # Forward pass: expand winning set via backward attractor
-        inner_changed = True
-        inner_iters = 0
-        while inner_changed and inner_iters < max_iterations:
-            inner_changed = False
-            inner_iters += 1
-            new_winning = {loc: list(winning[loc]) for loc in game.locations}
-
-            for loc in game.locations:
-                if loc in targets:
-                    continue
-                owner = game.owner.get(loc, PlayerType.MIN)
-
-                if owner == PlayerType.MIN:
-                    # MIN: needs at least one edge to winning
-                    for idx, edge in game.get_edges_from(loc):
-                        if not winning[edge.target]:
-                            continue
-                        source_inv = game.get_invariant(loc)
-                        for tz in winning[edge.target]:
-                            bz = backward_zone(tz, edge.guard, edge.resets,
-                                               source_inv, clock_names)
-                            if bz and not bz.is_empty():
-                                if not _zones_include(new_winning[loc], bz):
-                                    new_winning[loc] = _zones_union_add(
-                                        new_winning[loc], bz)
-                                    inner_changed = True
-
-                elif owner == PlayerType.MAX:
-                    # MAX: ALL edges must lead to winning
-                    out_edges = game.get_edges_from(loc)
-                    if not out_edges:
-                        continue
-                    # Compute backward from each edge, intersect
-                    candidate_zones = None
-                    for idx, edge in out_edges:
-                        if not winning[edge.target]:
-                            candidate_zones = []
-                            break
-                        source_inv = game.get_invariant(loc)
-                        edge_zones = []
-                        for tz in winning[edge.target]:
-                            bz = backward_zone(tz, edge.guard, edge.resets,
-                                               source_inv, clock_names)
-                            if bz and not bz.is_empty():
-                                edge_zones.append(bz)
-                        if not edge_zones:
-                            candidate_zones = []
-                            break
-                        if candidate_zones is None:
-                            candidate_zones = edge_zones
-                        else:
-                            # Intersect with existing candidates
-                            new_cands = []
-                            for cz in candidate_zones:
-                                for ez in edge_zones:
-                                    iz = cz.intersect(ez)
-                                    if not iz.is_empty():
-                                        new_cands.append(iz)
-                            candidate_zones = new_cands
-                            if not candidate_zones:
-                                break
-
-                    if candidate_zones:
-                        for cz in candidate_zones:
-                            if not _zones_include(new_winning[loc], cz):
-                                new_winning[loc] = _zones_union_add(
-                                    new_winning[loc], cz)
-                                inner_changed = True
-
-                elif owner == PlayerType.RANDOM:
-                    # RANDOM: ALL successors with prob > 0 must lead to winning
-                    out_edges = game.get_edges_from(loc)
-                    if not out_edges:
-                        continue
-                    # All positive-prob successors must be winning
-                    candidate_zones = None
-                    for idx, edge in out_edges:
-                        prob = game.get_probability(idx)
-                        if prob <= 0:
-                            continue
-                        if not winning[edge.target]:
-                            candidate_zones = []
-                            break
-                        source_inv = game.get_invariant(loc)
-                        edge_zones = []
-                        for tz in winning[edge.target]:
-                            bz = backward_zone(tz, edge.guard, edge.resets,
-                                               source_inv, clock_names)
-                            if bz and not bz.is_empty():
-                                edge_zones.append(bz)
-                        if not edge_zones:
-                            candidate_zones = []
-                            break
-                        if candidate_zones is None:
-                            candidate_zones = edge_zones
-                        else:
-                            new_cands = []
-                            for cz in candidate_zones:
-                                for ez in edge_zones:
-                                    iz = cz.intersect(ez)
-                                    if not iz.is_empty():
-                                        new_cands.append(iz)
-                            candidate_zones = new_cands
-                            if not candidate_zones:
-                                break
-
-                    if candidate_zones:
-                        for cz in candidate_zones:
-                            if not _zones_include(new_winning[loc], cz):
-                                new_winning[loc] = _zones_union_add(
-                                    new_winning[loc], cz)
-                                inner_changed = True
-
-            winning = new_winning
-            total_iters += 1
-
-        # Check if fixed point reached (no further refinement needed)
-        # Verify RANDOM locations: if a RANDOM loc is winning but
-        # some successor escapes, remove it and re-iterate
-        refined = False
-        for loc in game.locations:
-            if loc in targets:
-                continue
-            if not winning[loc]:
-                continue
-            owner = game.owner.get(loc, PlayerType.MIN)
-            if owner == PlayerType.RANDOM:
-                out_edges = game.get_edges_from(loc)
-                for idx, edge in out_edges:
-                    prob = game.get_probability(idx)
-                    if prob <= 0:
-                        continue
-                    if not winning[edge.target]:
-                        # Successor escapes -- remove this RANDOM loc
-                        winning[loc] = []
-                        refined = True
-                        break
-
-        if not refined:
-            break
-
-    result = StochasticTimedResult(iterations=total_iters)
+    result = StochasticTimedResult(iterations=iteration + 1)
     result.winning_zones_as = winning
     for loc in game.locations:
         if winning[loc]:
@@ -962,54 +878,87 @@ def solve_qualitative_buchi(game, accepting=None, max_iterations=100):
     """Qualitative Buchi: visit accepting locations infinitely often.
 
     Returns almost-sure and positive-probability winning regions.
-    Uses nested fixed-point: remove locations that can't reach
-    accepting, then check if remaining is closed under all players.
+
+    Positive-prob Buchi: find maximal set S such that:
+    - Every loc in S can reach accepting within S
+    - From every accepting loc in S, can reach accepting again within S
+    - MIN locations have at least one edge staying in S
+    - MAX locations have ALL edges staying in S (MAX can't escape)
+
+    Almost-sure Buchi: additionally RANDOM locations must have ALL
+    positive-prob edges staying in S.
     """
     if accepting is None:
         accepting = game.accepting
 
-    clock_names = sorted(game.clocks)
-
-    # Positive-probability Buchi: can visit accepting infinitely
-    # Approach: find maximal set S where every loc in S can reach
-    # accepting within S (with positive probability)
+    # Positive-probability Buchi via greatest fixed point
     candidate = set(game.locations)
 
     for outer in range(max_iterations):
-        # Remove locations that can't reach accepting within candidate
-        can_reach_acc = set(accepting & candidate)
-        changed_inner = True
-        while changed_inner:
-            changed_inner = False
-            for loc in candidate - can_reach_acc:
-                for idx, edge in game.get_edges_from(loc):
-                    if edge.target in can_reach_acc:
-                        can_reach_acc.add(loc)
-                        changed_inner = True
-                        break
+        old_candidate = set(candidate)
 
-        new_candidate = can_reach_acc
-        # For MAX locations: must have ALL edges staying in candidate
-        for loc in list(new_candidate):
-            if loc not in new_candidate:
+        # Step 1: Remove locations without outgoing edges into candidate
+        for loc in list(candidate):
+            if loc not in candidate:
                 continue
+            out_edges = game.get_edges_from(loc)
             owner = game.owner.get(loc, PlayerType.MIN)
-            if owner == PlayerType.MAX:
-                for idx, edge in game.get_edges_from(loc):
-                    if edge.target not in new_candidate:
-                        new_candidate.discard(loc)
-                        break
 
-        if new_candidate == candidate:
+            if owner == PlayerType.MAX:
+                # MAX: all edges must stay in candidate
+                for idx, edge in out_edges:
+                    if edge.target not in candidate:
+                        candidate.discard(loc)
+                        break
+            else:
+                # MIN/RANDOM: need at least one edge in candidate
+                has_edge_in = any(e.target in candidate for _, e in out_edges)
+                if not has_edge_in and out_edges:
+                    candidate.discard(loc)
+                elif not out_edges:
+                    # No outgoing edges at all -- can't cycle
+                    candidate.discard(loc)
+
+        # Step 2: Must be able to reach accepting within candidate
+        can_reach_acc = _graph_reachable(game, accepting, candidate)
+        candidate = can_reach_acc
+
+        # Step 3: Accepting locations must be able to reach accepting
+        # again (cycle requirement for infinitely often)
+        # From each accepting loc, there must be a path back to some
+        # accepting loc within candidate
+        for acc_loc in list(accepting & candidate):
+            # Check if acc_loc can reach any accepting loc via non-trivial path
+            visited = set()
+            frontier = []
+            for idx, edge in game.get_edges_from(acc_loc):
+                if edge.target in candidate:
+                    frontier.append(edge.target)
+            while frontier:
+                loc = frontier.pop()
+                if loc in visited:
+                    continue
+                visited.add(loc)
+                if loc in accepting:
+                    break  # Can reach accepting again
+                for idx, edge in game.get_edges_from(loc):
+                    if edge.target in candidate and edge.target not in visited:
+                        frontier.append(edge.target)
+            else:
+                # Could not reach accepting from this accepting loc
+                candidate.discard(acc_loc)
+
+        if candidate == old_candidate:
             break
-        candidate = new_candidate
 
     pp_winning = candidate
 
     # Almost-sure Buchi: additionally require RANDOM closure
     as_candidate = set(pp_winning)
     for outer in range(max_iterations):
-        changed = False
+        old_as = set(as_candidate)
+
+        # Remove bad RANDOM and MAX locations
         for loc in list(as_candidate):
             owner = game.owner.get(loc, PlayerType.MIN)
             if owner == PlayerType.RANDOM:
@@ -1017,29 +966,17 @@ def solve_qualitative_buchi(game, accepting=None, max_iterations=100):
                     prob = game.get_probability(idx)
                     if prob > 0 and edge.target not in as_candidate:
                         as_candidate.discard(loc)
-                        changed = True
                         break
             elif owner == PlayerType.MAX:
                 for idx, edge in game.get_edges_from(loc):
                     if edge.target not in as_candidate:
                         as_candidate.discard(loc)
-                        changed = True
                         break
-        # Re-check reachability to accepting
-        can_reach = set(accepting & as_candidate)
-        changed_inner = True
-        while changed_inner:
-            changed_inner = False
-            for loc in as_candidate - can_reach:
-                for idx, edge in game.get_edges_from(loc):
-                    if edge.target in can_reach:
-                        can_reach.add(loc)
-                        changed_inner = True
-                        break
-        if as_candidate != can_reach:
-            as_candidate = can_reach
-            changed = True
-        if not changed:
+
+        # Re-check: remaining must reach accepting and have cycles
+        as_candidate = _graph_reachable(game, accepting, as_candidate)
+
+        if as_candidate == old_as:
             break
 
     result = StochasticTimedResult()
