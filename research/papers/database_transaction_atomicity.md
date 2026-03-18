@@ -1,6 +1,6 @@
 ---
 topic: Database Transaction Atomicity
-status: ready_for_implementation
+status: implemented
 priority: high
 estimated_complexity: medium
 researched_at: 2026-03-18T00:00:00Z

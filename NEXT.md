@@ -1,28 +1,30 @@
 # Next Session Briefing
 
-**Last session:** 302 (2026-03-18)
+**Last session:** 303b (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 302
+## COMPLETED: Session 303b
 
-### Token Truncation Fix (paper: implemented)
-- Local inference `max_length` now uses `config.model_context_limit - max_tokens` (was hardcoded 2048)
-- Warning logged on truncation
-- 10 new tests in test_inference_truncation.py
+### Proactive Session Concurrency Safety (paper: implemented)
+- asyncio.Lock on _proactive_sessions dict
+- WebSocketState check before send, dead session cleanup
+- Structured logging replaces bare except:pass
+- 10 new tests in test_proactive_concurrency.py
 
-### Soft-Delete for clear_user_data (paper: implemented)
-- `pending_data_deletions` table with 48-hour grace period
-- `POST /api/user/undo-clear-data` cancels pending deletion
-- `POST /admin/purge-expired-deletions` triggers actual cleanup
-- `purge_user_data()` and `purge_expired_deletions()` in database.py
-- 17 new tests in test_soft_delete.py
+### Unbounded In-Memory State Growth (paper: implemented)
+- User cache reaper size cap enforcement
+- threading.Lock on _calibration_ratio
+- 2 new tests (17 total in test_unbounded_state_growth.py)
 
-### Bug Fix
-- Added missing `Request` import to agent_zero_server.py FastAPI imports
+### Database Transaction Atomicity (paper: implemented)
+- transaction() async context manager helper
+- create_commitment() and update_commitment_status() wrapped in transactions
+- _update_streak_atomic() with SELECT ... FOR UPDATE row locking
+- 11 new tests in test_database_transaction_atomicity.py
 
-**Total: 27 new tests, 164-session zero-bug streak**
+**Total: 38 new tests, 165-session zero-bug streak**
 
 ---
 
@@ -30,19 +32,19 @@
 
 ### Agent Zero Track -- Immediate
 
-1. **Audit remaining silent-swallow sites** -- agent_zero_server.py has 12 except:pass sites (Part 2 of silent_exception_data_loss.md)
-2. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data is triggered
+1. **Audit remaining silent-swallow sites** -- agent_zero_server.py still has except:pass sites
+2. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
 
 ### Agent Zero Track -- Research Papers (ready_for_implementation)
 
-3. **Domain-Neutral Prompt Normalization** (research/papers/domain_neutral_prompt_normalization.md) -- MED, medium
-4. **JWT Security Hardening** (research/papers/jwt_security_hardening.md) -- HIGH, medium
-5. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
-6. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
-7. **Frontend XSS and CSP** (research/papers/frontend_xss_and_csp.md) -- ready_for_implementation
-8. **Proactive Session Concurrency** (research/papers/proactive_session_concurrency.md) -- ready_for_implementation
-9. **Resource Lifecycle Management** (research/papers/resource_lifecycle_management.md) -- ready_for_implementation
-10. **Database Query Optimization** (research/papers/database_query_optimization.md) -- ready_for_implementation
+3. **JWT Security Hardening** (research/papers/jwt_security_hardening.md) -- HIGH, medium
+4. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
+5. **Frontend XSS and CSP** (research/papers/frontend_xss_and_csp.md) -- HIGH, medium
+6. **Resource Lifecycle Management** (research/papers/resource_lifecycle_management.md) -- HIGH, medium
+7. **CSRF and Session Token Storage** (research/papers/csrf_and_session_token_storage.md) -- HIGH, large (after XSS/CSP)
+8. **Database Query Optimization** (research/papers/database_query_optimization.md) -- ready_for_implementation
+9. **Domain-Neutral Prompt Normalization** (research/papers/domain_neutral_prompt_normalization.md) -- MED, medium
+10. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
 
 ### Agent Zero Track -- Architecture
 
@@ -80,8 +82,8 @@
 ---
 
 ## A2 Verification Pending
-- Session 302: Token truncation fix (10 tests) + soft-delete (17 tests)
+- Session 303b: Proactive concurrency (10 tests) + calibration lock (2 tests) + DB transactions (11 tests)
 
 ## Streak
 
-164 sessions zero-bug
+165 sessions zero-bug
