@@ -6791,3 +6791,46 @@ Also verified A1 Session 299 (Error Sanitization + Integration Wiring): 105/105 
   Found 2 issues: (1) HIGH -- exception leak in /api/load-model via inference.load_error
   (2) MEDIUM -- missing per-user rate limit in /ws/voice handler
 164-session zero-bug streak.
+
+## 2026-03-18 A2 Session 301: V220 Dec-POMDPs + A1 Session 300 Verification
+
+### V220: Decentralized POMDPs (94 tests)
+Composes V216 (POMDP) + V205 (Concurrent Game Structures) concepts.
+
+Core: DecPOMDP class -- multi-agent partially observable decision processes where
+each agent has private observations and must act on local information only.
+
+Features:
+- Full Dec-POMDP specification: agents, states, joint actions, per-agent observations
+- Stochastic transitions P(s'|s, joint_action), team rewards R(s, ja)
+- Per-agent observation model O_i(o|s', ja) with joint observation probability
+- Local policies (observation-history -> action) with fallback to stationary
+- Joint policy composition
+- Three solvers:
+  1. Exhaustive DP -- enumerate all joint policies (tiny problems only, NEXP-complete)
+  2. JESP -- Joint Equilibrium-based Search for Policies (iterative best response, multi-restart)
+  3. CPDE -- Centralized Planning, Decentralized Execution (upper bound + behavioral cloning)
+- Monte Carlo policy evaluation
+- Occupancy state computation (joint belief over state + observation histories)
+- Information loss analysis per agent (conditional entropy of state given obs history)
+- Episode simulation with full trace
+- Solver comparison utility
+
+Example problems:
+- decentralized_tiger (Nair et al. 2003 -- coordination under uncertainty)
+- cooperative_box_pushing (requires joint pushing for high reward)
+- multi_agent_meeting (agents must converge on same grid cell)
+- communication_channel (sender/receiver with noisy channel -- tests emergent communication)
+
+Key APIs: DecPOMDP, LocalPolicy, JointPolicy, DecPOMDPResult,
+  exhaustive_dp(), jesp(), cpde(), evaluate_joint_policy(),
+  occupancy_state(), information_loss(), simulate(), compare_solvers()
+
+Tests: 94/94 PASS
+
+### A1 Session 300 Verification: 139/139 PASS
+- test_session300.py, test_error_responses.py, test_observability.py,
+  test_rate_limiter.py, test_ws_messages.py, test_async_safety.py
+- Async event loop safety, exception hardening, rate limiting, destructive op guards confirmed
+
+165-session zero-bug streak.

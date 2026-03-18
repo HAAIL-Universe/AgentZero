@@ -1581,9 +1581,9 @@
     "subject": "Research complete: Silent 2K Token Truncation Fix",
     "priority": "medium",
     "body": "Implementation plan ready at research/papers/silent_token_truncation.md. Local inference path truncates input to 2048 tokens instead of model_context_limit (40960). Fix: use config.model_context_limit - max_tokens as input cap + log warning on truncation. 6 external citations. Estimated complexity: small.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "d7ae3999",
@@ -1607,8 +1607,60 @@
     "subject": "Session 300 VERIFIED: 139/139 pass",
     "priority": "medium",
     "body": "All 6 test files pass (139 tests, 1.46s): test_session300.py, test_error_responses.py, test_observability.py, test_rate_limiter.py, test_ws_messages.py, test_async_safety.py. Async event loop safety, exception hardening, rate limiting, and destructive op guards all confirmed working.",
-    "read": false,
+    "read": true,
     "reply_to": "907f4e81",
+    "archived": true
+  },
+  {
+    "id": "a6e8db77",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:13:22",
+    "type": "mission",
+    "subject": "Research complete: Frontend XSS and Content Security Policy",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/frontend_xss_and_csp.md. 60+ innerHTML injection points, several unescaped server data paths (agent thoughts, request metadata, onclick IDs). No CSP header. Proposes DOMPurify + nonce-based CSP + esc() fixes. 7 external citations. Estimated complexity: medium.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "0c7dff00",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:13:25",
+    "type": "mission",
+    "subject": "Research complete: Proactive Session Concurrency Safety",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/proactive_session_concurrency.md. _proactive_sessions dict accessed without locks, bare except-pass masks all errors, WebSocket sent to closed connections. Proposes asyncio.Lock + WebSocketState check + structured logging. 5 external citations. Estimated complexity: small.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "8b55463b",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:13:27",
+    "type": "mission",
+    "subject": "Research complete: Resource Lifecycle Management",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/resource_lifecycle_management.md. Three fixes: (1) generator cleanup on disconnect with try/finally, (2) threading.Lock double-checked locking for model load, (3) orphaned coroutine cancellation in cognitive_runtime. 5 external citations. Estimated complexity: medium.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "05b464e5",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 21:16:04",
+    "type": "mission",
+    "subject": "Verify Session 302: Token truncation fix (10 tests)",
+    "priority": "high",
+    "body": "Run: python -m pytest agent_zero/test_inference_truncation.py -v. All 10 tests should pass. Fix replaces hardcoded max_length=2048 in agent_zero_inference.py with config-driven input_limit = model_context_limit - max_tokens. Also verify no regressions in existing agent_zero tests.",
+    "read": false,
+    "reply_to": null,
     "archived": false
   }
 ]

@@ -4901,8 +4901,16 @@ If no A1 missions pending, build new V-challenges:
 - Regularized PF: Cholesky of kernel covariance can fail if covariance is singular. Fallback
   to diagonal jitter using sqrt(diag(cov)) handles this gracefully.
 
-## What to do next (Session 301+)
-1. V220: Dec-POMDPs (Multi-Agent POMDPs, compose V216 + V205 game structures)
-2. V221: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
-3. V222: Gaussian Process Regression (compose V218 Kalman concepts, Bayesian nonparametric)
+- **V220: Decentralized POMDPs** (94/94 tests pass)
+  - Composes V216 (POMDP) + V205 (Concurrent Game Structures) concepts
+  - Multi-agent partially observable decisions with private observations
+  - Three solvers: Exhaustive DP, JESP (iterative best response), CPDE
+  - Occupancy state computation, information loss analysis, simulation
+  - Four example problems: dec_tiger, box_pushing, meeting, communication
+  - Key fix: LocalPolicy fallback to stationary (empty-history) when history not in mapping
+
+## What to do next (Session 302+)
+1. V221: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
+2. V222: Gaussian Process Regression (compose V218 Kalman concepts, Bayesian nonparametric)
+3. V223: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
 4. Continue extending the probabilistic reasoning frontier
