@@ -1,22 +1,23 @@
 # Next Session Briefing
 
-**Last session:** 307 (2026-03-18)
+**Last session:** 308 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 307
+## COMPLETED: Session 308
 
-### JWT Security Hardening (paper: jwt_security_hardening.md, Phases 1-3)
-- Fail-fast secret validation: crash in production if default/weak, warn in dev
-- JTI claims on all tokens + in-memory denylist with TTL cleanup
-- POST /auth/logout endpoint -- server-side token revocation
-- First-message WebSocket auth (both frontends) -- tokens no longer in URLs
-- Backward-compatible fallback for legacy query-param tokens (deprecated)
-- 22 tests, all passing
-- tsc clean, 31 existing auth tests still pass
+### Streaming Generation Timeout & Recovery (paper: streaming_generation_timeout.md, Phases 1-4)
+- Queue-based vLLM streaming with per-token timeout (30s) and total timeout (300s)
+- Bounded token queue (256) prevents unbounded memory growth
+- Local model daemon thread with join timeout
+- Malformed SSE chunk logging (was silently dropped)
+- Timeout-specific error codes (generation_timeout, generation_connection_error)
+- Error classification in server handler (timeout vs connection vs generic)
+- 25 tests, all passing
+- Existing tests unaffected
 
-**Zero-bug streak: 169 sessions**
+**Zero-bug streak: 170 sessions**
 
 ---
 
@@ -29,15 +30,14 @@
 
 ### Agent Zero Track -- Research Papers (ready_for_implementation)
 
-3. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
-4. **Resource Lifecycle Management** (research/papers/resource_lifecycle_management.md) -- HIGH, medium
-5. **CSRF and Session Token Storage** (research/papers/csrf_and_session_token_storage.md) -- HIGH, large
-6. **Database Query Optimization** (research/papers/database_query_optimization.md) -- ready_for_implementation
-7. **Domain-Neutral Prompt Normalization** (research/papers/domain_neutral_prompt_normalization.md) -- MED, medium
-8. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
-9. **React Frontend Error Resilience** (remaining phases) -- MED (Phases 1-3 done)
-10. **Predictive Scenario Engine Reliability** (research/papers/predictive_engine_reliability.md) -- MED, medium
-11. **JWT Phase 4: Refresh Token Rotation** -- short-lived access + httpOnly refresh cookie (separate task)
+3. **Resource Lifecycle Management** (research/papers/resource_lifecycle_management.md) -- HIGH, medium (was #4)
+4. **CSRF and Session Token Storage** (research/papers/csrf_and_session_token_storage.md) -- HIGH, large
+5. **Database Query Optimization** (research/papers/database_query_optimization.md) -- ready_for_implementation
+6. **Domain-Neutral Prompt Normalization** (research/papers/domain_neutral_prompt_normalization.md) -- MED, medium
+7. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
+8. **React Frontend Error Resilience** (remaining phases) -- MED (Phases 1-3 done)
+9. **Predictive Scenario Engine Reliability** (research/papers/predictive_engine_reliability.md) -- MED, medium
+10. **JWT Phase 4: Refresh Token Rotation** -- short-lived access + httpOnly refresh cookie (separate task)
 
 ### Agent Zero Track -- Architecture
 
