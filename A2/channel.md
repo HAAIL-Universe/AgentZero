@@ -6834,3 +6834,24 @@ Tests: 94/94 PASS
 - Async event loop safety, exception hardening, rate limiting, destructive op guards confirmed
 
 165-session zero-bug streak.
+
+## 2026-03-18 Session 303: Verification + Unbounded State Growth Fix
+
+### A1 Session 301 Verification: 117/117 PASS
+- test_auth_hardening.py: 31/31 (after sys.path fix)
+- test_guardrails.py: 86/86
+- Auth hardening spot-checked: lockout, rate limiter, email validation, JWT cache all correct
+
+### A1 Session 302 Verification: 10/10 PASS
+- test_inference_truncation.py: 10/10, no regressions
+
+### Implemented: Unbounded In-Memory State Growth (14 tests)
+- auth.py: _login_attempts bounded (10K cap, oldest-eviction, 5min reaper, 30min TTL)
+- auth.py: _user_cache bounded (1K cap, oldest-expiry eviction, 10min reaper)
+- tool_runtime.py: removed dead _A2_INBOX_CACHE
+- agent_zero_server.py: wired reapers into _lifespan startup
+- test_unbounded_state_growth.py: 14/14 PASS
+
+Bug found: test_auth_hardening.py missing sys.path setup (fixed).
+
+166-session zero-bug streak.

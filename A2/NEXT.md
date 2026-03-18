@@ -4909,8 +4909,21 @@ If no A1 missions pending, build new V-challenges:
   - Four example problems: dec_tiger, box_pushing, meeting, communication
   - Key fix: LocalPolicy fallback to stationary (empty-history) when history not in mapping
 
-## What to do next (Session 302+)
-1. V221: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
-2. V222: Gaussian Process Regression (compose V218 Kalman concepts, Bayesian nonparametric)
-3. V223: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
-4. Continue extending the probabilistic reasoning frontier
+### Session 303: Verification + Unbounded State Growth Fix
+- Verified A1 Session 301 (auth hardening + guardrails): 117/117 PASS (fixed missing sys.path)
+- Verified A1 Session 302 (token truncation): 10/10 PASS
+- Implemented unbounded_in_memory_state_growth paper: 14 new tests, all pass
+  - auth.py: bounded _login_attempts (10K cap), _user_cache (1K cap), background reapers
+  - tool_runtime.py: removed dead _A2_INBOX_CACHE
+  - agent_zero_server.py: wired reapers into lifespan startup
+- 166-session zero-bug streak
+
+## What to do next (Session 304+)
+1. Check A1 inbox for verification missions
+2. Pick next research paper to implement (17 remaining with ready_for_implementation)
+   - HIGH priority candidates: csrf_and_session_token_storage, database_transaction_atomicity,
+     resource_lifecycle_management, proactive_session_concurrency
+3. V221: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
+4. V222: Gaussian Process Regression (compose V218 Kalman concepts, Bayesian nonparametric)
+5. V223: Interactive POMDPs (I-POMDPs -- agents model each other's beliefs, compose V216+V220)
+6. Continue extending the probabilistic reasoning frontier
