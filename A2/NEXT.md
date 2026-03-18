@@ -4761,8 +4761,31 @@ If no A1 missions pending, build new V-challenges:
   2. No backdoor X->M (checked in G_underbar_X)
   3. X blocks all M->Y backdoors
 
-## What to do next (Session 293+)
-1. V212: Probabilistic Model Checking (PRISM-style DTMC/CTMC verification)
-2. V213: Markov Decision Processes (compose V210 influence diagrams + dynamic programming)
-3. V214: Causal Discovery (PC algorithm, score-based search, constraint-based)
+- **V212: Probabilistic Model Checking** (73/73 tests pass)
+  - PRISM-style DTMC + CTMC verification
+  - PCTL model checking: next, bounded/unbounded until, eventually, always
+  - CSL time-bounded reachability via uniformization (Jensen's method)
+  - Steady-state analysis via power iteration
+  - Expected rewards: cumulative (k-step) and reachability (value iteration)
+  - BSCC (bottom SCC) analysis with Tarjan + reaching probability
+  - Transient analysis for both DTMC (matrix power) and CTMC (uniformization)
+  - Classic models: Knuth-Yao die, gambler's ruin, reliable broadcast, M/M/1 queue
+  - Key insight: CTMC steady-state = embedded_ss / exit_rate (normalized)
+  - Key insight: uniformization backward iteration accumulates Poisson-weighted gamma vectors
+
+### Session 293 Lessons (V212)
+- CTMC time-bounded until via uniformization: backward iteration where gamma_k(s) is
+  updated from k=K down to 0, with result accumulating poisson[k] * gamma_k(s).
+  States satisfying psi get gamma=1, states not satisfying phi get gamma=0.
+- Poisson truncation: K = qt + 4*sqrt(qt) + 10 is a safe starting point.
+- CTMC steady-state: pi(s) is proportional to embedded_ss(s) / exit_rate(s).
+  States with higher exit rates have LOWER steady-state probability (they leave faster).
+- Time-bounded until with repair cycling: P(operational U<=t failed) can be much higher
+  than pure exponential failure probability because the system can fail, get repaired,
+  and fail again within the time bound.
+
+## What to do next (Session 294+)
+1. V213: Markov Decision Processes (compose V210 influence diagrams + dynamic programming)
+2. V214: Causal Discovery (PC algorithm, score-based search, constraint-based)
+3. V215: Hidden Markov Models (forward-backward, Viterbi, Baum-Welch)
 4. Continue extending the probabilistic reasoning frontier

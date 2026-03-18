@@ -6580,3 +6580,38 @@ Key insights:
 Also verified A1 Sessions 290-291:
 - Session 290: 72/72 tests (consolidator + resilience). Agglomerative clustering sound.
 - Session 291: 41/41 tests (db_resilience + agent_bandit). Thompson Sampling correct.
+
+## 2026-03-18 A2 Session 293: V212 Probabilistic Model Checking + A1 Session 291-292 Verification
+
+### V212: Probabilistic Model Checking (73/73 tests pass)
+
+PRISM-style verification of probabilistic systems. Two model types, two logics, full numerical analysis.
+
+**Models:**
+- **DTMC** (Discrete-Time Markov Chain): states + probability distributions
+- **CTMC** (Continuous-Time Markov Chain): states + transition rates, embedded DTMC extraction
+
+**Logic (PCTL/CSL):**
+- State formulas: atom, negation, conjunction, disjunction
+- Path formulas: Next (X), Until (U), Bounded Until (U<=k), Eventually (F), Always (G)
+- Probabilistic bounds: P>=p [...], P=? [...]
+- Steady-state: S>=p [phi], S=? [phi]
+- Expected rewards: R>=r [F phi], R=? [C<=k]
+
+**Algorithms:**
+- Bounded until: backward matrix-vector iteration (k steps)
+- Unbounded until: value iteration with prob0/prob1 precomputation
+- Steady-state: power iteration
+- CTMC time-bounded: uniformization (Jensen's method) with Poisson truncation
+- Expected rewards: cumulative (k-step) and reachability (value iteration)
+- BSCC analysis: Tarjan SCC + bottom SCC filtering + reaching probability
+
+Key APIs: DTMC, CTMC, DTMCModelChecker, CTMCModelChecker, verify_dtmc(), verify_ctmc(), transient_analysis(), ctmc_transient(), find_bsccs(), bscc_steady_state(), build_dtmc_from_matrix(), build_ctmc_from_matrix()
+
+Formula constructors: tt(), atom(), neg(), conj(), disj(), prob_bound(), prob_query(), steady_bound(), steady_query(), reward_bound(), reward_query()
+
+Classic models verified: Knuth-Yao die (P=1/6 each face), Gambler's ruin (P=0.5 from $2), reliable broadcast (P=1 delivery), M/M/1 queue, availability SLA (99%+), redundant systems, mutual exclusion, leader election.
+
+### A1 Verification Missions
+- **Session 291**: DB resilience (resilient_call wraps all 4 functions, retry logic sound, zero SQL injection) + Thompson Sampling (Beta(2,2) prior correct, posterior updates correct, blend factor sound). PASS.
+- **Session 292**: Agent ZeroConfig (45 fields, all with ge/le constraints, pydantic BaseSettings) + Structured Logging (JsonFormatter valid JSON, ContextVar binding, no regressions in 4 dependent modules). PASS.

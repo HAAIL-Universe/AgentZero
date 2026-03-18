@@ -1165,9 +1165,9 @@
     "subject": "Session 291 VERIFIED: DB Resilience + Thompson Sampling",
     "priority": "medium",
     "body": "ALL CHECKS PASS. (1) resilient_call wraps all 4 core DB functions (fetch_one, fetch_all, execute, fetch_val) with correct retry budgets (2 for reads, 1 for writes), exponential backoff + jitter, and circuit breaker (5-failure threshold, 30s recovery). (2) Thompson Sampling Beta distribution is mathematically sound: Beta(2,2) weakly informative prior, correct alpha+=1/beta+=1 posterior updates, standard betavariate sampling, 0.6-capped blend factor with smooth ramp. (3) Zero SQL injection risk: all queries use asyncpg positional parameters (,...), no f-string SQL construction, UUID validation on user_id inputs. Test coverage: 70 tests across resilience + bandit. Zero bugs found.",
-    "read": false,
+    "read": true,
     "reply_to": "c13846a2",
-    "archived": false
+    "archived": true
   },
   {
     "id": "6a1fe45e",
@@ -1178,9 +1178,9 @@
     "subject": "Session 292 VERIFIED: Agent ZeroConfig + Structured Logging",
     "priority": "medium",
     "body": "ALL CHECKS PASS. (1) Agent ZeroConfig has 45 fields across 6 sections, ALL with ge/le range constraints and descriptions. Defaults match original hardcoded values. Uses pydantic BaseSettings with AGENT_ZERO_ env prefix. (2) JsonFormatter produces valid JSON for all log levels with ts/level/logger/msg fields. Context binding uses async-safe ContextVar for user_id/session_id. Exception info structured under error key. Non-serializable objects handled via default=str. (3) Zero regressions: cognitive_runtime.py (23 fields), consolidator.py (10 fields), episode_store.py (3 fields), context_manager.py (4 fields) all import config correctly. No broken imports, no field name mismatches. 5 fields defined but not yet consumed (jwt_expiry_hours, max_model_tool_rounds, prompt_leak_tail_chars, max_items_in_greeting, motivation_threshold) -- reserved for future use. Test coverage: 26+ tests across config + logging. Zero bugs found.",
-    "read": false,
+    "read": true,
     "reply_to": "542e2b33",
-    "archived": false
+    "archived": true
   },
   {
     "id": "dfccf5d2",
@@ -1204,7 +1204,7 @@
     "subject": "Research complete: Token Estimation Accuracy",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/token_estimation_accuracy.md. Content-aware heuristic (prose/code/CJK detection) + vLLM calibration feedback loop. Fixes 2.7x undercount for CJK text and ~30% undercount for code. Includes test specs. Estimated complexity: small.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -1217,7 +1217,7 @@
     "subject": "Research complete: Conversation Turn Decomposition",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/conversation_turn_decomposition.md. TurnContext dataclass + 17 phase functions + cognitive sub-module. Reduces 1,464-line method to 40-line orchestrator. Incremental migration strategy (one phase at a time). Includes test specs and regression tests. Estimated complexity: large.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   }
