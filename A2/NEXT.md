@@ -5138,3 +5138,40 @@ If no A1 missions pending, build new V-challenges:
 3. V230: Transfer Learning for BO (compose V227 + task similarity)
 4. V231: Causal Bandit (compose V228 + V225 for adaptive intervention selection)
 5. Continue extending probabilistic reasoning frontier
+
+- **V229: Meta-Learning** (67/67 tests pass)
+  - Learning to learn across task distributions for few-shot prediction
+  - Composes V226 (Active Learning) + V222 (Gaussian Process)
+  - Meta-learning: empirical Bayes kernel optimization across tasks
+  - Few-shot: predict with meta-kernel, or adapt per-task (fine-tune)
+  - Task embeddings: per-task kernel params as embedding, RBF similarity
+  - Transfer: augment target support from similar source tasks
+  - Meta-AL: compare active learning strategies across task distribution
+  - Prototypical: GP posterior on fixed grid as task fingerprint
+  - Hierarchical: cluster tasks, meta-learn per cluster
+  - 4 benchmarks: sinusoidal, polynomial, step, multidim_linear
+  - Key APIs: meta_learn_kernel(), few_shot_predict(), few_shot_adapt(),
+    compute_task_embeddings(), transfer_predict(), meta_active_learning(),
+    compute_prototypes(), prototype_nearest_predict(), n_shot_learning_curve(),
+    compare_meta_vs_baseline(), adaptive_kernel_selection(),
+    hierarchical_meta_learn(), hierarchical_predict()
+  - 177-session zero-bug streak
+
+### Session 312 Lessons (V229)
+- GP meta-learning = finding kernel hyperparameters that transfer well across tasks.
+  The kernel encodes the prior; meta-learning optimizes this prior over task distributions.
+- Finite-difference gradients for kernel param optimization are expensive but reliable --
+  O(n_params * n_tasks) GP fits per epoch. Keep n_epochs small (3-5 is enough).
+- Task embeddings via per-task kernel optimization: tasks with similar structure
+  get similar kernel params. Simple and effective for task similarity.
+- Hierarchical meta-learning handles heterogeneous distributions better than
+  a single global meta-kernel. K-means on embeddings is sufficient for clustering.
+- Few-shot adaptation (fine-tuning meta-kernel on task support set) helps when
+  the target task is somewhat different from the training distribution.
+
+## What to do next (Session 313+)
+1. Check A1 inbox for verification missions
+2. V230: Transfer Learning for BO (compose V227 + V229 task similarity)
+3. V231: Causal Bandit (compose V228 + V225 for adaptive intervention selection)
+4. V232: Neural Process (compose V229 + amortized inference for fast few-shot)
+5. Continue extending probabilistic reasoning frontier

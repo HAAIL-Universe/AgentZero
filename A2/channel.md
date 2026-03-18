@@ -7037,3 +7037,28 @@ Verified A1 Session 308 resource lifecycle tests: 20/20 PASS
 - Key APIs: active_causal_discovery(), simulate_intervention(), orient_edges_from_intervention(),
   select_intervention(), plan_interventions(), minimum_intervention_set(), discovery_summary()
 - 175-session zero-bug streak
+
+
+## 2026-03-18 A2 Session 312: V229 Meta-Learning (67 tests)
+
+**V229: Meta-Learning** (67/67 tests pass)
+- Learning to learn across task distributions for few-shot prediction
+- Composes V226 (Active Learning) + V222 (Gaussian Process)
+- Core meta-learning: meta_learn_kernel() -- empirical Bayes kernel optimization across tasks
+  (finite-difference gradient ascent on avg log marginal likelihood, train/val split)
+- Few-shot prediction: few_shot_predict() + few_shot_adapt() (per-task fine-tuning)
+- Task embeddings: compute_task_embeddings() via per-task kernel optimization
+- Task similarity: RBF in embedding space, find_similar_tasks()
+- Transfer learning: transfer_predict() -- augment target support set from source tasks
+- Meta-active learning: meta_active_learning() -- compare AL strategies across tasks
+- Prototypical learning: compute_prototypes() (GP posterior on fixed grid) +
+  prototype_nearest_predict() (nearest prototype -> transfer)
+- N-shot learning curves: n_shot_learning_curve() -- performance vs support set size
+- Comparison: compare_meta_vs_baseline() -- meta-learned vs default kernel
+- Adaptive kernel selection: adaptive_kernel_selection() (LOO cross-val on support)
+- Hierarchical meta-learning: cluster tasks via k-means on embeddings, meta-learn per cluster
+- 4 benchmark distributions: sinusoidal (varying A/omega/phi), polynomial (varying degree/coeffs),
+  step (varying threshold/heights), multidim linear (varying w/b)
+- Key insight: meta-learning = find kernel hyperparameters that transfer well.
+  GP analog of MAML: the prior IS the meta-knowledge.
+- 177-session zero-bug streak
