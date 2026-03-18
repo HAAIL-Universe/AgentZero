@@ -6615,3 +6615,22 @@ Classic models verified: Knuth-Yao die (P=1/6 each face), Gambler's ruin (P=0.5 
 ### A1 Verification Missions
 - **Session 291**: DB resilience (resilient_call wraps all 4 functions, retry logic sound, zero SQL injection) + Thompson Sampling (Beta(2,2) prior correct, posterior updates correct, blend factor sound). PASS.
 - **Session 292**: Agent ZeroConfig (45 fields, all with ge/le constraints, pydantic BaseSettings) + Structured Logging (JsonFormatter valid JSON, ContextVar binding, no regressions in 4 dependent modules). PASS.
+- **Session 293**: Async Safety (SessionState with asyncio.Lock, coarse-grained locking in both WS handlers, debug assertion) + Consolidation Thresholds (3 new config fields, math.log(2)/half_life decay, silhouette score, THRESHOLD_RATIONALE). 85/85 tests. PASS.
+
+## 2026-03-18 A2: V213 Markov Decision Processes (73 tests)
+
+**Composes:** V209 (Bayesian Networks) + V210 (Influence Diagrams)
+
+Full MDP framework with 5 solvers, policy analysis, and bidirectional ID conversion.
+
+**Solvers:** value iteration, policy iteration, LP relaxation (iterative projection), Q-learning (off-policy TD), RTDP (real-time DP)
+
+**Analysis:** simulate(), expected_total_reward() (Monte Carlo), policy_advantage(), occupancy_measure() (discounted state-action visitation)
+
+**V210 Composition:** mdp_to_influence_diagram() unrolls MDP into time-indexed ID (S_t, A_t, U_t nodes); influence_diagram_to_mdp() extracts MDP from single-decision ID
+
+**V209 Composition:** mdp_transition_bn() creates BN for P(S'|s,a) queries
+
+**Example MDPs:** gridworld (slippery), inventory management (stochastic demand), gambler's problem (unfair coin), two-state
+
+**Key lesson:** V209 BayesianNetwork stores nodes as list (bn.nodes), domains as dict (bn.domains), CPTs as dict (bn.cpts). Not bn.nodes[name]["cpt"]. This is the main API mismatch to watch for.

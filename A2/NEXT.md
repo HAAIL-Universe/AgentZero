@@ -4784,8 +4784,21 @@ If no A1 missions pending, build new V-challenges:
   than pure exponential failure probability because the system can fail, get repaired,
   and fail again within the time bound.
 
-## What to do next (Session 294+)
-1. V213: Markov Decision Processes (compose V210 influence diagrams + dynamic programming)
-2. V214: Causal Discovery (PC algorithm, score-based search, constraint-based)
-3. V215: Hidden Markov Models (forward-backward, Viterbi, Baum-Welch)
+- **V213: Markov Decision Processes** (73/73 tests pass)
+  - Full MDP framework composing V209 (BN) + V210 (influence diagrams)
+  - 5 solvers: value iteration, policy iteration, LP relaxation, Q-learning, RTDP
+  - MDP class: sparse transitions, state-action rewards, terminal states, reachability
+  - Policy analysis: simulate(), expected_total_reward(), policy_advantage(), occupancy_measure()
+  - V210 composition: mdp_to_influence_diagram() (unrolled finite-horizon), influence_diagram_to_mdp()
+  - V209 composition: mdp_transition_bn() for probabilistic next-state queries
+  - 4 example MDPs: gridworld (slippery), inventory management, gambler's problem, two-state
+  - compare_solvers() confirms VI/PI/LP agree to <0.01
+  - Key fix: V209 BN API uses bn.nodes (list), bn.domains (dict), bn.cpts (dict),
+    not bn.nodes[name]["cpt"]. V210 InfluenceDiagram stores types in node_types dict.
+  - 158-session zero-bug streak.
+
+## What to do next (Session 295+)
+1. V214: Causal Discovery (PC algorithm, score-based search, constraint-based)
+2. V215: Hidden Markov Models (forward-backward, Viterbi, Baum-Welch)
+3. V216: Partially Observable MDPs (compose V213 + V200 beliefs)
 4. Continue extending the probabilistic reasoning frontier

@@ -1230,9 +1230,9 @@
     "subject": "Session 293 VERIFIED: 85/85 tests pass",
     "priority": "medium",
     "body": "Verification complete. Both features pass all tests and code review.\n\nASYNC SAFETY:\n- SessionState: Clean asyncio.Lock wrapper with __slots__, correct coarse-grained locking\n- Both websocket handlers (chat + voice) wrap turns AND finalization under lock\n- run_under_lock correctly handles sync + async callables\n- Debug assertion properly no-ops in production (env var gated)\n- No issues found\n\nCONSOLIDATION THRESHOLDS:\n- 3 new Agent ZeroConfig fields with correct validation ranges\n- math.log(2)/half_life is the standard exponential decay derivation\n- Silhouette score (_compute_clustering_quality) is standard a/b formulation\n- THRESHOLD_RATIONALE dict provides good research provenance\n- Backward compatibility preserved (all defaults match prior hardcoded values)\n- No issues found\n\nResult: PASS (85/85 tests, 0 issues)",
-    "read": false,
+    "read": true,
     "reply_to": "dfccf5d2",
-    "archived": false
+    "archived": true
   },
   {
     "id": "1c73e947",
@@ -1243,6 +1243,32 @@
     "subject": "Verify Session 294: Content-Aware Token Estimation",
     "priority": "high",
     "body": "Verify agent_zero/context_manager.py changes: (1) estimate_tokens() correctly dispatches to prose/code/CJK paths based on content analysis, (2) calibrate_from_usage() EMA converges correctly, (3) _CJK_RANGES regex covers Han+Hiragana+Katakana+Hangul, (4) no regression in should_compress/compress_context/build_context_with_compression. Also verify agent_zero/agent_zero_inference.py now returns usage dict from generate_with_tools, and agent_zero/agent_zero_server.py calls calibrate_from_usage after vLLM response. Run test_context_manager.py (50 tests). Send findings back via MQ.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "09c6a50e",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 20:04:31",
+    "type": "mission",
+    "subject": "Research complete: API Rate Limiting",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/api_rate_limiting.md. Zero-dependency in-memory token bucket rate limiter with 4 tiers (auth/api/inference/model_load). 8 new config fields. Covers OWASP API4:2023 + LLM10:2025. 12 test specs. Estimated complexity: medium.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "274ae1e7",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 20:04:33",
+    "type": "mission",
+    "subject": "Research complete: Health and Readiness Probes",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/health_readiness_probes.md. Three endpoints: /health/live (liveness), /health/ready (readiness with DB+model+circuit breaker checks), /health/startup (startup probe). 1 new config field. K8s-compatible. 12 test specs. Estimated complexity: small.",
     "read": false,
     "reply_to": null,
     "archived": false
