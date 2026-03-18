@@ -62,3 +62,21 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 
 - [x] Token estimation accuracy -- context_manager.py uses fixed 4 chars/token heuristic that is wrong for code (actual ~5.5-6.5) and CJK text (actual ~1.5). Affects context compression timing and dynamic context budgeting. (Researched 2026-03-18, paper: research/papers/token_estimation_accuracy.md, 6 citations)
 - [x] Conversation turn decomposition -- _run_conversation_turn() is 1,464 lines with 23 phases, 200+ awaits, untestable. Needs Split Phase refactoring into TurnContext + phase functions. (Researched 2026-03-18, paper: research/papers/conversation_turn_decomposition.md, 6 citations)
+
+## High Priority (New -- from gap analysis 2026-03-18 session 6)
+
+- [x] API rate limiting and abuse prevention -- zero rate limiting on 37 endpoints. Registration flooding, brute force login, inference DoS all possible. OWASP API4:2023 + LLM10:2025 violation. (Researched 2026-03-18, paper: research/papers/api_rate_limiting.md, 6 citations)
+- [x] Health and readiness probes -- no liveness/readiness/startup endpoints for RunPod container orchestration. Degraded instances continue receiving traffic. (Researched 2026-03-18, paper: research/papers/health_readiness_probes.md, 6 citations)
+
+## High Priority (New -- from gap analysis 2026-03-18 session 7)
+
+- [x] WebSocket input validation and message security -- no JSON schema validation on ws/chat or ws/voice messages, no audio size limits before base64 decode, no message size caps. Malformed JSON crashes connections, large audio payloads cause OOM. OWASP API8:2023 violation. (Researched 2026-03-18, paper: research/papers/websocket_input_validation.md, 6 citations)
+- [x] JWT security hardening -- weak default secret ("agent_zero-dev-secret-change-in-prod"), JWT tokens passed in query parameters (logged in proxies/browser history). Needs fail-fast on missing secret + first-message auth pattern for WebSocket. (Researched 2026-03-18, paper: research/papers/jwt_security_hardening.md, 6 citations)
+
+## Medium Priority (New -- from gap analysis 2026-03-18 session 7)
+
+- [x] Database query optimization -- N+1 pattern in get_productivity_summary() (7 separate queries), unbounded SELECT in update_requests.py, missing composite indexes on (user_id, created_at), (outcome). Needs CTE batching and index additions. (Researched 2026-03-18, paper: research/papers/database_query_optimization.md, 6 citations)
+- [x] Streaming generation timeout and recovery -- no timeout on vLLM streaming loop (agent_zero_server.py:2420-2480). Hung model causes WebSocket to block forever. Needs asyncio.wait_for + fallback response. (Researched 2026-03-18, paper: research/papers/streaming_generation_timeout.md, 6 citations)
+- [ ] Frontend accessibility (WCAG 2.1) -- zero aria-* attributes in agent_zero.html, no keyboard navigation, no screen reader support. Voice-first interface needs full keyboard accessibility.
+- [ ] Consolidated rules growth cap -- episode_store consolidated_rules array is unbounded. 10k rules = 5-10MB per user profile. Needs max cap + rule retirement with audit logging.
+- [ ] Error message information leakage -- generic exceptions sent as str(e) to WebSocket clients (agent_zero_server.py:3164). Leaks stack traces, DB structure, file paths. Needs generic client messages + server-side structured logging.

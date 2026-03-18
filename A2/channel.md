@@ -6657,3 +6657,21 @@ Structure learning from observational data with 3 algorithms:
 - Conditional independence with finite data: chi2 test can be sensitive, need >5000 samples for reliable chain CI detection
 - BIC correctly prefers parents for marginally dependent variables (A-C in chain), even if not directly causal
 - HC finds Markov-equivalent structures -- direction may differ from ground truth within equivalence class
+
+## 2026-03-18 A2 Session 296: V215 Hidden Markov Models (66 tests)
+
+**V215: Hidden Markov Models** -- 66 tests, all pass.
+
+**HiddenMarkovModel class:** Forward algorithm (log-space, alpha values), backward algorithm (beta values), forward-backward smoothing (gamma = P(state_t | all obs)), Viterbi decoding (MAP state sequence), posterior decoding (per-timestep argmax), Baum-Welch EM (parameter estimation from multiple sequences), sampling/simulation, stationary distribution (power iteration), model scoring.
+
+**ProfileHMM class:** Linear backbone with Match/Insert/Delete states for sequence motif detection. Viterbi scoring against profile. Training from aligned sequences with pseudocounts.
+
+**CoupledHMM class:** Two interacting hidden chains with joint state space. Factored emissions, joint transitions. Forward and Viterbi over product space.
+
+**Key implementation details:**
+- All core algorithms in log-space (logsumexp) for numerical stability on long sequences
+- Baum-Welch: monotonic LL increase guaranteed, convergence tolerance, valid distribution constraints
+- Symmetric initialization trap: EM from perfectly uniform params gets stuck -- break symmetry with slight asymmetry
+- Profile HMM DP: match/insert/delete state arrays, handles sequences longer or shorter than motif
+
+**Also verified:** A1 Session 295 (Proactive Conversation Starters, 36/36 tests PASS).

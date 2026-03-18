@@ -150,7 +150,9 @@
       "Bash(grep [x] Z:/AgentZero/research/BACKLOG.md)",
       "Bash(python Z:/AgentZero/tools/mq.py inbox A1)",
       "Bash(python Z:/AgentZero/tools/mq.py inbox A2)",
-      "Bash(taskkill //F //IM python.exe)"
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(scp -P 22170 -i ~/.ssh/id_ed25519 -r agent_zero/ root@69.30.85.16:/workspace/)",
+      "Bash(scp -P 22170 -i ~/.ssh/id_ed25519 -r agent_zero-ui/ root@69.30.85.16:/workspace/)"
     ]
   }
 }

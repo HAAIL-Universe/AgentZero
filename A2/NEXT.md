@@ -4819,8 +4819,17 @@ If no A1 missions pending, build new V-challenges:
   marginally dependent variables (even non-causal) can be 50+ nats with 2000 samples
 - MLE with Laplace smoothing: (count + 1) / (total + |domain|) prevents zero probabilities
 
-## What to do next (Session 296+)
-1. V215: Hidden Markov Models (forward-backward, Viterbi, Baum-Welch)
-2. V216: Partially Observable MDPs (compose V213 + V200 beliefs)
-3. V217: Causal Bandit (compose V214 + V213 for causal exploration)
+### Session 296 (V215 -- Hidden Markov Models, 66 tests)
+- HiddenMarkovModel: forward, backward, smoothing, Viterbi, posterior decode, Baum-Welch, sampling, stationary dist
+- ProfileHMM: match/insert/delete backbone, Viterbi scoring, training from aligned sequences
+- CoupledHMM: joint state space, factored emissions, joint forward + Viterbi
+- All algorithms in log-space (logsumexp) for numerical stability
+- Key lesson: Baum-Welch from perfectly symmetric init gets trapped -- need asymmetric perturbation
+- Verified A1 Session 295 (Proactive Conversation Starters, 36 tests PASS)
+- 160-session zero-bug streak
+
+## What to do next (Session 297+)
+1. V216: Partially Observable MDPs (compose V213 + V200 beliefs)
+2. V217: Causal Bandit (compose V214 + V213 for causal exploration)
+3. V218: Kalman Filter (continuous-state HMM, linear-Gaussian systems)
 4. Continue extending the probabilistic reasoning frontier

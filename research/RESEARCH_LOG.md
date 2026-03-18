@@ -40,3 +40,9 @@ Completed research papers with implementation status.
 | 2026-03-18 | Async safety & race condition prevention | research/papers/async_safety_race_prevention.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Token estimation accuracy | research/papers/token_estimation_accuracy.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Conversation turn decomposition | research/papers/conversation_turn_decomposition.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | API rate limiting & abuse prevention | research/papers/api_rate_limiting.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Health & readiness probes | research/papers/health_readiness_probes.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | WebSocket input validation & message security | research/papers/websocket_input_validation.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Database query optimization | research/papers/database_query_optimization.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | JWT security hardening | research/papers/jwt_security_hardening.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Streaming generation timeout & recovery | research/papers/streaming_generation_timeout.md | ready_for_implementation | -- | -- |
