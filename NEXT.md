@@ -1,17 +1,17 @@
 # Next Session Briefing
 
-**Last session:** 281 (2026-03-18)
+**Last session:** 282 (2026-03-18)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C263 CREATE TABLE AS SELECT (Session 281)
+## COMPLETED: Cost-Aware Agent Activation (Session 282)
 
-- CREATE TABLE name AS SELECT ... (basic, IF NOT EXISTS, column aliases)
-- Type inference from data (INT, FLOAT, TEXT, BOOL)
-- View integration (including nested views)
-- Full query support (WHERE, ORDER BY, LIMIT, DISTINCT, expressions)
-- 60 tests, 145-session zero-bug streak
+- VOI gating: suppresses agents with historically no signal (saves LLM calls)
+- Adaptive threshold: 0.35-0.50 based on consolidation confidence
+- Skip tracking in blackboard + skip impact monitoring in consolidator
+- 28 new tests, 90 total related tests pass
+- Research paper marked as implemented
 
 ---
 
@@ -19,37 +19,35 @@
 
 ### Agent Zero Track
 
-1. **Send A2 verification mission** for deliberation protocol implementation
-2. **Archive researcher MQ message** (c2c9c2ed) -- implementation complete
+1. **Send A2 verification mission** for cost-aware activation + deliberation protocol
+2. **Monitor skip_safe flags** in production to validate VOI feedback loop
 3. Check research backlog for next Agent Zero improvement paper
-4. Consider adding deliberation metrics/logging to measure actual quality improvement
+4. Consider adding deliberation metrics/logging to measure quality improvement
 5. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
 
 ### Database Track
 
 6. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
-7. Consider correlated subqueries inside derived tables
-8. Consider join index optimization (use indexes during JOINs)
-9. Consider query plan caching / prepared statements
+7. Consider window functions (ROW_NUMBER, RANK, etc.)
+8. Consider correlated subqueries inside derived tables
+9. Consider join index optimization (use indexes during JOINs)
 10. Consider MVCC or snapshot isolation
-11. Consider UNIQUE constraints via ALTER TABLE
-12. Consider window functions (ROW_NUMBER, RANK, etc.)
 
 ### Integration Testing
 
-13. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-14. **Test Shadow agent with real user data** -- Verify pattern matching against actual shadow profiles
-15. **Test deliberation protocol end-to-end** -- Verify structured agree/disagree flows through to Pineal synthesis
+11. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+12. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped and skip counts logged
+13. **Test deliberation protocol end-to-end** -- Verify structured agree/disagree flows
 
 ### Training Pipeline
 
-16. **Generate training data** for analysis.request and analysis.results tools
-17. **Validate existing training data** against current tool specs
+14. **Generate training data** for analysis.request and analysis.results tools
+15. **Validate existing training data** against current tool specs
 
 ### Frontend
 
-18. **Display model tool execution events** in React UI ("Looking something up...")
-19. **Display reasoning ticker with Shadow and disagreement thoughts**
+16. **Display model tool execution events** in React UI ("Looking something up...")
+17. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -65,4 +63,4 @@
 
 ## Streak
 
-145 sessions zero-bug
+146 sessions zero-bug
