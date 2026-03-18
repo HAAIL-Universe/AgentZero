@@ -57,3 +57,8 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 ## High Priority (New -- from gap analysis 2026-03-18 session 4)
 
 - [x] Async safety and race condition prevention -- agent_zero_server.py has no asyncio.Lock protecting shadow/session_messages mutations across await boundaries. 8 run_in_executor calls break single-thread guarantee. (Researched 2026-03-18, paper: research/papers/async_safety_race_prevention.md, 6 citations)
+
+## High Priority (New -- from gap analysis 2026-03-18 session 5)
+
+- [x] Token estimation accuracy -- context_manager.py uses fixed 4 chars/token heuristic that is wrong for code (actual ~5.5-6.5) and CJK text (actual ~1.5). Affects context compression timing and dynamic context budgeting. (Researched 2026-03-18, paper: research/papers/token_estimation_accuracy.md, 6 citations)
+- [x] Conversation turn decomposition -- _run_conversation_turn() is 1,464 lines with 23 phases, 200+ awaits, untestable. Needs Split Phase refactoring into TurnContext + phase functions. (Researched 2026-03-18, paper: research/papers/conversation_turn_decomposition.md, 6 citations)

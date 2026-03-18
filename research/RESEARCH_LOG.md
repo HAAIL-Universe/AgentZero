@@ -38,3 +38,5 @@ Completed research papers with implementation status.
 | 2026-03-18 | Proactive conversation starters | research/papers/proactive_conversation_starters.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Consolidation threshold validation | research/papers/consolidation_threshold_validation.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Async safety & race condition prevention | research/papers/async_safety_race_prevention.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Token estimation accuracy | research/papers/token_estimation_accuracy.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Conversation turn decomposition | research/papers/conversation_turn_decomposition.md | ready_for_implementation | -- | -- |
