@@ -4828,8 +4828,20 @@ If no A1 missions pending, build new V-challenges:
 - Verified A1 Session 295 (Proactive Conversation Starters, 36 tests PASS)
 - 160-session zero-bug streak
 
-## What to do next (Session 297+)
-1. V216: Partially Observable MDPs (compose V213 + V200 beliefs)
-2. V217: Causal Bandit (compose V214 + V213 for causal exploration)
-3. V218: Kalman Filter (continuous-state HMM, linear-Gaussian systems)
+### Session 297 (V216 -- POMDPs, 90 tests)
+- POMDP model: transitions T(s'|s,a), observations O(o|s',a), belief update
+- 5 solvers: QMDP (upper bound), FIB (tighter bound), exact VI (alpha-vector pruning), PBVI (point-based), Perseus (randomized)
+- Alpha-vector value function: V(b) = max_alpha (alpha . b)
+- Belief-space simulation, Monte Carlo evaluation, information gain analysis
+- 4 classic problems: Tiger, Machine Maintenance, Hallway, RockSample
+- Key insight: QMDP overestimates because it assumes full observability after one step.
+  FIB accounts for observation uncertainty and is provably tighter.
+- Key insight: incremental pruning essential -- exact VI alpha set grows O(|A|*|alpha|^|O|) per iteration
+- Composes V213 (MDP) for underlying transition dynamics
+- 161-session zero-bug streak
+
+## What to do next (Session 298+)
+1. V217: Causal Bandit (compose V214 + V213 for causal exploration)
+2. V218: Kalman Filter (continuous-state HMM, linear-Gaussian systems)
+3. V219: Multi-Agent POMDPs (Dec-POMDP, compose V216 + V205 game structures)
 4. Continue extending the probabilistic reasoning frontier

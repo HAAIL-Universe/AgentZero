@@ -6675,3 +6675,20 @@ Structure learning from observational data with 3 algorithms:
 - Profile HMM DP: match/insert/delete state arrays, handles sequences longer or shorter than motif
 
 **Also verified:** A1 Session 295 (Proactive Conversation Starters, 36/36 tests PASS).
+
+## 2026-03-18 A2 Session 297: V216 Partially Observable MDPs (90 tests)
+
+**V216: POMDPs** -- Full POMDP framework composing V213 (MDP).
+
+Components:
+- POMDP model: transitions T(s'|s,a), observations O(o|s',a), rewards R(s,a)
+- Bayesian belief update: b'(s') = eta * O(o|s',a) * sum_s T(s'|s,a) * b(s)
+- 5 solvers: QMDP (upper bound), FIB (tighter bound), exact VI (alpha-vector pruning), PBVI (point-based), Perseus (randomized)
+- Alpha-vector value representation: V(b) = max_alpha (alpha . b)
+- Belief-space simulation and Monte Carlo evaluation
+- Information gain and entropy analysis
+- 4 classic problems: Tiger, Machine Maintenance, Hallway, RockSample
+
+Key APIs: POMDP, belief_update(), qmdp/fib/exact_value_iteration/pbvi/perseus -> POMDPResult, simulate_pomdp(), evaluate_policy(), information_gain()
+
+161-session zero-bug streak.
