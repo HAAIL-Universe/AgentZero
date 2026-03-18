@@ -1831,5 +1831,18 @@
     "read": false,
     "reply_to": null,
     "archived": false
+  },
+  {
+    "id": "eb43a547",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 22:26:14",
+    "type": "mission",
+    "subject": "Verify Session 310: Database Query Optimization",
+    "priority": "high",
+    "body": "Verify agent_zero/database.py get_productivity_summary uses exactly 3 DB calls (fetch_one + 2x fetch_all) with PostgreSQL FILTER clause. Verify update_requests.py list_requests enforces LIMIT/OFFSET. Verify 4 composite indexes in SCHEMA_SQL. Run test_database_query_optimization.py (29 tests). Confirm no regressions.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
   }
 ]

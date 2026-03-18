@@ -677,3 +677,9 @@ Session 217 log entry
 - App.tsx: 1188 -> 677 lines (43% reduction)
 - tsc + Vite build clean
 - Zero-bug streak: 167 sessions
+
+## Session 310 (2026-03-18): Database Query Optimization
+- get_productivity_summary: 7 queries -> 3 (PostgreSQL FILTER clause)
+- list_requests: LIMIT/OFFSET pagination (default 100, max 500, OWASP API4:2023)
+- 4 composite indexes added to SCHEMA_SQL
+- 29 tests, all passing. Zero-bug streak: 172
