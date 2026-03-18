@@ -1,25 +1,28 @@
 # Next Session Briefing
 
-**Last session:** 290 (2026-03-18)
+**Last session:** 291 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 290
+## COMPLETED: Session 291
 
-### Agglomerative Clustering for Consolidation (10 new tests)
-- Replaced union-find single-linkage with average-linkage agglomerative clustering
-- `_episode_distance()`: weighted Jaccard (0.8) + temporal decay (0.2, 14-day half-life)
-- `_compute_cluster_coherence()`: average pairwise intra-cluster similarity
-- MERGE_DISTANCE_THRESHOLD=0.6, MIN_CLUSTER_COHERENCE=0.4, TEMPORAL_WEIGHT=0.2
-- Prevents transitive chaining, rejects incoherent clusters
-- Research paper: consolidation_clustering_quality.md (implemented)
+### Resilience Layer Integration into database.py (19 tests)
+- Wrapped 4 core DB functions with `resilient_call` + `db_circuit`
+- `_raw_*` internal functions for migrations/health check bypass
+- fetch_all fallback=list, fetch_one/val fallback=lambda:None, execute no fallback
+- Added `health_check()` and `get_db_circuit_state()` for observability
+- All 30+ call sites automatically protected
 
-### Resilience Integration into agent_zero_server.py (8 call sites)
-- Wrapped 8 bare `except Exception` DB blocks with `resilient_call` + `db_circuit`
-- Covers: user_insights, _open_ws_session, intervention resolution, outcome sync, curiosity, session end, intervention artifacts
+### Agent Weight Learning via Thompson Sampling (22 tests)
+- New module: `agent_zero/agent_bandit.py` -- Beta(alpha,beta) per (user, topic, agent)
+- `sample_weights()`, `update_agent_outcome()`, `get_blend_factor()`
+- New DB table: `agent_bandit_params`
+- Integrated into `select_agents_for_turn` (bandit_weights param, +/-0.15 modulation)
+- Integrated into outcome resolution in agent_zero_server.py (update on acted/ignored)
+- Graceful cold start: blend_factor=0 with no data, heuristic weights dominate
 
-**Total: 682 agent_zero tests pass, 153-session zero-bug streak**
+**Total: 723 agent_zero tests pass (41 new), 154-session zero-bug streak**
 
 ---
 
@@ -27,10 +30,10 @@
 
 ### Agent Zero Track
 
-1. **Check A2 reply** for clustering + resilience verification (d3f69008)
-2. **Agent Weight Learning via MAB** (research/papers/agent_weight_learning.md) -- Thompson Sampling for cognitive agent weights (MED)
-3. **Memory Recall Transparency paper** (research/papers/memory_recall_transparency.md) -- show retrieved memories inline
-4. **Runtime Observability Layer paper** (research/papers/runtime_observability_layer.md) -- wide-event TurnEvent, structured logging
+1. **Send A2 verification mission** for session 291 (resilience integration + bandit)
+2. **Structured Logging Replacement** (research/papers/structured_logging.md) -- replace print/pass with JSON logging (MED)
+3. **Memory Recall Transparency** (research/papers/memory_recall_transparency.md) -- show retrieved memories inline
+4. **Runtime Observability Layer** (research/papers/runtime_observability_layer.md) -- wide-event TurnEvent
 5. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
 6. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
 7. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
@@ -55,11 +58,12 @@
 18. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
 19. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
 20. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
+21. **Test bandit weight learning end-to-end** -- Verify weights update after acted/ignored outcomes
 
 ### Frontend
 
-21. **Display model tool execution events** in React UI ("Looking something up...")
-22. **Display reasoning ticker with Shadow and disagreement thoughts**
+22. **Display model tool execution events** in React UI ("Looking something up...")
+23. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -71,9 +75,10 @@
 - C247 HAVING with raw COUNT(*) doesn't work (use alias reference instead)
 - test_agent_zero_e2e commitment_tracking test: async function called without await (pre-existing)
 - test_cognitive_agents::test_model_backed_agent_uses_prompt_body_when_loaded: pre-existing assertion mismatch
+- test_agent_zero_turn_paths: user=None crash on save_shadow (pre-existing)
 
 ---
 
 ## Streak
 
-153 sessions zero-bug
+154 sessions zero-bug

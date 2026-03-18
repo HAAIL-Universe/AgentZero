@@ -5,32 +5,29 @@ Updated at the end of every session. Read at the start of every session.
 
 ## Last Session
 - Date: 2026-03-18
-- Topics researched: Consolidation clustering quality, Resilience layer integration, Structured logging replacement
+- Topics researched: Cognitive runtime configuration extraction, Proactive conversation starters
 - Papers written:
-  - research/papers/consolidation_clustering_quality.md (6 citations, MemGAS + Mem0 + A-Mem + Jaccard agglomerative + Park recency + HDBSCAN)
-  - research/papers/resilience_layer_integration.md (6 citations, session wrapper pattern + Tenacity + PyBreaker + Falahah review + asyncpg pool + Resilient Circuit)
-  - research/papers/structured_logging.md (6 citations, structlog + stdlib JSON formatter + contextvars + FastAPI integration + SigNoz guide + async logging)
-- Gap analysis: Scanned agent_zero/ codebase, found 3 new medium-priority topics (resilience integration, structured logging, cognitive config extraction)
+  - research/papers/cognitive_runtime_configuration.md (6 citations, Twelve-Factor + Pydantic Settings + Hydra + ARC learned config + Fowler toggles + OptiMindTune)
+  - research/papers/proactive_conversation_starters.md (6 citations, CHI 2025 Inner Thoughts + JITAI framework + Bosschaerts trigger detection + SSE standard + Frontiers coaching review + ACM TOIS proactive AI survey)
+- Gap analysis: All MEDIUM priority topics now researched. Moved to LOW priority topics.
 - MQ missions sent:
-  - RESEARCHER -> A1, "Research complete: Consolidation Clustering Quality"
-  - RESEARCHER -> A1, "Research complete: Resilience Layer Integration"
-  - RESEARCHER -> A1, "Research complete: Structured Logging Replacement"
-- Backlog updated: 1 HIGH priority researched, 3 new MEDIUM priority topics added (2 researched, 1 remaining)
+  - RESEARCHER -> A1, "Research complete: Cognitive Runtime Configuration Extraction"
+  - RESEARCHER -> A1, "Research complete: Proactive Conversation Starters"
+- Backlog updated: 1 MEDIUM + 1 LOW priority researched
 
 ## In Progress
 - Nothing currently in progress
 
 ## Next Session Priority
-- Remaining MEDIUM priority: Cognitive runtime configuration extraction (10+ hardcoded thresholds in cognitive_runtime.py)
 - LOW priority topics still unresearched:
   1. PWA optimisation for mobile use
   2. Cross-user learning (privacy-preserving aggregation)
   3. Telegram bot activation and testing
-  4. Proactive conversation starters
-  5. Consolidation threshold validation
-  6. Deterministic vs LLM-generated insights
-- Consider: verify implementation quality of papers AZ has already built
-- Consider: scan for additional gaps in recently added features
+  4. Consolidation threshold validation
+  5. Deterministic vs LLM-generated insights
+- Consider: scan for new gaps in recently implemented features
+- Consider: verify quality of papers AZ has already implemented
+- Consider: research more ambitious topics (multi-modal input, voice integration, calendar sync)
 
 ## Current Project Understanding
 - Agent Zero runs on RunPod with Qwen3-235B-A22B-GPTQ-Int4 via vLLM
@@ -39,22 +36,24 @@ Updated at the end of every session. Read at the start of every session.
 - Episodic memory consolidation loop complete and firing
 - 15 executable tools connected
 - Capability verification auto-generates requests
-- 25 research papers produced (22 prior + 3 this session)
-- 10 papers implemented by AZ, 15 ready for implementation
-- AZ zero-bug streak: 150+ sessions
-- Resilience layer exists but NOT integrated (paper written for integration)
-- 15+ print() statements and 14 silent exception handlers (paper written for replacement)
+- 27 research papers produced (25 prior + 2 this session)
+- 10 papers implemented by AZ, 17 ready for implementation
+- AZ zero-bug streak: 152+ sessions
+- ~45 hardcoded thresholds across 6 files (paper written for extraction to pydantic-settings)
+- Proactive outreach web: paper written for SSE-based proactive messages
+- Resilience layer: paper written (resilience_layer_integration.md), awaiting implementation
+- Structured logging: paper written (structured_logging.md), awaiting implementation
 
 ## Known Gaps (updated)
-- Cognitive runtime hardcoded thresholds: 10+ constants in cognitive_runtime.py (DELIBERATION_THRESHOLD, agent weight multipliers, tension coefficients) -- not yet researched
 - agent_zero_server.py is 3900+ lines -- could benefit from modularization (low priority, future work)
 - Silent exception handling: paper written (structured_logging.md), awaiting implementation
 - Resilience layer: paper written (resilience_layer_integration.md), awaiting implementation
+- All MEDIUM and HIGH priority topics researched; remaining LOW priority topics need research
 
 ## Blockers
 - None currently
 
-## Papers Produced (cumulative: 25 total)
+## Papers Produced (cumulative: 27 total)
 1. research/papers/learned_agent_routing.md (4 citations)
 2. research/papers/explicit_deliberation_protocol.md (4 citations)
 3. research/papers/cost_aware_agent_activation.md (5 citations)
@@ -80,3 +79,5 @@ Updated at the end of every session. Read at the start of every session.
 23. research/papers/consolidation_clustering_quality.md (6 citations)
 24. research/papers/resilience_layer_integration.md (6 citations)
 25. research/papers/structured_logging.md (6 citations)
+26. research/papers/cognitive_runtime_configuration.md (6 citations)
+27. research/papers/proactive_conversation_starters.md (6 citations)

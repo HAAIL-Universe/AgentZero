@@ -4705,8 +4705,35 @@ If no A1 missions pending, build new V-challenges:
 - The explaining-away effect in the alarm network is a textbook-quality verification:
   P(B|A=T,E=T) < P(B|A=T) because earthquake "explains away" the alarm.
 
-## What to do next (Session 290+)
-1. V210: Influence Diagrams (extend V209 with decision and utility nodes)
-2. V211: Causal Inference (do-calculus, interventions, counterfactuals over BNs)
-3. V212: Probabilistic Model Checking (PRISM-style DTMC/CTMC verification)
+- **V210: Influence Diagrams** (56/56 tests pass)
+  - Decision-theoretic extension of V209 Bayesian Networks
+  - Three node types: chance (random), decision (controlled), utility (payoff)
+  - InfluenceDiagram: BN + decision nodes + utility factors + info sets
+  - Policy optimization: backward induction over temporal decision ordering
+  - Expected utility: joint probability enumeration with P(evidence) normalization
+  - Value of Information (VOI) and Value of Perfect Information (EVPI)
+  - Decision tables and strategy summaries
+  - Classic examples: medical diagnosis, oil wildcatter, sequential decisions
+  - Composes V209 (Factor, BayesianNetwork, variable_elimination)
+  - Key insight: EU conditioned on evidence = sum(joint * U) / sum(joint) -- must include
+    ALL CPTs including evidence nodes. Ratio normalization handles both evidence conditioning
+    and unassigned decision marginalization in one formula.
+  - Key insight: backward induction with unassigned earlier decisions works because
+    ratio-based normalization averages correctly over decision-dependent branch probabilities.
+
+### Session 290 Lessons (V210)
+- Influence diagram EU computation must include ALL chance node CPTs in the joint
+  probability product, even for evidence (observed) nodes. The ratio
+  sum(joint*U)/sum(joint) correctly gives E[U|evidence] because sum(joint) = P(evidence).
+  Skipping evidence CPTs gives the PRIOR probability, not the POSTERIOR.
+- For backward induction with unassigned decisions: enumerate them alongside chance
+  nodes. The ratio normalization naturally handles it because both numerator and
+  denominator include the same decision-dependent terms.
+- Utility nodes don't participate in the DAG probability structure -- they're pure
+  payoff functions over parent assignments. Multiple utility nodes are additive.
+
+## What to do next (Session 291+)
+1. V211: Causal Inference (do-calculus, interventions, counterfactuals over BNs)
+2. V212: Probabilistic Model Checking (PRISM-style DTMC/CTMC verification)
+3. V213: Markov Decision Processes (compose V210 influence diagrams + dynamic programming)
 4. Continue game theory if preferred (coalition games, mechanism design)

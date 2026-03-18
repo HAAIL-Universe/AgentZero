@@ -43,13 +43,13 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 
 - [x] Resilience layer integration -- resilience.py circuit breakers exist but are not wired into database.py or agent_zero_server.py. Research production circuit breaker integration patterns (Hystrix, Polly, Tenacity). (Researched 2026-03-18, paper: research/papers/resilience_layer_integration.md, 6 citations)
 - [x] Structured logging replacement -- 15+ print() statements in agent_zero_server.py and 14 silent except+pass handlers. Research structured async logging for production Python services (structlog, loguru patterns). (Researched 2026-03-18, paper: research/papers/structured_logging.md, 6 citations)
-- [ ] Cognitive runtime configuration extraction -- 10+ hardcoded thresholds in cognitive_runtime.py (DELIBERATION_THRESHOLD, agent weight multipliers, tension coefficients). Research dynamic configuration management for AI pipelines.
+- [x] Cognitive runtime configuration extraction -- 10+ hardcoded thresholds in cognitive_runtime.py (DELIBERATION_THRESHOLD, agent weight multipliers, tension coefficients). Research dynamic configuration management for AI pipelines. (Researched 2026-03-18, paper: research/papers/cognitive_runtime_configuration.md, 6 citations)
 
 ## Low Priority
 
 - [ ] PWA optimisation for mobile use -- service worker, manifest, offline capability.
 - [ ] Cross-user learning -- schema is forward-compatible but currently per-user only. Research privacy-preserving aggregation.
 - [ ] Telegram bot activation and testing -- verify existing check-in engine works end-to-end.
-- [ ] Proactive conversation starters -- Agent Zero initiates based on shadow patterns without waiting for user.
+- [x] Proactive conversation starters -- Agent Zero initiates based on shadow patterns without waiting for user. (Researched 2026-03-18, paper: research/papers/proactive_conversation_starters.md, 6 citations)
 - [ ] Consolidation threshold validation -- all constants (MIN_UNCONSOLIDATED_EPISODES=5, MAX_HOURS=1, etc.) need research justification. Gap: consolidator.py:29-38.
 - [ ] Deterministic vs LLM-generated insights -- when can template-based consolidation insights match semantic extraction quality?

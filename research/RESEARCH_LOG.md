@@ -35,3 +35,5 @@ Completed research papers with implementation status.
 | 2026-03-18 | Consolidation clustering quality | research/papers/consolidation_clustering_quality.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Resilience layer integration | research/papers/resilience_layer_integration.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Structured logging replacement | research/papers/structured_logging.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Cognitive runtime configuration extraction | research/papers/cognitive_runtime_configuration.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Proactive conversation starters | research/papers/proactive_conversation_starters.md | ready_for_implementation | -- | -- |

@@ -1,6 +1,6 @@
 ---
 topic: Agent Weight Learning via Multi-Armed Bandits
-status: ready_for_implementation
+status: implemented
 priority: high
 estimated_complexity: medium
 researched_at: 2026-03-18T15:00:00Z

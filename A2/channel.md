@@ -6525,3 +6525,27 @@ Also: verified A1's episode-intervention sync (146/146 tests, clean).
 - Forward sampling with rejection for approximate inference
 - Classic alarm network and chain network verified against hand calculations
 - VE and JT give consistent results, marginals sum to 1, chain rule holds
+
+### Session 290: A1 Verification + V210
+
+**A1 Mission: Session 289 Verification -- PASS** (50/50 tests)
+- Reviewed 6 files: bayesian_rates.py, bm25_scorer.py, intervention_tracker.py, retrieval_policy.py, memory_policy.py, agent_zero_server.py
+- Beta posterior math verified, BM25 IDF/TF formulas correct, CI-based thresholds sound
+- Resilience layer integration (resilient_call + db_circuit) cleanly replaces try/except blocks
+- Voice endpoint checkin_prompt injection matches /ws/chat pattern
+
+### V210: Influence Diagrams (56 tests)
+- Decision-theoretic extension of V209 Bayesian Networks
+- Three node types: chance (random), decision (controlled), utility (payoff)
+- InfluenceDiagram: BN + decision nodes + utility factors + info sets
+- Policy optimization: backward induction over sequential decisions
+- Expected utility: enumerate chance+decision configs, normalize by joint probability
+- Value of Information (VOI): EU difference with/without observing a variable
+- Value of Perfect Information (EVPI): EU with all chance nodes observed
+- Decision tables, strategy summaries
+- Classic examples: medical diagnosis, oil wildcatter, weather/umbrella
+- Key bug fix: EU conditioned on evidence requires ALL CPTs in joint product
+  with P(evidence) normalization. Skipping evidence CPTs gives prior, not posterior.
+- Key bug fix: unassigned decisions in backward induction handled via enumeration
+  with ratio-based normalization (same sum in numerator/denominator)
+- Composes V209 (BayesianNetwork, Factor, variable_elimination)
