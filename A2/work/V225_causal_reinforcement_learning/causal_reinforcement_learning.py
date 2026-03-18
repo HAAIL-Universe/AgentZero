@@ -252,15 +252,21 @@ class CausalMDP:
                 continue  # Action is intervened
 
             if var in self._structural_eqs:
-                # Get parent values
+                # Get parent values.
+                # State variable parents represent CURRENT (t) values,
+                # so always use sv. Only non-state, non-confounder parents
+                # that were computed this timestep use next_state_dists.
                 parent_vals = {}
                 for p in self.causal_parents.get(var, []):
                     if p == self.action_var:
                         parent_vals[p] = action
                     elif p in self.confounders:
                         continue  # Marginalize out
+                    elif p in self.state_domains:
+                        # State variable parent = current value (temporal edge)
+                        if p in sv:
+                            parent_vals[p] = sv[p]
                     elif p in next_state_dists:
-                        # Already computed -- need to marginalize
                         parent_vals[p] = next_state_dists[p]
                     elif p in sv:
                         parent_vals[p] = sv[p]
@@ -399,12 +405,16 @@ class CausalMDP:
         return {v: dict(d) for v, d in merged_dists.items() if d}
 
     def _topological_sort(self) -> list[str]:
-        """Topological sort of all variables (state + confounders)."""
+        """Topological sort of all variables (state + confounders).
+
+        Self-edges (x -> x) are temporal (current -> next) and don't
+        create within-timestep dependencies, so they're excluded.
+        """
         all_vars = set(self.state_vars) | set(self.confounders.keys())
         in_degree = defaultdict(int)
         for v in all_vars:
             for p in self.causal_parents.get(v, []):
-                if p in all_vars:
+                if p in all_vars and p != v:  # Exclude self-loops
                     in_degree[v] += 1
 
         queue = [v for v in all_vars if in_degree[v] == 0]
@@ -414,10 +424,16 @@ class CausalMDP:
             v = queue.pop(0)
             result.append(v)
             for c in self.causal_children.get(v, []):
-                if c in all_vars:
+                if c in all_vars and c != v:  # Exclude self-loops
                     in_degree[c] -= 1
                     if in_degree[c] == 0:
                         queue.append(c)
+
+        # Add any remaining vars not reached (shouldn't happen in DAGs)
+        for v in sorted(all_vars):
+            if v not in result:
+                result.append(v)
+
         return result
 
     def to_mdp(self) -> MDP:
@@ -1688,16 +1704,29 @@ def build_confounded_bandit_mdp() -> tuple[CausalMDP, dict]:
         treatment = parents.get("treatment", "drug_A")
         severity = parents.get("severity", 0)
 
+        # Use defaultdict to avoid duplicate-key overwrites when
+        # min(h+1,2) == h or max(h-1,0) == h at boundaries.
+        from collections import defaultdict as _dd
+        dist = _dd(float)
+
         if treatment == "drug_A":
             if severity == 0:  # Low severity
-                return {min(h + 1, 2): 0.7, h: 0.3}
+                dist[min(h + 1, 2)] += 0.7
+                dist[h] += 0.3
             else:  # High severity
-                return {min(h + 1, 2): 0.3, h: 0.5, max(h - 1, 0): 0.2}
+                dist[min(h + 1, 2)] += 0.3
+                dist[h] += 0.5
+                dist[max(h - 1, 0)] += 0.2
         else:  # drug_B
             if severity == 0:
-                return {min(h + 1, 2): 0.5, h: 0.5}
+                dist[min(h + 1, 2)] += 0.5
+                dist[h] += 0.5
             else:
-                return {min(h + 1, 2): 0.6, h: 0.3, max(h - 1, 0): 0.1}
+                dist[min(h + 1, 2)] += 0.6
+                dist[h] += 0.3
+                dist[max(h - 1, 0)] += 0.1
+
+        return dict(dist)
 
     cmdp.set_structural_eq("health", health_transition)
 

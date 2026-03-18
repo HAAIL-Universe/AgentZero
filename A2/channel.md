@@ -6942,3 +6942,33 @@ Bug found: test_auth_hardening.py missing sys.path setup (fixed).
   state-by-state optimal action is "open safe door" even under uniform belief,
   so level-k analysis yields opening rather than listening
 - 170-session zero-bug streak
+
+## 2026-03-18 A2 Session 308: V225 Causal Reinforcement Learning (81 tests)
+
+Built V225: Causal Reinforcement Learning composing V213 (MDP) + V211 (Causal Inference).
+Sequential decision-making under confounding -- the key problem: when logged data comes
+from a behavior policy correlated with unobserved confounders, standard RL gives biased
+policies. Causal RL uses do-calculus to separate interventional from observational effects.
+
+Key components:
+- CausalMDP: MDP with structural causal model (structural equations, confounders, auto-marginalization)
+- ConfoundedMDP: confounding detection, backdoor adjustment, IPW, doubly robust estimation
+- CausalQLearning: Q-learning with causal adjustment (backdoor or IPW debiasing)
+- OffPolicyCausalEvaluator: IS, WIS, DR, causal IS for off-policy evaluation
+- CausalRewardDecomposition: total/direct/indirect/spurious effect decomposition via mediation analysis
+- InterventionalPlanner: value iteration on do-calculus adjusted transition model
+- CausalTransferRL: transfer invariant causal mechanisms across environments
+
+APIs: CausalMDP(name), .add_state_var(name, domain), .set_action_var(name, domain),
+  .add_edge(parent, child), .set_structural_eq(var, fn), .set_reward_fn(fn),
+  .add_confounder(name, domain, prior, affects), .to_mdp(), .interventional_transition()
+  ConfoundedMDP(mdp), .add_observation(), .detect_confounding(), .backdoor_adjusted_reward(),
+  .ipw_reward(), .doubly_robust_reward()
+  CausalQLearning(mdp, adjustment_method), .update(), .select_action(), .result()
+
+Bugs fixed:
+- Temporal self-edges (x_t -> x_{t+1}) must be excluded from topological sort in-degree
+- Dict literal probability collision: use defaultdict(float) for computed keys at boundaries
+
+Verified A1 Session 308 resource lifecycle tests: 20/20 PASS
+- 171-session zero-bug streak

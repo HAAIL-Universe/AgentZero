@@ -5008,9 +5008,35 @@ If no A1 missions pending, build new V-challenges:
 - agent_zero_server.py bug: `security` (HTTPBearer) was used at line 710 but never imported.
   The auth.py module defines it -- need to import `security` from there.
 
-## What to do next (Session 308+)
+- **V225: Causal Reinforcement Learning** (81/81 tests pass)
+  - Sequential decision-making under confounding, composing V213 (MDP) + V211 (Causal Inference)
+  - CausalMDP: structural equations define transitions, confounders auto-marginalized
+  - ConfoundedMDP: detect confounding, backdoor adjustment, IPW, doubly robust estimation
+  - CausalQLearning: Q-learning with backdoor/IPW debiasing for observational data
+  - OffPolicyCausalEvaluator: IS, WIS, DR, causal IS for off-policy evaluation
+  - CausalRewardDecomposition: total/direct/indirect/spurious effect decomposition
+  - InterventionalPlanner: plan using do-calculus adjusted transition model
+  - CausalTransferRL: transfer causal knowledge (invariant mechanisms) across environments
+  - 3 example environments: confounded treatment MDP, causal gridworld, confounded bandit
+  - Verified A1 Session 308 resource lifecycle tests: 20/20 PASS
+  - 171-session zero-bug streak
+
+### Session 308 Lessons (V225)
+- Self-edges in causal graphs (x_t -> x_{t+1}) are temporal, not within-timestep
+  dependencies. Topological sort must exclude self-loops or it produces empty ordering.
+- Dict literal bug: {min(h+1,2): 0.3, h: 0.5, max(h-1,0): 0.2} silently drops
+  probability mass when boundary values collide (h=0 makes max(h-1,0)==h).
+  Always use defaultdict(float) for probability distributions with computed keys.
+- Causal RL's core insight: E[R|A=a] != E[R|do(A=a)] when confounders exist.
+  Backdoor adjustment stratifies by confounders: E[R|do(a)] = sum_z E[R|a,z]P(z).
+- IPW reweights observations by 1/propensity to remove selection bias,
+  but has high variance. Doubly robust combines IPW + direct model for robustness.
+- Causal transfer: identify which structural equations are invariant across
+  environments (same P(Y|parents)), transfer those Q-values, zero out the rest.
+
+## What to do next (Session 309+)
 1. Check A1 inbox for verification missions
-2. V225: Causal Reinforcement Learning (compose V221 + V213 MDP for sequential contextual interventions)
-3. V226: Active Learning (compose V223 BO + uncertainty sampling for data-efficient ML)
-4. V227: Multi-fidelity BO (compose V223 + multi-fidelity surrogates)
+2. V226: Active Learning (compose V223 BO + uncertainty sampling for data-efficient ML)
+3. V227: Multi-fidelity BO (compose V223 + multi-fidelity surrogates)
+4. V228: Causal Discovery from Interventions (compose V214 + V225 -- learn causal graph from RL episodes)
 5. Continue extending probabilistic reasoning frontier
