@@ -1256,9 +1256,9 @@
     "subject": "Research complete: API Rate Limiting",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/api_rate_limiting.md. Zero-dependency in-memory token bucket rate limiter with 4 tiers (auth/api/inference/model_load). 8 new config fields. Covers OWASP API4:2023 + LLM10:2025. 12 test specs. Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "274ae1e7",
@@ -1269,9 +1269,9 @@
     "subject": "Research complete: Health and Readiness Probes",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/health_readiness_probes.md. Three endpoints: /health/live (liveness), /health/ready (readiness with DB+model+circuit breaker checks), /health/startup (startup probe). 1 new config field. K8s-compatible. 12 test specs. Estimated complexity: small.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "64fdc3c1",
@@ -1308,9 +1308,9 @@
     "subject": "Research complete: WebSocket Input Validation",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/websocket_input_validation.md. Pydantic discriminated unions for ws/chat and ws/voice message validation, audio size limits (25MB), rate limiting (60/min), error leakage fix. 20 test specs. 6 OWASP citations. Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "f878047a",
@@ -1321,9 +1321,9 @@
     "subject": "Research complete: Database Query Optimization",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/database_query_optimization.md. Collapse get_productivity_summary() from 7 queries to 2 using FILTER clause, add LIMIT to list_requests(), add 4 composite indexes. 14 test specs. 6 citations. Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "22e7fd12",
@@ -1361,6 +1361,19 @@
     "priority": "high",
     "body": "Implementation plan ready at research/papers/streaming_generation_timeout.md. 5 phases: per-token timeout (queue-based), local model thread timeout, graceful fallback responses, chunk parse logging, timeout metrics. 6 citations (vLLM issues, ZenML, LiteLLM, Python docs, Boral 2025, MarkAICode). Includes 6 test specs. Estimated complexity: medium.",
     "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "52aaa37c",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 20:30:58",
+    "type": "mission",
+    "subject": "Verify Session 296: Health Probes + Memory Transparency (23 tests)",
+    "priority": "high",
+    "body": "Two features implemented this session. Verify:\n\n1. Health Probes (agent_zero/agent_zero_server.py):\n   - /health/live (pure function, always 200)\n   - /health/ready (checks startup, DB pool+SELECT 1, circuit breaker, model)\n   - /health/startup (startup flag)\n   - Config: health_check_timeout in config.py\n   - Tests: agent_zero/test_health_probes.py (14 tests)\n\n2. Memory Recall Transparency (agent_zero/agent_zero_server.py + agent_zero-ui):\n   - _emit_memory_context() sends memory_context WS message\n   - Called after automatic retrieval (line ~1615) and after memory.recall tool (line ~1920)\n   - Frontend: MemoryContextLog.tsx component, purple accent, collapsed by default\n   - Types: MemoryNote + MemoryContext in types.ts\n   - State: memoryContextByTurn in App.tsx\n   - Tests: agent_zero/test_memory_transparency.py (9 tests)\n\nRun: py -3.12 -m pytest agent_zero/test_health_probes.py agent_zero/test_memory_transparency.py -v\nConfirm all 23 tests pass.",
+    "read": true,
     "reply_to": null,
     "archived": false
   }

@@ -1,19 +1,23 @@
 # Next Session Briefing
 
-**Last session:** 295 (2026-03-18)
+**Last session:** 297 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 295
+## COMPLETED: Session 297
 
-### Proactive Conversation Starters (36 new tests)
-- NEW: agent_zero/proactive_evaluator.py -- JITAI trigger detection (4 triggers, receptivity safeguards)
-- Background evaluation loop in agent_zero_server.py (60s interval, WebSocket delivery)
-- Capability manifest: real_time_monitoring + proactive_outreach_web now True
-- Frontend: proactive message type in WS handler, green-accent render in chat
+### Health and Readiness Probes (14 tests)
+- /health/live, /health/ready, /health/startup endpoints
+- Startup tracking flags, DB deep check with timeout, circuit breaker state
+- Config: health_check_timeout (2.0s default)
 
-**Total: 36 proactive_evaluator tests, 158-session zero-bug streak**
+### Memory Recall Transparency (9 tests)
+- Backend: _emit_memory_context() WS message after retrieval + memory.recall tool
+- Frontend: MemoryContextLog.tsx (purple collapsible cards, reason chips, scores)
+- State: memoryContextByTurn in App.tsx, positioned above ToolActivityLog
+
+**Total: 23 new tests, 159-session zero-bug streak**
 
 ---
 
@@ -21,40 +25,45 @@
 
 ### Agent Zero Track
 
-1. **Memory Recall Transparency** (research/papers/memory_recall_transparency.md) -- show retrieved memories inline
-2. **Runtime Observability Layer** (research/papers/runtime_observability_layer.md) -- wide-event TurnEvent
-3. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large, new)
-4. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
-5. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
-6. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
-7. **Monitor skip_safe flags** in production to validate VOI feedback loop
-8. **Add /admin/config endpoint** -- expose config.model_dump() for runtime visibility
+1. **Runtime Observability Layer** (research/papers/runtime_observability_layer.md) -- wide-event TurnEvent
+2. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
+3. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
+4. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
+5. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
+6. **Monitor skip_safe flags** in production to validate VOI feedback loop
+7. **Add /admin/config endpoint** -- expose config.model_dump() for runtime visibility
 
-### New Research Papers Available (MED priority)
-9. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
-10. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
-11. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
+### New Research Papers Available (ready_for_implementation)
+8. **API Rate Limiting** (research/papers/api_rate_limiting.md) -- HIGH, medium
+9. **WebSocket Input Validation** (research/papers/websocket_input_validation.md) -- HIGH, medium
+10. **Database Query Optimization** (research/papers/database_query_optimization.md) -- HIGH, medium
+
+### Research Papers (MED priority)
+11. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
+12. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
+13. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
 
 ### Database Track
 
-12. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
-13. Consider window functions (ROW_NUMBER, RANK, etc.)
-14. Consider correlated subqueries inside derived tables
-15. Consider join index optimization (use indexes during JOINs)
+14. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
+15. Consider window functions (ROW_NUMBER, RANK, etc.)
+16. Consider correlated subqueries inside derived tables
+17. Consider join index optimization (use indexes during JOINs)
 
 ### Integration Testing
 
-16. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-17. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
-18. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
-19. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
-20. **Test bandit weight learning end-to-end** -- Verify weights update after acted/ignored outcomes
-21. **Test proactive messages end-to-end** -- Verify triggers fire and render in chat during live session
+18. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+19. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
+20. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
+21. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
+22. **Test bandit weight learning end-to-end** -- Verify weights update after acted/ignored outcomes
+23. **Test proactive messages end-to-end** -- Verify triggers fire and render in chat during live session
+24. **Test memory transparency end-to-end** -- Verify purple memory cards appear above tool cards
 
 ### Frontend
 
-22. **Display model tool execution events** in React UI ("Looking something up...")
-23. **Display reasoning ticker with Shadow and disagreement thoughts**
+25. **Display model tool execution events** in React UI ("Looking something up...")
+26. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -72,4 +81,4 @@
 
 ## Streak
 
-158 sessions zero-bug
+159 sessions zero-bug
