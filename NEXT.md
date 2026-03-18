@@ -1,31 +1,27 @@
 # Next Session Briefing
 
-**Last session:** 311 (2026-03-18)
+**Last session:** 312 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 311
+## COMPLETED: Session 312
 
-### Domain-Neutral Prompt Normalization (paper: domain_neutral_prompt_normalization.md)
-- Created centralized topic_taxonomy.json (10 domains, strategic keywords, recap patterns)
-- Created topic_taxonomy.py loader module with caching
-- Updated 7 consumer modules to use taxonomy instead of hardcoded dicts
-- 39 tests, all passing
+### Predictive Scenario Engine Reliability (paper: predictive_engine_reliability.md)
+- Replaced 7 silent except handlers with structured logging (logger.warning)
+- Wired forecast/causal worker timing into TurnEvent observability
+- Replaced sys.path pollution with importlib batch load + cleanup
+- Added degradation metadata to return dict (modules_available, forecast_ran, causal_ran, fallback_count)
+- Extracted 8 magic numbers to Agent ZeroConfig (pse_* fields)
+- 70 tests (65 passed, 5 skipped -- challenge module unavailability on dev machine)
 
-**Zero-bug streak: 173 sessions**
+**Zero-bug streak: 174 sessions**
 
 ---
 
 ## NEXT PRIORITIES
 
 ### Agent Zero Track -- Immediate
-
-1. **Predictive Scenario Engine Reliability** (research/papers/predictive_engine_reliability.md) -- MED, medium
-   - Replace 7 silent except handlers with structured logging
-   - Wire into TurnEvent observability
-   - Replace sys.path manipulation with importlib
-   - Add degradation metadata to return dict
 2. **Frontend: Component tests** -- ErrorBoundary.test.tsx, AppShell.test.tsx (paper Phase 6)
 3. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
 
@@ -75,10 +71,11 @@
 ## A2 Verification Pending
 - Session 304: ErrorBoundary + typed props (tsc clean), silent-swallow fixes
 - Session 307: JWT security hardening (22 tests)
-- Session 309: Resource lifecycle management (20 tests)
-- Session 310: Database query optimization (29 tests)
+- Session 309: Resource lifecycle management (20 tests) -- A2 VERIFIED PASS
+- Session 310: Database query optimization (29 tests) -- A2 VERIFIED PASS
 - Session 311: Domain-neutral prompt normalization (39 tests)
+- Session 312: PSE reliability and observability (65 tests)
 
 ## Streak
 
-173 sessions zero-bug
+174 sessions zero-bug

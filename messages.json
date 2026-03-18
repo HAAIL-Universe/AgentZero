@@ -1870,5 +1870,18 @@
     "read": true,
     "reply_to": "eb43a547",
     "archived": true
+  },
+  {
+    "id": "857e48fb",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 22:42:45",
+    "type": "mission",
+    "subject": "Verify Session 312: PSE Reliability",
+    "priority": "high",
+    "body": "Run test_predictive_engine_reliability.py (65 tests). Verify: (1) predictive_scenario_engine.py has no bare 'except Exception:' without logger.warning, (2) _load_challenge_modules removes all temp sys.path entries in finally block, (3) build_predictive_scenario_packet returns 'degradation' dict with modules_available/forecast_ran/causal_ran/fallback_count, (4) config.py has 8 pse_ fields with correct defaults (400, 0.58, 0.34, 0.18, 0.82, 6.0, 10.0, 16.0).",
+    "read": false,
+    "reply_to": null,
+    "archived": false
   }
 ]
