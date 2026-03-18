@@ -105,3 +105,23 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 - [x] Database transaction atomicity -- non-atomic commitment creation (database.py:410-425, two INSERT without transaction), non-atomic consolidation marking (consolidator.py:914-916, in-memory only). (Researched 2026-03-18, paper: research/papers/database_transaction_atomicity.md, 5 citations)
 - [x] Unbounded in-memory state growth -- _login_attempts dict in auth.py:89 grows without eviction, _A2_INBOX_CACHE in tool_runtime.py:520 never trimmed, _calibration_ratio in context_manager.py:33 has no thread safety. (Researched 2026-03-18, paper: research/papers/unbounded_in_memory_state_growth.md, 5 citations)
 - [x] CSRF and session token storage -- JWT stored in localStorage (XSS-accessible), token passed in WebSocket URL query params (logged in proxies/history), no CSRF token on POST/DELETE endpoints, CORS allow_headers=* wildcard. (Researched 2026-03-18, paper: research/papers/csrf_and_session_token_storage.md, 6 citations)
+
+## High Priority (New -- from gap analysis 2026-03-18 session 10)
+
+- [x] React frontend error resilience and type safety -- agent_zero-ui has zero error boundaries, AppShell uses props: any, only 1 test file, App.tsx is 1000+ line god component with 40+ useState hooks. Any component crash takes down entire app. (Researched 2026-03-18, paper: research/papers/react_frontend_error_resilience.md, 8 citations)
+
+## Medium Priority (New -- from gap analysis 2026-03-18 session 10)
+
+- [x] Predictive scenario engine reliability and observability -- 1255-line module with 7 silent except Exception handlers, zero observability integration, fragile sys.path imports, 15+ hardcoded magic numbers. Failures completely invisible. (Researched 2026-03-18, paper: research/papers/predictive_engine_reliability.md, 6 citations)
+
+## High Priority (New -- from agent scan 2026-03-18 session 10)
+
+- [ ] Crisis detection pattern completeness -- guardrails.py:304 _is_crisis_signal() has only 8 negative-sentiment patterns. Missing: self-harm in progress ("have a rope", "pills in front of me"), acute intoxication ("just took 20 pills"), dangerous situations ("on a bridge"). Safety-critical gap.
+- [ ] Consolidation transaction atomicity -- consolidator.py:873-915 mutates shadow episodes and rules in-place without copy-on-write. Partial consolidation failure leaves inconsistent state. Episode eviction (episode_store.py:207-217) can race with consolidation. Needs shadow copy + atomic apply pattern.
+- [ ] Cognitive runtime agent exception isolation -- cognitive_runtime.py:918-1078 uses asyncio.ensure_future without exception handlers on _run_and_tag. A single agent exception crashes the entire reasoning turn with no fallback.
+
+## Medium Priority (New -- from agent scan 2026-03-18 session 10)
+
+- [ ] Config cross-field validation and constant deduplication -- config.py min/max password lengths not cross-validated (min=64, max=32 accepted by Pydantic). ws_messages.py hardcodes limits that should come from config. Circuit breaker has no metrics endpoint for observability.
+- [ ] Model inference circuit breaker and timeout -- model inference calls (agent_zero_server.py:2599, 2712) have no circuit breaker unlike DB calls. generate_stream() and generate_with_tools() can hang indefinitely. Resilience.py pattern exists but not wired to inference.
+- [ ] Pydantic input validation gaps -- UpdateRequestCreate (line 543) and CommitmentCreate (line 568) accept free-form strings for category/priority/cadence/weight. No Enum constraints. Data quality degrades silently.

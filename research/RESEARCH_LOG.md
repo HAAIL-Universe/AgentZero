@@ -61,3 +61,5 @@ Completed research papers with implementation status.
 | 2026-03-18 | Database transaction atomicity | research/papers/database_transaction_atomicity.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Unbounded in-memory state growth | research/papers/unbounded_in_memory_state_growth.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | CSRF and session token storage | research/papers/csrf_and_session_token_storage.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | React frontend error resilience and type safety | research/papers/react_frontend_error_resilience.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Predictive scenario engine reliability | research/papers/predictive_engine_reliability.md | ready_for_implementation | -- | -- |
