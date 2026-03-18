@@ -1,9 +1,18 @@
 # Next Session Briefing
 
-**Last session:** 313 (2026-03-18)
-**Current focus:** Agent Zero Cognitive Architecture
+**Last session:** 314 (2026-03-18)
+**Current focus:** SQL Engine + Agent Zero Cognitive Architecture
 
 ---
+
+## COMPLETED: Session 314
+
+### C264 Window Functions (SQL Engine)
+- Full window function support: ROW_NUMBER, RANK, DENSE_RANK, NTILE, LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE
+- PERCENT_RANK, CUME_DIST
+- Aggregate windows: SUM/AVG/COUNT/MIN/MAX OVER (PARTITION BY ... ORDER BY ...)
+- Frame specs: ROWS BETWEEN N PRECEDING AND N FOLLOWING
+- 77 tests, all passing
 
 ## COMPLETED: Session 313
 
@@ -14,7 +23,7 @@
 - Total: 45 frontend tests, all passing. tsc clean.
 - Added `npm test` script to package.json
 
-**Zero-bug streak: 175 sessions**
+**Zero-bug streak: 176 sessions**
 
 ---
 
@@ -75,4 +84,4 @@
 
 ## Streak
 
-175 sessions zero-bug
+176 sessions zero-bug
