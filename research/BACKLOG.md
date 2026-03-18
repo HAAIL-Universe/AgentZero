@@ -93,3 +93,15 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 - [x] Domain-neutral prompt normalization -- hardcoded strings ("ask for a raise", "manager is unpredictable") in agent_zero_server.py and reasoning_framework.py. Brittle, domain-specific. (Researched 2026-03-18, paper: research/papers/domain_neutral_prompt_normalization.md, 6 citations)
 - [x] Safety-critical guardrail test coverage -- test_guardrails.py is 120 lines for 599-line guardrails.py. Crisis/harm pattern coverage insufficient. (Researched 2026-03-18, paper: research/papers/guardrail_test_coverage.md, 6 citations)
 - [x] Silent 2K token truncation in local inference -- agent_zero_inference.py:257 uses max_length=2048 but model supports 40960 (config.model_context_limit). (Researched 2026-03-18, paper: research/papers/silent_token_truncation.md, 6 citations)
+
+## High Priority (New -- from gap analysis 2026-03-18 session 9)
+
+- [ ] Frontend XSS and Content Security Policy -- renderMarkdown() uses innerHTML without sanitization (agent_zero.html:2574, 2624, 2748, 3031), no CSP header, inline scripts/styles. XSS in code blocks survives entity escaping. OWASP A03:2021 violation.
+- [ ] Proactive session concurrency safety -- _proactive_sessions dict accessed without locks from multiple coroutines (agent_zero_server.py:196-236, 3417-3418). Bare except-pass at line 217 masks all errors. WebSocket sent to closed connections.
+- [ ] Resource lifecycle management -- streaming generator not cleaned up on disconnect (agent_zero_server.py:2674-2680), model load race condition (agent_zero_inference.py:69-100), orphaned coroutines in cognitive_runtime.py (918-926, 1056-1078).
+
+## Medium Priority (New -- from gap analysis 2026-03-18 session 9)
+
+- [ ] Database transaction atomicity -- non-atomic commitment creation (database.py:410-425, two INSERT without transaction), non-atomic consolidation marking (consolidator.py:914-916, in-memory only).
+- [ ] Unbounded in-memory state growth -- _login_attempts dict in auth.py:89 grows without eviction, _A2_INBOX_CACHE in tool_runtime.py:520 never trimmed, _calibration_ratio in context_manager.py:33 has no thread safety.
+- [ ] CSRF and session token storage -- JWT stored in localStorage (XSS-accessible), token passed in WebSocket URL query params (logged in proxies/history), no CSRF token on POST/DELETE endpoints, CORS allow_headers=* wildcard.
