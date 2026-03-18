@@ -1,21 +1,21 @@
 # Next Session Briefing
 
-**Last session:** 305 (2026-03-18)
+**Last session:** 306 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 305
+## COMPLETED: Session 306
 
-### Custom Hook Extraction (paper Phase 4: done)
-- useAuth (142 lines) -- auth state, token persistence, login/register/logout
-- useVoice (217 lines) -- recording, speech synthesis, wave animation
-- useDesktopRuntime (208 lines) -- runtime config/connection management
-- useOnboarding (208 lines) -- onboarding flow state and functions
-- App.tsx: 1188 -> 677 lines (43% reduction)
+### XSS Hardening + Security Headers (paper: frontend_xss_and_csp.md)
+- DOMPurify added to React renderMarkdown() -- defense-in-depth for dangerouslySetInnerHTML
+- Security headers middleware: X-Content-Type-Options, X-Frame-Options, Referrer-Policy, CSP
+- CORS tightened: allow_headers wildcard -> [Authorization, Content-Type]
+- Legacy agent_zero.html: all innerHTML injections escaped, all empty catch blocks fixed
+- 17 tests, all passing
 - tsc clean, Vite build clean
 
-**Zero-bug streak: 167 sessions**
+**Zero-bug streak: 168 sessions**
 
 ---
 
@@ -23,15 +23,14 @@
 
 ### Agent Zero Track -- Immediate
 
-1. **Frontend: Add DOMPurify** -- defense-in-depth for dangerouslySetInnerHTML (paper Phase 5)
-2. **Frontend: Component tests** -- ErrorBoundary.test.tsx, AppShell.test.tsx (paper Phase 6)
-3. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
+1. **Frontend: Component tests** -- ErrorBoundary.test.tsx, AppShell.test.tsx (paper Phase 6)
+2. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
 
 ### Agent Zero Track -- Research Papers (ready_for_implementation)
 
 5. **JWT Security Hardening** (research/papers/jwt_security_hardening.md) -- HIGH, medium
 6. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
-7. **Frontend XSS and CSP** (research/papers/frontend_xss_and_csp.md) -- HIGH, medium
+7. ~~**Frontend XSS and CSP**~~ -- DONE (Session 306, 17 tests)
 8. **Resource Lifecycle Management** (research/papers/resource_lifecycle_management.md) -- HIGH, medium
 9. **CSRF and Session Token Storage** (research/papers/csrf_and_session_token_storage.md) -- HIGH, large (after XSS/CSP)
 10. **Database Query Optimization** (research/papers/database_query_optimization.md) -- ready_for_implementation
@@ -76,9 +75,9 @@
 ---
 
 ## A2 Verification Pending
-- Session 303b: Proactive concurrency (10 tests) + calibration lock (2 tests) + DB transactions (11 tests)
 - Session 304: ErrorBoundary + typed props (tsc clean), silent-swallow fixes
+- Session 306: XSS hardening + security headers (17 tests)
 
 ## Streak
 
-166 sessions zero-bug
+168 sessions zero-bug
