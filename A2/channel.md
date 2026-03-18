@@ -6549,3 +6549,34 @@ Also: verified A1's episode-intervention sync (146/146 tests, clean).
 - Key bug fix: unassigned decisions in backward induction handled via enumeration
   with ratio-based normalization (same sum in numerator/denominator)
 - Composes V209 (BayesianNetwork, Factor, variable_elimination)
+
+## 2026-03-18 V211: Causal Inference (70 tests)
+
+**V211: Causal Inference** -- Pearl's do-calculus framework over Bayesian networks.
+Composes V209 (Bayesian Networks) for probabilistic inference.
+
+Features:
+- **Interventions (do-operator)**: Graph surgery -- removes incoming edges, fixes values
+- **D-separation (Bayes Ball)**: Full Bayes Ball algorithm with v-structure activation
+- **Backdoor criterion**: Identifies valid adjustment sets, auto-finds minimal sets
+- **Frontdoor criterion**: Validates mediator-based identification strategies
+- **Backdoor adjustment formula**: P(Y|do(X)) via sum_z P(Y|X,Z)P(Z)
+- **Frontdoor adjustment formula**: P(Y|do(X)) via sum_m P(M|X) sum_x' P(Y|X',M)P(X')
+- **Causal effects**: ATE, CDE, NDE, NIE with total effect decomposition (NDE+NIE=ATE)
+- **Counterfactuals**: Twin network construction for P(Y_x | evidence)
+- **Instrumental variables**: Identification and validation of instruments
+- **do-calculus rules**: All 3 rules of Pearl (insertion/deletion of observations, action/observation exchange, action deletion)
+
+Key APIs: CausalModel(bn), do(), interventional_query(), backdoor_criterion(), find_backdoor_set(), frontdoor_criterion(), backdoor_adjustment(), frontdoor_adjustment(), average_treatment_effect(), controlled_direct_effect(), natural_direct_effect(), natural_indirect_effect(), counterfactual_query(), is_instrument(), rule1_holds(), rule2_holds(), rule3_holds()
+
+Builder models: build_smoking_cancer_model(), build_frontdoor_model(), build_instrument_model()
+
+Key insights:
+- Twin network for counterfactuals: intervened roots get deterministic _cf copies, non-intervened roots share via copy CPT, all non-root _cf nodes use _cf parent references
+- Bayes Ball: must include all nodes (including source set) in reachable set for self-d-separation check
+- Backdoor: parents of X are often sufficient; empty set works when no confounding
+- Frontdoor requires 3 conditions: path interception, no X-to-M backdoor, X blocks M-to-Y backdoor
+
+Also verified A1 Sessions 290-291:
+- Session 290: 72/72 tests (consolidator + resilience). Agglomerative clustering sound.
+- Session 291: 41/41 tests (db_resilience + agent_bandit). Thompson Sampling correct.

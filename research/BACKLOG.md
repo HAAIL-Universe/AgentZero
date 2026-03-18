@@ -51,5 +51,9 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 - [ ] Cross-user learning -- schema is forward-compatible but currently per-user only. Research privacy-preserving aggregation.
 - [ ] Telegram bot activation and testing -- verify existing check-in engine works end-to-end.
 - [x] Proactive conversation starters -- Agent Zero initiates based on shadow patterns without waiting for user. (Researched 2026-03-18, paper: research/papers/proactive_conversation_starters.md, 6 citations)
-- [ ] Consolidation threshold validation -- all constants (MIN_UNCONSOLIDATED_EPISODES=5, MAX_HOURS=1, etc.) need research justification. Gap: consolidator.py:29-38.
+- [x] Consolidation threshold validation -- all constants (MIN_UNCONSOLIDATED_EPISODES=5, MAX_HOURS=1, etc.) need research justification. Gap: consolidator.py:29-38. (Researched 2026-03-18, paper: research/papers/consolidation_threshold_validation.md, 9 citations)
 - [ ] Deterministic vs LLM-generated insights -- when can template-based consolidation insights match semantic extraction quality?
+
+## High Priority (New -- from gap analysis 2026-03-18 session 4)
+
+- [x] Async safety and race condition prevention -- agent_zero_server.py has no asyncio.Lock protecting shadow/session_messages mutations across await boundaries. 8 run_in_executor calls break single-thread guarantee. (Researched 2026-03-18, paper: research/papers/async_safety_race_prevention.md, 6 citations)

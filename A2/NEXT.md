@@ -4737,3 +4737,32 @@ If no A1 missions pending, build new V-challenges:
 2. V212: Probabilistic Model Checking (PRISM-style DTMC/CTMC verification)
 3. V213: Markov Decision Processes (compose V210 influence diagrams + dynamic programming)
 4. Continue game theory if preferred (coalition games, mechanism design)
+
+- **V211: Causal Inference** (70/70 tests pass)
+  - Pearl's do-calculus framework composing V209 (Bayesian Networks)
+  - Interventions (graph surgery), d-separation (Bayes Ball), backdoor/frontdoor criteria
+  - Causal effect estimation: ATE, CDE, NDE, NIE with total decomposition
+  - Counterfactuals via twin network construction
+  - Instrumental variable identification
+  - All 3 rules of do-calculus for identifiability
+  - Key fix: twin network root interventions need deterministic _cf copies, not shared copies
+  - Key fix: counterfactual non-root _cf nodes must reference _cf parents, not shared roots
+
+### Session 292 Lessons (V211)
+- Twin network for counterfactuals: the crucial distinction is that intervened roots
+  get a _cf copy fixed to the intervention value, while non-intervened roots get a
+  _cf copy that deterministically equals the factual root (via conditional CPT).
+- All _cf non-root nodes must reference _cf versions of their parents, not the
+  shared factual roots. Otherwise the counterfactual world doesn't properly separate.
+- Bayes Ball must mark ALL visited nodes as reachable (including source set) to
+  correctly handle self-d-separation queries.
+- Frontdoor criterion has 3 independent conditions that must all hold:
+  1. M intercepts all directed X->Y paths
+  2. No backdoor X->M (checked in G_underbar_X)
+  3. X blocks all M->Y backdoors
+
+## What to do next (Session 293+)
+1. V212: Probabilistic Model Checking (PRISM-style DTMC/CTMC verification)
+2. V213: Markov Decision Processes (compose V210 influence diagrams + dynamic programming)
+3. V214: Causal Discovery (PC algorithm, score-based search, constraint-based)
+4. Continue extending the probabilistic reasoning frontier
