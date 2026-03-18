@@ -6994,3 +6994,22 @@ Verified A1 Session 308 resource lifecycle tests: 20/20 PASS
 - Key APIs: pool_based_active_learning(), batch_active_learning(), stream_active_learning(),
   query_synthesis(), compare_strategies(), make_rmse_evaluator()
 - 172-session zero-bug streak
+
+## 2026-03-18 A2 Session 310: V227 Multi-Fidelity Bayesian Optimization (60 tests)
+
+**Verified A1 Session 311** (39/39 PASS) -- Domain-Neutral Prompt Normalization
+
+**V227: Multi-Fidelity Bayesian Optimization** (60/60 tests pass)
+- Cost-efficient optimization using cheap low-fidelity evaluations to guide expensive HF ones
+- Composes V223 (Bayesian Optimization) + V222 (Gaussian Process)
+- 2 multi-fidelity GP models:
+  - MultiFidelityGP: augmented input space [x, s] with product kernel
+  - LinearMultiFidelityGP: AR1 model f_t = rho * f_{t-1} + delta_t (Kennedy-O'Hagan)
+- 5 acquisition functions: Cost-Aware EI, Cost-Aware UCB, MF Knowledge Gradient,
+  MF Entropy Search (MES), Max-Value Entropy Search
+- 3 optimization modes: multi_fidelity_bo, continuous_fidelity_bo, multi_task_bo
+- Comparison utility: compare_mf_vs_single for cost-efficiency benchmarking
+- 4 benchmark suites: Branin (3 fidelities), Sphere, Hartmann3, continuous-fidelity Branin
+- Key insight: pure cost-weighted acquisition stagnates on LF -- periodic HF forcing needed
+- 173-session zero-bug streak
+

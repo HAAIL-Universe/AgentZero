@@ -576,21 +576,31 @@ def multi_fidelity_bo(
         best_x = None
         best_fid = highest_fid
 
+        # Periodically force HF evaluation (every ~5 iterations or when stuck)
+        force_hf = (iteration % 5 == 0) and (total_cost + fidelity_costs[highest_fid] <= budget)
+
         for fid in fidelity_levels:
             cost_fid = fidelity_costs[fid]
             if total_cost + cost_fid > budget:
                 continue
+            if force_hf and fid != highest_fid:
+                continue
 
-            pred = mf_gp.predict(X_cand, fid)
             pred_hf = mf_gp.predict_highest(X_cand)
 
             if acquisition == MFAcquisitionType.COST_AWARE_EI:
                 # Use HF prediction for EI, scaled by cost at this fidelity
+                # For HF evaluations, add bonus for direct observation
                 acq_vals = cost_aware_ei(
                     pred_hf.mean, pred_hf.std, f_best_hf, cost_fid)
+                if fid == highest_fid:
+                    # Boost HF: direct observation reduces uncertainty more
+                    acq_vals *= 1.5
             elif acquisition == MFAcquisitionType.COST_AWARE_UCB:
                 acq_vals = cost_aware_ucb(
                     pred_hf.mean, pred_hf.std, beta=2.0, cost=cost_fid)
+                if fid == highest_fid:
+                    acq_vals *= 1.5
             elif acquisition == MFAcquisitionType.MF_KNOWLEDGE_GRADIENT:
                 acq_vals = multi_fidelity_knowledge_gradient(
                     mf_gp, X_cand, fid, f_best_hf, cost_fid, rng=rng)
