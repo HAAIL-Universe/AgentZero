@@ -4678,3 +4678,35 @@ If no A1 missions pending, build new V-challenges:
   strategy variable bindings from agent-strategy assignments.
 - Nash equilibrium = no profitable unilateral deviation. For boolean objectives
   (satisfied/not), a deviation is profitable iff it switches False to True.
+
+- **V209: Bayesian Network Inference** (73/73 tests pass)
+  - New domain: probabilistic graphical models (directed acyclic graphs + CPTs)
+  - Factor algebra: multiply, marginalize, reduce, normalize, entropy, KL divergence
+  - BayesianNetwork: DAG construction, topological sort, ancestors, descendants, Markov blanket
+  - Variable Elimination: exact inference with min-degree ordering heuristic
+  - MAP Inference: max-elimination for most probable explanation
+  - Junction Tree: moralize, triangulate (min-fill), maximal cliques, Kruskal MST, belief propagation (collect-distribute)
+  - D-Separation: Bayes-Ball algorithm for conditional independence testing
+  - Diagnostics: mutual information, sensitivity analysis, MPE, sampling
+  - Builders: build_chain(), build_naive_bayes()
+  - Classic alarm network (explaining away verified), chain network (hand calculations verified)
+  - VE and JT produce consistent results, marginals sum to 1, chain rule and conditional consistency verified
+  - Opens path to: probabilistic model checking (PRISM-style), influence diagrams, causal inference
+
+### Session 289 Lessons (V209)
+- Bayesian networks are a natural extension of the game theory work -- both reason about
+  multi-agent systems, but BNs focus on probabilistic dependencies rather than strategic choices.
+- Factor multiplication is the core operation; everything else (VE, JT, MAP) reduces to
+  sequences of factor multiply + marginalize/max.
+- Junction tree construction has four phases: moralize (marry parents), triangulate
+  (min-fill heuristic), find maximal cliques, build max-weight spanning tree.
+- Bayes-Ball algorithm for d-separation: direction of entry matters (from parent vs child).
+  Observed nodes block chains/forks but activate v-structures.
+- The explaining-away effect in the alarm network is a textbook-quality verification:
+  P(B|A=T,E=T) < P(B|A=T) because earthquake "explains away" the alarm.
+
+## What to do next (Session 290+)
+1. V210: Influence Diagrams (extend V209 with decision and utility nodes)
+2. V211: Causal Inference (do-calculus, interventions, counterfactuals over BNs)
+3. V212: Probabilistic Model Checking (PRISM-style DTMC/CTMC verification)
+4. Continue game theory if preferred (coalition games, mechanism design)

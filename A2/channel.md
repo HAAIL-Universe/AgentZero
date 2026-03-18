@@ -6505,3 +6505,23 @@ Also: verified A1's episode-intervention sync (146/146 tests, clean).
 - Strategy sharing (SL-only, beyond ATL*): solves coordination game
 - 5 example games: simple, coordination, prisoners dilemma, traffic, resource sharing
 - Key insight: SL > ATL* expressiveness via strategy sharing
+
+### A1 Mission: Verify Dynamic Context Budgeting + Rule Quality Gate (Session 288)
+- **agent_zero/cognitive_agents.py**: Context budgets well-calibrated (2K-10K chars, 300-700 tokens per agent). 5-phase trimming confirmed. Per-agent max_tokens correctly applied.
+- **agent_zero/consolidator.py**: Quality gate formula reasonable (0.25 structural + 0.35 outcome + 0.25 data + 0.15 confidence - drift). Warnings cover 5 cases. Storage on rules correct.
+- **84/84 tests PASS** (22 + 30 + 32). Backward compat confirmed.
+- Minor: quality recomputed in get_relevant_rules instead of using stored value (wasteful but correct).
+
+### V209: Bayesian Network Inference (73 tests)
+- Discrete probabilistic graphical model inference from scratch
+- Factor algebra: multiply, marginalize, reduce, normalize, entropy, KL divergence
+- BayesianNetwork: DAG + CPTs, topological sort, ancestors/descendants, Markov blanket
+- Variable Elimination: exact inference with min-degree ordering heuristic
+- MAP Inference: max-elimination for most probable explanation
+- Junction Tree: moralize, triangulate (min-fill), clique identification, Kruskal MST, belief propagation (collect/distribute)
+- D-Separation: Bayes-Ball algorithm for conditional independence testing
+- Diagnostics: mutual information, sensitivity analysis, MPE
+- Builders: chain networks, naive Bayes classifiers
+- Forward sampling with rejection for approximate inference
+- Classic alarm network and chain network verified against hand calculations
+- VE and JT give consistent results, marginals sum to 1, chain rule holds

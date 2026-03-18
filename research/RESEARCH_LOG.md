@@ -33,3 +33,5 @@ Completed research papers with implementation status.
 | 2026-03-18 | Bayesian intervention effectiveness | research/papers/bayesian_intervention_effectiveness.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Agent weight learning (MAB) | research/papers/agent_weight_learning.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Consolidation clustering quality | research/papers/consolidation_clustering_quality.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Resilience layer integration | research/papers/resilience_layer_integration.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Structured logging replacement | research/papers/structured_logging.md | ready_for_implementation | -- | -- |

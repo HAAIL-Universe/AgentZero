@@ -39,6 +39,12 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 - [x] Agent weight learning via multi-armed bandits -- replace hardcoded agent weights (cognitive_runtime.py:578-584) with Thompson Sampling that updates from consolidation outcomes. (Researched 2026-03-18, paper: research/papers/agent_weight_learning.md, 6 citations)
 - [x] Consolidation clustering quality -- replace O(n^2) union-find topic overlap (consolidator.py:81-100) with density-based or hierarchical clustering for higher-quality rule extraction. (Researched 2026-03-18, paper: research/papers/consolidation_clustering_quality.md, 6 citations)
 
+## Medium Priority (New -- from gap analysis 2026-03-18 session 3)
+
+- [x] Resilience layer integration -- resilience.py circuit breakers exist but are not wired into database.py or agent_zero_server.py. Research production circuit breaker integration patterns (Hystrix, Polly, Tenacity). (Researched 2026-03-18, paper: research/papers/resilience_layer_integration.md, 6 citations)
+- [x] Structured logging replacement -- 15+ print() statements in agent_zero_server.py and 14 silent except+pass handlers. Research structured async logging for production Python services (structlog, loguru patterns). (Researched 2026-03-18, paper: research/papers/structured_logging.md, 6 citations)
+- [ ] Cognitive runtime configuration extraction -- 10+ hardcoded thresholds in cognitive_runtime.py (DELIBERATION_THRESHOLD, agent weight multipliers, tension coefficients). Research dynamic configuration management for AI pipelines.
+
 ## Low Priority
 
 - [ ] PWA optimisation for mobile use -- service worker, manifest, offline capability.
