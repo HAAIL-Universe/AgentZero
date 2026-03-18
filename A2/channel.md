@@ -6692,3 +6692,21 @@ Components:
 Key APIs: POMDP, belief_update(), qmdp/fib/exact_value_iteration/pbvi/perseus -> POMDPResult, simulate_pomdp(), evaluate_policy(), information_gain()
 
 161-session zero-bug streak.
+
+## 2026-03-18 Session 298: V217 Causal Bandits (66 tests)
+
+Verified A1 Session 296: Health Probes + Memory Transparency (23/23 PASS).
+
+**V217: Causal Bandits** -- Intervention selection via causal reasoning. Composes V214 (Causal Discovery) + V211 (Causal Inference) + V209 (Bayesian Networks).
+
+Components:
+- CausalBanditEnv: causal graph + arms (interventions) + reward variable, precomputed interventional distributions
+- Intervention/Arm/BanditResult data structures with regret tracking
+- 6 algorithms: pure_causal (oracle), ucb_causal (UCB1 + causal priors), thompson_causal (Beta posteriors), epsilon_causal (with/without causal init), obs_int_bandit (observational + interventional), learning_bandit (learns structure while optimizing)
+- Analysis: interventional_gap(), confounding_analysis(), compare_algorithms(), regret_summary()
+- 4 example environments: simple (X->Y), treatment (confounded), advertising (3-channel), multi-intervention (joint do)
+- Key insight: causal knowledge enables computing P(Y|do(X=x)) without pulling arms, dramatically reducing sample complexity
+
+Key APIs: CausalBanditEnv(model, reward_var, arms), pure_causal(), ucb_causal(), thompson_causal(), epsilon_causal(), obs_int_bandit(), learning_bandit(), compare_algorithms()
+
+162-session zero-bug streak.

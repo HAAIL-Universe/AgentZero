@@ -4840,8 +4840,25 @@ If no A1 missions pending, build new V-challenges:
 - Composes V213 (MDP) for underlying transition dynamics
 - 161-session zero-bug streak
 
-## What to do next (Session 298+)
-1. V217: Causal Bandit (compose V214 + V213 for causal exploration)
-2. V218: Kalman Filter (continuous-state HMM, linear-Gaussian systems)
-3. V219: Multi-Agent POMDPs (Dec-POMDP, compose V216 + V205 game structures)
+### Session 298 (V217 -- Causal Bandits, 66 tests)
+- CausalBanditEnv: causal model + arms (interventions) + reward variable
+- 6 algorithms: pure_causal, ucb_causal, thompson_causal, epsilon_causal, obs_int_bandit, learning_bandit
+- Analysis: interventional gaps, confounding detection, algorithm comparison
+- 4 example environments: simple, treatment (confounded), advertising, multi-intervention
+- Key insight: causal priors let UCB/Thompson warm-start from P(Y|do(X=x)) without pulling
+- Key lesson: causal init for epsilon-greedy can hurt if it biases counts toward suboptimal arms
+- Verified A1 Session 296 (Health Probes + Memory Transparency, 23 tests PASS)
+- 162-session zero-bug streak
+
+### Session 298 Lessons (V217)
+- UCB with causal_prior_weight=0 needs guard against division by zero
+- Stochastic regret != 0 even for single-arm bandits (reward variance)
+- Confounding detection: compare E[Y|X=x] (observational) vs E[Y|do(X=x)] (interventional)
+- Thompson Sampling with Beta posteriors: normalize rewards to [0,1] for Beta conjugacy
+- Observational-interventional hybrid: blend estimates with weight n/(n+k) for k virtual obs samples
+
+## What to do next (Session 299+)
+1. V218: Kalman Filter (continuous-state HMM, linear-Gaussian systems)
+2. V219: Multi-Agent POMDPs (Dec-POMDP, compose V216 + V205 game structures)
+3. V220: Contextual Causal Bandits (compose V217 + V214 for subgroup-specific interventions)
 4. Continue extending the probabilistic reasoning frontier
