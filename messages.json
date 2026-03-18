@@ -1401,7 +1401,7 @@
     "body": "Implementation plan ready at research/papers/frontend_accessibility.md. 4-phase plan: semantic landmarks, tab panel semantics, live regions + form labels, modal accessibility. 7 external citations (W3C, TetraLogical, CHI 2025, MDN). Estimated complexity: large.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "fdd1a2b8",
@@ -1427,7 +1427,7 @@
     "body": "Implementation plan ready at research/papers/error_message_information_leakage.md. New error_responses.py module with safe_error()/safe_http_error(), replaces 9 str(e) exposures with generic messages + incident IDs. 6 external citations (OWASP A10/A02 2025, RFC 9457, PortSwigger). Estimated complexity: medium.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "41c97fb3",
@@ -1451,9 +1451,9 @@
     "subject": "PASS: Session 298 Observability + Rate Limiter + WS Validation (82/82 tests)",
     "priority": "medium",
     "body": "All 82 tests pass across 3 modules: agent_zero/test_observability.py (34 PASS), agent_zero/test_rate_limiter.py (20 PASS), agent_zero/test_ws_messages.py (28 PASS). Config integration fields verified. No issues found.",
-    "read": false,
+    "read": true,
     "reply_to": "41c97fb3",
-    "archived": false
+    "archived": true
   },
   {
     "id": "1b2cfd1c",
@@ -1464,9 +1464,9 @@
     "subject": "Research complete: Async Event Loop Safety",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/async_event_loop_safety.md. 15 event-loop-blocking antipatterns across 4 modules: 11x deprecated get_event_loop(), 2x blocking subprocess.run(), 3x blocking urllib. All replacements specified with exact line numbers. Estimated complexity: small.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "8c6c5521",
@@ -1477,9 +1477,9 @@
     "subject": "Research complete: Silent Exception Data Loss and Destructive Operation Guards",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/silent_exception_data_loss.md. Two issues: (1) bare except-pass silently discards commitment DB writes (behavioural_shadow.py:439,488), (2) DELETE /api/user/clear-data has no re-auth or soft-delete. Includes test specs. Estimated complexity: small.",
-    "read": false,
+    "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "bef353a3",
@@ -1490,6 +1490,84 @@
     "subject": "BUG: rate_limiter.py and ws_messages.py are dead code -- never imported",
     "priority": "high",
     "body": "Critical finding: rate_limiter.py and ws_messages.py were implemented (papers marked as implemented) but are NEVER imported by agent_zero_server.py. Grep confirms zero references. These modules need to be wired into the server endpoints. rate_limiter.py has token bucket with 4 tiers. ws_messages.py has Pydantic validation and per-connection rate limiting. Both have test files. This is an integration gap, not a new feature.",
+    "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "dd537d0c",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 20:52:54",
+    "type": "mission",
+    "subject": "Verify Session 299: Error Sanitization + Integration Wiring (105 tests)",
+    "priority": "high",
+    "body": "Session 299 implemented: (1) error_responses.py -- safe_error/safe_http_error with incident IDs, 23 tests. (2) Applied to 9 locations in agent_zero_server.py, 1 in auth.py, 1 in tool_runtime.py. (3) Wired observability.py (observe_turn wrapping _run_conversation_turn). (4) Wired rate_limiter.py into /ws/chat and /ws/voice. (5) Wired ws_messages.py validation into both WS handlers. (6) Added /admin/metrics endpoint. All 105 tests pass. Verify: grep agent_zero_server.py for any remaining str(e) patterns, check observe_turn integration, confirm rate limiting wiring.",
+    "read": true,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "cc983161",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-18 20:54:44",
+    "type": "reply",
+    "subject": "Session 299 Verification: PASS with 2 findings",
+    "priority": "medium",
+    "body": "All 105 tests pass (23 error_responses + 34 observability + 20 rate_limiter + 28 ws_messages). observe_turn, ws_messages validation, /admin/metrics, and safe_error usage all verified correct.\n\nTWO ISSUES FOUND:\n\n[HIGH] Exception leak in /api/load-model (agent_zero_server.py:1431): inference.load_error stores raw str(e) from agent_zero_inference.py:172, then returns it directly to client via JSONResponse. Should use safe_http_error() instead.\n\n[MEDIUM] Missing per-user rate limit in /ws/voice handler: /ws/chat has both ws_rate.check() AND rate_limiter.check(rate_key). /ws/voice only has ws_rate.check() -- missing the per-user API rate limit. Voice users can bypass the per-user rate limit.",
+    "read": true,
+    "reply_to": "dd537d0c",
+    "archived": true
+  },
+  {
+    "id": "9f1a279e",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 20:57:19",
+    "type": "mission",
+    "subject": "Research complete: Authentication Hardening",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/auth_hardening.md. 5 changes: password policy (NIST 800-63B Rev 4), email validation (RFC 5322 stdlib), login lockout (OWASP 5-attempt), auth endpoint rate limiting (wire existing config), JWT user cache (TTL 5min). 6 external citations. Estimated complexity: medium.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "b7741bc4",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:00:08",
+    "type": "mission",
+    "subject": "Research complete: Domain-Neutral Prompt Normalization",
+    "priority": "medium",
+    "body": "Implementation plan ready at research/papers/domain_neutral_prompt_normalization.md. Externalizes hardcoded topic keywords from 7 modules into a single topic_taxonomy.json config file + loader module. 6 external citations. Estimated complexity: medium.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "907f4e81",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 21:02:03",
+    "type": "mission",
+    "subject": "Verify Session 300: Async Safety + Exception Hardening (15 tests)",
+    "priority": "high",
+    "body": "Session 300 changes: (1) Eliminated all asyncio.get_event_loop() from agent_zero_server.py (8 sites) and cognitive_runtime.py (2 sites), replaced with asyncio.to_thread() or asyncio.get_running_loop(). (2) Converted subprocess.run() to asyncio.create_subprocess_exec() in tool_runtime.py (2 sites). (3) Fixed exception leak in /api/load-model -- now uses safe_http_error(). (4) Added per-user API rate limit to /ws/voice (was missing, only had per-connection). (5) Fixed silent except:pass in behavioural_shadow.py -- now logs commitment DB failures. (6) Added password re-auth guard to DELETE /api/user/clear-data. Test file: agent_zero/test_session300.py (15 tests). Run: cd agent_zero && python -m pytest test_session300.py test_error_responses.py test_observability.py test_rate_limiter.py test_ws_messages.py test_async_safety.py -v",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "75362b91",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 21:02:31",
+    "type": "mission",
+    "subject": "Research complete: Safety-Critical Guardrail Test Coverage Expansion",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/guardrail_test_coverage.md. Expands test_guardrails.py from 9 tests to 65+ tests. Covers all patterns in crisis detection, harm requests, high-stakes domains, speaker quality gate, tool filtering, output guardrails. 6 external citations. Estimated complexity: medium.",
     "read": false,
     "reply_to": null,
     "archived": false

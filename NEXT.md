@@ -1,60 +1,69 @@
 # Next Session Briefing
 
-**Last session:** 299 (2026-03-18)
+**Last session:** 300 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 299
+## COMPLETED: Session 300
 
-### Error Message Information Leakage Prevention (23 tests)
-- agent_zero/error_responses.py: safe_error(), safe_http_error(), incident IDs
-- Applied to 11 locations: agent_zero_server.py (9), auth.py (1), tool_runtime.py (1)
-- Research paper status: implemented
+### A2 Findings Fixed
+- /api/load-model exception leak: now uses safe_http_error()
+- /ws/voice missing per-user rate limit: added rate_limiter.check()
 
-### Integration Wiring (82 existing tests confirmed)
-- observability.py wired into _run_conversation_turn + /admin/metrics endpoint
-- rate_limiter.py wired into /ws/chat (per-user API rate limit)
-- ws_messages.py wired into /ws/chat and /ws/voice (validation + per-connection rate limit)
+### Async Event Loop Safety (paper: implemented)
+- Eliminated all 11 asyncio.get_event_loop() calls (agent_zero_server.py, cognitive_runtime.py)
+- Converted 2 blocking subprocess.run() to asyncio.create_subprocess_exec() (tool_runtime.py)
+- HTTP calls in voice.py/agent_zero_inference.py already properly wrapped -- no changes needed
 
-**Total: 105 tests, 161-session zero-bug streak**
+### Silent Exception Data Loss (paper: in_progress)
+- Fixed 2 bare except:pass in behavioural_shadow.py (now logs warnings)
+- Added password re-auth guard to DELETE /api/user/clear-data
+- DEFERRED: soft-delete with 48-hour recovery window (requires DB migration)
+
+**Total: 15 new tests, 162-session zero-bug streak**
 
 ---
 
 ## NEXT PRIORITIES
 
+### Agent Zero Track -- Immediate
+
+1. **Soft-delete for clear_user_data** -- Complete silent_exception_data_loss.md Part 2 (DB migration, deleted_at column, purge job)
+2. **Audit remaining silent-swallow sites** -- agent_zero_server.py has 12 except:pass sites (lines 210, 419, 462, 1170, 1175, 2105, 2117, 2169, 2391, 3294, 3359, 3490)
+
 ### Agent Zero Track -- Research Papers (ready_for_implementation)
 
-1. **JWT Security Hardening** (research/papers/jwt_security_hardening.md) -- HIGH, medium
-2. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
-3. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
+3. **JWT Security Hardening** (research/papers/jwt_security_hardening.md) -- HIGH, medium
+4. **Streaming Generation Timeout** (research/papers/streaming_generation_timeout.md) -- HIGH, medium
+5. **Frontend Accessibility** (research/papers/frontend_accessibility.md) -- HIGH, large
 
 ### Agent Zero Track -- Architecture
 
-4. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
-5. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
-6. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
+6. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large)
+7. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
+8. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
 
 ### Research Papers (MED priority)
-7. **Consolidated Rules Growth Cap** (research/papers/consolidated_rules_growth_cap.md)
-8. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
-9. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
-10. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
+9. **Consolidated Rules Growth Cap** (research/papers/consolidated_rules_growth_cap.md)
+10. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
+11. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
+12. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
 
 ### Integration Remaining
-11. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
-12. **Monitor skip_safe flags** in production to validate VOI feedback loop
-13. **Add /admin/config endpoint** -- expose config.model_dump() for runtime visibility
-14. **A2 verification**: Awaiting verification of Session 299 changes
+13. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
+14. **Monitor skip_safe flags** in production to validate VOI feedback loop
+15. **Add /admin/config endpoint** -- expose config.model_dump() for runtime visibility
+16. **A2 verification**: Awaiting verification of Session 300 changes
 
 ### Integration Testing
-15. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-16. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
-17. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
+17. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+18. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
+19. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
 
 ### Frontend
-18. **Display model tool execution events** in React UI ("Looking something up...")
-19. **Display reasoning ticker with Shadow and disagreement thoughts**
+20. **Display model tool execution events** in React UI ("Looking something up...")
+21. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -72,4 +81,4 @@
 
 ## Streak
 
-161 sessions zero-bug
+162 sessions zero-bug

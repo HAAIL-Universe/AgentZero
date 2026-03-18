@@ -1,6 +1,6 @@
 ---
 topic: Async Event Loop Safety
-status: ready_for_implementation
+status: implemented
 priority: high
 estimated_complexity: small
 researched_at: 2026-03-18T22:00:00Z
