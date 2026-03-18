@@ -26,11 +26,11 @@ Mark with [x] and date when researched. Papers go in `research/papers/`.
 
 ## Medium Priority (New -- from gap analysis 2026-03-18)
 
-- [ ] Dynamic context budgeting for multi-agent pipeline -- agents get different token budgets based on role and input size. Current: flat 6000 char cap for all. Gap: cognitive_agents.py:101-135.
-- [ ] Consolidation rule quality gate -- validate rule quality before injection into agent context. Detect when rules produce poor outcomes. Gap: cognitive_runtime.py:229-260.
-- [ ] Topic-aware memory decay rates -- exponential decay lambda=0.005/hr is uniform. Career decisions should decay slower than fitness check-ins. Gap: episode_store.py:40,206-211.
-- [ ] Outcome pattern confidence scoring -- "i did it" vs "i tried it" should have different outcome confidence. Gap: outcome_patterns.py treats all matches identically.
-- [ ] External outcome resolution API -- episodes only resolve from chat input. Need webhook/API for external systems (calendar, habit tracker). Gap: episode_store.py global.
+- [x] Dynamic context budgeting for multi-agent pipeline -- agents get different token budgets based on role and input size. (Researched 2026-03-18, paper: research/papers/dynamic_context_budgeting.md, 6 citations)
+- [x] Consolidation rule quality gate -- validate rule quality before injection into agent context. (Researched 2026-03-18, paper: research/papers/consolidation_rule_quality_gate.md, 6 citations)
+- [x] Topic-aware memory decay rates -- exponential decay lambda per topic category. (Researched 2026-03-18, paper: research/papers/topic_aware_decay_rates.md, 6 citations)
+- [x] Outcome pattern confidence scoring -- MISC-inspired commitment strength + hedge detection. (Researched 2026-03-18, paper: research/papers/outcome_pattern_confidence.md, 6 citations)
+- [x] External outcome resolution API -- webhook + REST endpoints for external outcome reporting. (Researched 2026-03-18, paper: research/papers/external_outcome_resolution_api.md, 6 citations)
 
 ## Low Priority
 

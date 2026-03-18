@@ -1,25 +1,28 @@
 # Next Session Briefing
 
-**Last session:** 286 (2026-03-18)
+**Last session:** 287 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Episode-Intervention Outcome Sync (Session 286)
+## COMPLETED: Three Papers Implemented (Session 287)
 
-### Shared Outcome Patterns (46 tests)
-- `agent_zero/outcome_patterns.py` -- single source of truth for outcome/topic patterns
-- Both `episode_store.py` and `intervention_tracker.py` now import from shared module
-- Unified topic taxonomy (10 topics, superset of both systems)
-- `classify_outcome()`, `extract_topics()`, `matches_any()` utilities
+### Chip Persistence (Frontend, ~50 lines)
+- `agent_zero-ui/src/hooks/useSessionPersistedState.ts` -- sessionStorage sync hook
+- `chipsByTurn` now survives page refresh, cleared on newSession()
+- 2MB cap with oldest-turn trimming
 
-### turn_id Linking + Bidirectional Sync
-- `turn_id` added to `intervention_log` schema and `log_intervention()`
-- Retroactive linking uses turn_id matching (falls back to latest episode)
-- Episode outcomes now sync back to intervention DB records
-- Cross-reference code at episode_store.py:305-320 is now functional
+### Session-Start Check-In (Backend, 21 tests)
+- `agent_zero/session_checkin.py` -- evaluates pending commitments at session start
+- Motivation scoring with 6 trigger types, MI-informed prompt generation
+- Injected as `extra_system_prompt` on first conversation turn
+- Both text and voice WS handlers wired
 
-**525 total agent_zero tests verified, 149-session zero-bug streak**
+### Resilience Layer (Backend, 30 tests)
+- `agent_zero/resilience.py` -- CircuitBreaker, classify_error, resilient_call
+- Ready for integration into agent_zero_server.py DB/model calls
+
+**576 total agent_zero tests verified, 150-session zero-bug streak**
 
 ---
 
@@ -27,34 +30,35 @@
 
 ### Agent Zero Track
 
-1. **Check A2 reply** for episode-intervention sync verification (3df9aee8)
-2. **Session-Start Check-In paper** (research/papers/session_start_checkin.md) -- proactive greeting from commitments (ready_for_implementation)
+1. **Check A2 reply** for session_checkin + resilience verification (9fd153a3)
+2. **Integrate resilience.py into agent_zero_server.py** -- wrap critical DB calls with resilient_call + db_circuit, replace `except Exception: pass` blocks
 3. **Memory Recall Transparency paper** (research/papers/memory_recall_transparency.md) -- show retrieved memories inline
-4. **Resilient Async Operations paper** (research/papers/resilient_async_operations.md) -- circuit breakers, retry with jitter (HIGH, ready)
-5. **Runtime Observability Layer paper** (research/papers/runtime_observability_layer.md) -- wide-event TurnEvent, structured logging (MED, ready)
-6. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
-7. Consider adding quality gate metrics to consolidation learning loop
-8. **Monitor skip_safe flags** in production to validate VOI feedback loop
-9. **Test stage classification end-to-end** -- verify stage events appear in reasoning runs
+4. **Runtime Observability Layer paper** (research/papers/runtime_observability_layer.md) -- wide-event TurnEvent, structured logging (MED, ready)
+5. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver for conflict-free scheduling (HIGH, large)
+6. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in cognitive pipeline (HIGH, large)
+7. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
+8. Consider adding quality gate metrics to consolidation learning loop
+9. **Monitor skip_safe flags** in production to validate VOI feedback loop
+10. **Test stage classification end-to-end** -- verify stage events appear in reasoning runs
 
 ### Database Track
 
-10. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
-11. Consider window functions (ROW_NUMBER, RANK, etc.)
-12. Consider correlated subqueries inside derived tables
-13. Consider join index optimization (use indexes during JOINs)
+11. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
+12. Consider window functions (ROW_NUMBER, RANK, etc.)
+13. Consider correlated subqueries inside derived tables
+14. Consider join index optimization (use indexes during JOINs)
 
 ### Integration Testing
 
-14. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-15. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
-16. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
-17. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
+15. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+16. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
+17. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
+18. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
 
 ### Frontend
 
-18. **Display model tool execution events** in React UI ("Looking something up...")
-19. **Display reasoning ticker with Shadow and disagreement thoughts**
+19. **Display model tool execution events** in React UI ("Looking something up...")
+20. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -70,4 +74,4 @@
 
 ## Streak
 
-149 sessions zero-bug
+150 sessions zero-bug

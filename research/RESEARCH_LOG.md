@@ -24,3 +24,8 @@ Completed research papers with implementation status.
 | 2026-03-18 | Constraint-based commitment scheduling | research/papers/constraint_commitment_scheduling.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Logic programming for transparent reasoning | research/papers/logic_transparent_reasoning.md | ready_for_implementation | -- | -- |
 | 2026-03-18 | Chip persistence across page refreshes | research/papers/chip_persistence.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Dynamic context budgeting | research/papers/dynamic_context_budgeting.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Consolidation rule quality gate | research/papers/consolidation_rule_quality_gate.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Topic-aware memory decay rates | research/papers/topic_aware_decay_rates.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | Outcome pattern confidence scoring | research/papers/outcome_pattern_confidence.md | ready_for_implementation | -- | -- |
+| 2026-03-18 | External outcome resolution API | research/papers/external_outcome_resolution_api.md | ready_for_implementation | -- | -- |
