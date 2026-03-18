@@ -61,6 +61,7 @@ class TokenType(Enum):
     ORDER = auto(); BY = auto(); ASC = auto(); DESC = auto()
     GROUP = auto(); HAVING = auto(); LIMIT = auto(); OFFSET = auto()
     DISTINCT = auto(); ALL = auto(); UNION = auto()
+    INTERSECT = auto(); EXCEPT = auto()
     BEGIN = auto(); COMMIT = auto(); ROLLBACK = auto()
     SAVEPOINT = auto(); RELEASE = auto()
     COUNT = auto(); SUM = auto(); AVG = auto(); MIN = auto(); MAX = auto()
@@ -107,6 +108,7 @@ KEYWORDS = {
     'desc': TokenType.DESC, 'group': TokenType.GROUP, 'having': TokenType.HAVING,
     'limit': TokenType.LIMIT, 'offset': TokenType.OFFSET,
     'distinct': TokenType.DISTINCT, 'all': TokenType.ALL, 'union': TokenType.UNION,
+    'intersect': TokenType.INTERSECT, 'except': TokenType.EXCEPT,
     'begin': TokenType.BEGIN, 'commit': TokenType.COMMIT, 'rollback': TokenType.ROLLBACK,
     'savepoint': TokenType.SAVEPOINT, 'release': TokenType.RELEASE,
     'count': TokenType.COUNT, 'sum': TokenType.SUM, 'avg': TokenType.AVG,

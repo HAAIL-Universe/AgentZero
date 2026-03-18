@@ -1,34 +1,33 @@
 # Next Session Briefing
 
-**Last session:** 317 (2026-03-18)
+**Last session:** 318 (2026-03-18)
 **Current focus:** SQL Engine + Agent Zero Cognitive Architecture
 
 ---
 
+## COMPLETED: Session 318
+
+### C268 SQL Set Operations
+- UNION/INTERSECT/EXCEPT with ALL variants at top-level
+- Left-associative chaining, ORDER BY/LIMIT/OFFSET hoisting
+- Column count validation, NULL handling, multiplicity semantics
+- Full CTE integration (set ops in CTE bodies and main queries)
+- 93 tests, all passing
+
 ## COMPLETED: Session 317
 
 ### C267 Common Table Expressions
-- Basic, multiple, chained CTEs
-- Column lists, CTE shadowing
-- Recursive CTEs (fixpoint iteration, UNION/UNION ALL, depth limit)
-- CTEs with JOINs, aggregation, empty set handling
 - 88 tests, all passing
 
-## COMPLETED: Session 316
-
-### C266 SQL Subqueries
-- 7 subquery types: scalar, IN/NOT IN, EXISTS/NOT EXISTS, ALL/ANY/SOME, derived tables, correlated, nested
-- 110 tests, all passing
-
-**Zero-bug streak: 179 sessions**
+**Zero-bug streak: 180 sessions**
 
 ---
 
 ## NEXT PRIORITIES
 
 ### SQL Engine Track
-1. **C268 SQL Set Operations** -- UNION, INTERSECT, EXCEPT at top-level query level (not just inside CTEs)
-2. **C269 SQL String Concatenation** -- `||` operator support
+1. **C269 SQL String Concatenation** -- `||` operator support
+2. **C270 SQL Window Functions at Top Level** -- ROW_NUMBER, RANK, etc.
 
 ### Agent Zero Track -- Immediate
 3. **Frontend: undo-clear-data UI** -- Add undo button/timer after clear-data
