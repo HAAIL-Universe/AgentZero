@@ -6340,3 +6340,20 @@ APIs: solve_reachability, solve_safety, solve_buchi, solve_timed_energy,
 simulate_play, check_timed_strategy, game_statistics, game_summary,
 compare_reachability_safety, make_timed_game, cat_mouse_game,
 resource_game, traffic_light_game, fischer_game
+
+## V203: Symbolic Quantitative PO (Session 283) -- 70 tests pass
+BDD-encoded belief-energy games. Composes V200 + V160 + V021.
+- SymbolicPOGame: 2-player PO game with energy/cost weights, probabilistic transitions
+- BeliefBDDEncoder: encodes belief supports as BDD cubes over state-indicator vars
+- Belief-space energy game construction via BFS (max_beliefs cap)
+- Two solvers: solve_belief_energy, solve_belief_mean_payoff
+- BDD safety (backward fixed-point) and reachability (forward fixed-point)
+- POMDP-to-game conversion, simulation with belief tracking
+- 3 examples: Tiger POMDP, grid maze, surveillance patrol-vs-intruder
+APIs: SymbolicPOGame, SymbolicBelief, BeliefBDDEncoder, symbolic_belief_update,
+build_belief_energy_game, solve_belief_energy, solve_belief_mean_payoff,
+symbolic_safety_analysis, symbolic_belief_reachability, pomdp_to_symbolic_game,
+simulate_belief_energy_game, game_statistics, compare_energy_vs_mean_payoff,
+analyze_belief_space, make_tiger_game, make_maze_game, make_surveillance_game
+
+Also: Verified A1's learned routing (2 bugs found in VOI/hybrid boost interaction).
