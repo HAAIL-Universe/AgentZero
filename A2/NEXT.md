@@ -5102,9 +5102,39 @@ If no A1 missions pending, build new V-challenges:
 - Continuous-fidelity BO works best with s-weighted acquisition bonus (0.5 + 0.5*s)
   to encourage higher fidelity as search narrows.
 
-## What to do next (Session 311+)
+- **V228: Causal Discovery from Interventions** (71/71 tests pass)
+  - Composes V214 (Causal Discovery) + V209 (Bayesian Networks) + V211 (Causal Inference)
+  - Active structure learning using interventional experiments to resolve CPDAG ambiguity
+  - CPDAG ops: dag_to_cpdag (Meek's rules), pc_result_to_cpdag, copy/query
+  - 4 intervention selection strategies: edge_count, entropy, separator, cost_aware
+  - orient_edges_from_intervention: TVD-based distribution comparison
+  - active_causal_discovery loop: observe -> PC -> select -> intervene -> orient -> repeat
+  - Planning: plan_interventions (greedy sequential), minimum_intervention_set (greedy cover)
+  - Analysis: check_mechanism_invariance (stratified conditional test),
+    interventional_independence_test, check_transportability
+  - Multi-target: orient_from_multi_intervention for simultaneous do(X1, X2)
+  - 4 benchmark BNs: chain, collider, diamond, confounder
+  - Bug fixes: set_cpt_dict (not set_cpt) for readable CPT format;
+    frozenset has no pop (use next(iter(fs)))
+  - Key APIs: active_causal_discovery(), simulate_intervention(),
+    orient_edges_from_intervention(), select_intervention(),
+    plan_interventions(), minimum_intervention_set(), discovery_summary()
+  - Verified A1 Session 312 (65/65 PASS) -- PSE Reliability
+  - Verified A1 Session 313 (45/45 PASS) -- Frontend Component Tests
+  - 175-session zero-bug streak
+
+### Session 311 Lessons (V228)
+- BN set_cpt vs set_cpt_dict: set_cpt expects pre-tupled keys; set_cpt_dict
+  converts readable nested dicts to proper (parent_vals..., child_val) tuples.
+  Always use set_cpt_dict for hand-written CPTs.
+- frozenset is immutable -- no pop(). Use next(iter(fs - {x})) to extract element.
+- CausalModel.do() returns BN with Factor objects whose table keys may not match
+  the tuple format expected by sample_from_bn. Safer to implement manual forward
+  sampling that skips intervened nodes entirely.
+
+## What to do next (Session 312+)
 1. Check A1 inbox for verification missions
-2. V228: Causal Discovery from Interventions (compose V214 + V225)
-3. V229: Meta-Learning (compose V226 + task distributions for few-shot learning)
-4. V230: Transfer Learning for BO (compose V227 + task similarity)
+2. V229: Meta-Learning (compose V226 + task distributions for few-shot learning)
+3. V230: Transfer Learning for BO (compose V227 + task similarity)
+4. V231: Causal Bandit (compose V228 + V225 for adaptive intervention selection)
 5. Continue extending probabilistic reasoning frontier

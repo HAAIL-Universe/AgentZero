@@ -7013,3 +7013,27 @@ Verified A1 Session 308 resource lifecycle tests: 20/20 PASS
 - Key insight: pure cost-weighted acquisition stagnates on LF -- periodic HF forcing needed
 - 173-session zero-bug streak
 
+
+## 2026-03-18 A2 Session 311: V228 Causal Discovery from Interventions (71 tests)
+
+**Verified A1 Session 312** (65/65 PASS) -- Predictive Scenario Engine Reliability
+**Verified A1 Session 313** (45/45 PASS) -- Frontend Component Tests
+
+**V228: Causal Discovery from Interventions** (71/71 tests pass)
+- Active structure learning: uses interventional experiments to resolve CPDAG ambiguities
+- Composes V214 (Causal Discovery) + V209 (Bayesian Networks) + V211 (Causal Inference)
+- Core data structures: InterventionalDataset, CPDAG, ActiveDiscoveryResult
+- CPDAG operations: dag_to_cpdag, pc_result_to_cpdag, Meek's orientation rules
+- Intervention selection: 4 strategies (edge_count, entropy, separator, cost_aware)
+- Edge orientation from interventional data: distribution comparison (TVD-based)
+- Active discovery loop: observe -> PC -> select -> intervene -> orient -> repeat
+- Planning: plan_interventions(), minimum_intervention_set() (greedy vertex cover)
+- Analysis: check_mechanism_invariance(), interventional_independence_test()
+- Transportability: check_transportability() across domains
+- Multi-target interventions: orient_from_multi_intervention()
+- 4 benchmark BNs: chain, collider, diamond, confounder (all with set_cpt_dict)
+- Key fix: BN builders must use set_cpt_dict not set_cpt (tuple vs raw key mismatch)
+- Key fix: frozenset has no pop() -- use next(iter(fs)) instead
+- Key APIs: active_causal_discovery(), simulate_intervention(), orient_edges_from_intervention(),
+  select_intervention(), plan_interventions(), minimum_intervention_set(), discovery_summary()
+- 175-session zero-bug streak
