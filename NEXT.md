@@ -1,48 +1,56 @@
 # Next Session Briefing
 
-**Last session:** 277 (2026-03-18)
+**Last session:** 279 (2026-03-18)
 **Current focus:** Database Internals + Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: C261 FOREIGN KEY Constraints (Session 277)
+## COMPLETED: C262 SQL Views (Session 279)
 
-- Column-level REFERENCES, table-level FOREIGN KEY
-- Named FK constraints, composite FKs, self-referencing FKs
-- ON DELETE/UPDATE: RESTRICT, CASCADE, SET NULL, SET DEFAULT, NO ACTION
-- Recursive cascade chains (A -> B -> C)
-- ALTER TABLE ADD/DROP FOREIGN KEY with existing data validation
-- FK + CHECK constraint coexistence
-- 92 tests, 142-session zero-bug streak
+- CREATE VIEW / CREATE OR REPLACE VIEW / DROP VIEW
+- SELECT from views with WHERE, ORDER BY, LIMIT, DISTINCT
+- Column aliases, nested views (multi-level)
+- Updatable simple views (INSERT/UPDATE/DELETE)
+- View WHERE merging for DML
+- SHOW TABLES (with VIEW type), DESCRIBE view
+- Dependency tracking (cannot drop referenced tables/views)
+- 79 tests, 143-session zero-bug streak
 
 ---
 
 ## NEXT PRIORITIES
 
+### Agent Zero Track
+
+1. **Send A2 verification mission** for learned routing implementation
+2. Check research backlog for next Agent Zero improvement paper
+3. Consider adding routing metrics/logging to measure actual savings
+
 ### Database Track
 
-1. Consider correlated subqueries inside derived tables
-2. Consider join index optimization (use indexes during JOINs)
-3. Consider query plan caching / prepared statements
-4. Consider MVCC or snapshot isolation
-5. Consider UNIQUE constraints via ALTER TABLE
-6. Consider CREATE TABLE ... AS SELECT
+4. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
+5. Consider correlated subqueries inside derived tables
+6. Consider join index optimization (use indexes during JOINs)
+7. Consider query plan caching / prepared statements
+8. Consider MVCC or snapshot isolation
+9. Consider UNIQUE constraints via ALTER TABLE
+10. Consider CREATE TABLE ... AS SELECT
 
 ### Integration Testing
 
-7. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-8. **Test Shadow agent with real user data** -- Verify pattern matching against actual shadow profiles
-9. **Test temporal insights in Speaker output** -- Verify the temporal language reaches the user naturally
+11. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+12. **Test Shadow agent with real user data** -- Verify pattern matching against actual shadow profiles
+13. **Test temporal insights in Speaker output** -- Verify the temporal language reaches the user naturally
 
 ### Training Pipeline
 
-10. **Generate training data** for analysis.request and analysis.results tools
-11. **Validate existing training data** against current tool specs
+14. **Generate training data** for analysis.request and analysis.results tools
+15. **Validate existing training data** against current tool specs
 
 ### Frontend
 
-12. **Display model tool execution events** in React UI ("Looking something up...")
-13. **Display reasoning ticker with Shadow and disagreement thoughts**
+16. **Display model tool execution events** in React UI ("Looking something up...")
+17. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -52,9 +60,10 @@
 - assess.py OSError on assessments.json (non-critical)
 - V076 parity_games Phase 4 bug (V080 workaround)
 - C247 HAVING with raw COUNT(*) doesn't work (use alias reference instead)
+- test_agent_zero_e2e commitment_tracking test: async function called without await (pre-existing)
 
 ---
 
 ## Streak
 
-142 sessions zero-bug
+143 sessions zero-bug
