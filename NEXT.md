@@ -1,26 +1,19 @@
 # Next Session Briefing
 
-**Last session:** 293 (2026-03-18)
+**Last session:** 294 (2026-03-18)
 **Current focus:** Agent Zero Cognitive Architecture
 
 ---
 
-## COMPLETED: Session 293
+## COMPLETED: Session 294
 
-### Async Safety and Race Condition Prevention (19 tests)
-- New `agent_zero/session_state.py` -- SessionState with asyncio.Lock-protected mutations
-- Per-session lock in websocket_chat and websocket_voice (turn + finalization)
-- Debug assertions via AGENT_ZERO_DEBUG_CONCURRENCY env var
-- No behavioral change -- purely defensive for multi-user readiness
+### Content-Aware Token Estimation (20 new tests)
+- Replaced fixed `_CHARS_PER_TOKEN=4` with content-aware estimator (prose/code/CJK)
+- Added vLLM calibration feedback (EMA from `usage.prompt_tokens`)
+- 4 new config fields: `chars_per_token_prose/code/cjk`, `calibration_alpha`
+- Wired calibration into agent_zero_server.py after generate_with_tools
 
-### Consolidation Threshold Validation (24 tests)
-- 3 new Agent ZeroConfig fields: temporal_half_life_days, quality_gate_threshold, outcome_decay_margin
-- Replaced 3 hardcoded constants with config-sourced values
-- Added _compute_clustering_quality (silhouette telemetry)
-- Added THRESHOLD_RATIONALE research documentation dict
-- All 42 existing consolidator tests continue to pass
-
-**Total: 43 new tests, 156-session zero-bug streak**
+**Total: 50 context_manager tests, 157-session zero-bug streak**
 
 ---
 
@@ -31,36 +24,37 @@
 1. **Proactive Conversation Starters** (research/papers/proactive_conversation_starters.md) -- SSE, JITAI triggers (MED, new)
 2. **Memory Recall Transparency** (research/papers/memory_recall_transparency.md) -- show retrieved memories inline
 3. **Runtime Observability Layer** (research/papers/runtime_observability_layer.md) -- wide-event TurnEvent
-4. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
-5. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
-6. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
-7. **Monitor skip_safe flags** in production to validate VOI feedback loop
-8. **Add /admin/config endpoint** -- expose config.model_dump() for runtime visibility
+4. **Conversation Turn Decomposition** (research/papers/conversation_turn_decomposition.md) -- TurnContext + 17 phases (HIGH, large, new)
+5. **Constraint-Based Commitment Scheduling** (research/papers/constraint_commitment_scheduling.md) -- CSP solver (HIGH, large)
+6. **Logic Programming for Transparent Reasoning** (research/papers/logic_transparent_reasoning.md) -- Prolog in pipeline (HIGH, large)
+7. **Frontend**: Render agree/disagree as green/red chips in ThoughtBubbles
+8. **Monitor skip_safe flags** in production to validate VOI feedback loop
+9. **Add /admin/config endpoint** -- expose config.model_dump() for runtime visibility
 
 ### New Research Papers Available (MED priority)
-9. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
-10. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
-11. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
+10. **Topic-Aware Memory Decay Rates** (research/papers/topic_aware_decay_rates.md)
+11. **Outcome Pattern Confidence Scoring** (research/papers/outcome_pattern_confidence.md)
+12. **External Outcome Resolution API** (research/papers/external_outcome_resolution_api.md)
 
 ### Database Track
 
-12. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
-13. Consider window functions (ROW_NUMBER, RANK, etc.)
-14. Consider correlated subqueries inside derived tables
-15. Consider join index optimization (use indexes during JOINs)
+13. Consider materialized views (CREATE MATERIALIZED VIEW, REFRESH)
+14. Consider window functions (ROW_NUMBER, RANK, etc.)
+15. Consider correlated subqueries inside derived tables
+16. Consider join index optimization (use indexes during JOINs)
 
 ### Integration Testing
 
-16. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
-17. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
-18. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
-19. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
-20. **Test bandit weight learning end-to-end** -- Verify weights update after acted/ignored outcomes
+17. **Test with live vLLM model** -- Verify tool interception, continuation, and context compression end-to-end
+18. **Test cost-aware activation end-to-end** -- Verify agents are actually skipped
+19. **Test quality gates end-to-end** -- Verify flags appear in reasoning events
+20. **Test tool activity log end-to-end** -- Verify collapsible cards appear inline in chat
+21. **Test bandit weight learning end-to-end** -- Verify weights update after acted/ignored outcomes
 
 ### Frontend
 
-21. **Display model tool execution events** in React UI ("Looking something up...")
-22. **Display reasoning ticker with Shadow and disagreement thoughts**
+22. **Display model tool execution events** in React UI ("Looking something up...")
+23. **Display reasoning ticker with Shadow and disagreement thoughts**
 
 ---
 
@@ -78,4 +72,4 @@
 
 ## Streak
 
-156 sessions zero-bug
+157 sessions zero-bug

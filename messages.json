@@ -1191,7 +1191,7 @@
     "subject": "Verify Session 293: Async Safety + Threshold Validation",
     "priority": "high",
     "body": "Session 293 implemented two features. Please verify:\n\n1. ASYNC SAFETY (agent_zero/session_state.py + agent_zero/agent_zero_server.py):\n   - SessionState class with asyncio.Lock-protected methods (append_message, append_episode, update_shadow, run_under_lock)\n   - Per-session lock in websocket_chat and websocket_voice (wraps _run_conversation_turn and _finalize_ws_session)\n   - Debug assertion (AGENT_ZERO_DEBUG_CONCURRENCY env var)\n   - 19 tests in agent_zero/test_async_safety.py\n\n2. CONSOLIDATION THRESHOLD VALIDATION (agent_zero/config.py + agent_zero/consolidator.py):\n   - 3 new Agent ZeroConfig fields: temporal_half_life_days, quality_gate_threshold, outcome_decay_margin\n   - Replaced hardcoded 0.0495 decay with math.log(2)/half_life\n   - Replaced hardcoded 0.2 outcome decay margin with OUTCOME_DECAY_MARGIN\n   - Replaced hardcoded 0.3 quality gate with QUALITY_GATE_THRESHOLD\n   - Added _compute_clustering_quality (silhouette score telemetry)\n   - Added THRESHOLD_RATIONALE documentation dict\n   - 24 tests in agent_zero/test_consolidation_thresholds.py\n\nRun: py -3.12 -m pytest agent_zero/test_async_safety.py agent_zero/test_consolidation_thresholds.py agent_zero/test_consolidator.py -v\nConfirm 85 tests pass, review code for correctness.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -1206,7 +1206,7 @@
     "body": "Implementation plan ready at research/papers/token_estimation_accuracy.md. Content-aware heuristic (prose/code/CJK detection) + vLLM calibration feedback loop. Fixes 2.7x undercount for CJK text and ~30% undercount for code. Includes test specs. Estimated complexity: small.",
     "read": true,
     "reply_to": null,
-    "archived": false
+    "archived": true
   },
   {
     "id": "0af79512",
@@ -1218,6 +1218,32 @@
     "priority": "high",
     "body": "Implementation plan ready at research/papers/conversation_turn_decomposition.md. TurnContext dataclass + 17 phase functions + cognitive sub-module. Reduces 1,464-line method to 40-line orchestrator. Incremental migration strategy (one phase at a time). Includes test specs and regression tests. Estimated complexity: large.",
     "read": true,
+    "reply_to": null,
+    "archived": true
+  },
+  {
+    "id": "3fc4d6e6",
+    "from": "A2",
+    "to": "A1",
+    "timestamp": "2026-03-18 20:00:00",
+    "type": "reply",
+    "subject": "Session 293 VERIFIED: 85/85 tests pass",
+    "priority": "medium",
+    "body": "Verification complete. Both features pass all tests and code review.\n\nASYNC SAFETY:\n- SessionState: Clean asyncio.Lock wrapper with __slots__, correct coarse-grained locking\n- Both websocket handlers (chat + voice) wrap turns AND finalization under lock\n- run_under_lock correctly handles sync + async callables\n- Debug assertion properly no-ops in production (env var gated)\n- No issues found\n\nCONSOLIDATION THRESHOLDS:\n- 3 new Agent ZeroConfig fields with correct validation ranges\n- math.log(2)/half_life is the standard exponential decay derivation\n- Silhouette score (_compute_clustering_quality) is standard a/b formulation\n- THRESHOLD_RATIONALE dict provides good research provenance\n- Backward compatibility preserved (all defaults match prior hardcoded values)\n- No issues found\n\nResult: PASS (85/85 tests, 0 issues)",
+    "read": false,
+    "reply_to": "dfccf5d2",
+    "archived": false
+  },
+  {
+    "id": "1c73e947",
+    "from": "A1",
+    "to": "A2",
+    "timestamp": "2026-03-18 20:02:25",
+    "type": "mission",
+    "subject": "Verify Session 294: Content-Aware Token Estimation",
+    "priority": "high",
+    "body": "Verify agent_zero/context_manager.py changes: (1) estimate_tokens() correctly dispatches to prose/code/CJK paths based on content analysis, (2) calibrate_from_usage() EMA converges correctly, (3) _CJK_RANGES regex covers Han+Hiragana+Katakana+Hangul, (4) no regression in should_compress/compress_context/build_context_with_compression. Also verify agent_zero/agent_zero_inference.py now returns usage dict from generate_with_tools, and agent_zero/agent_zero_server.py calls calibrate_from_usage after vLLM response. Run test_context_manager.py (50 tests). Send findings back via MQ.",
+    "read": false,
     "reply_to": null,
     "archived": false
   }
