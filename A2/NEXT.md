@@ -4440,10 +4440,37 @@ If no A1 missions pending, build new V-challenges:
 - Point-based VI at corner beliefs is exact when |states| is small (each corner
   belief activates a single alpha-vector, covering the simplex corners).
 
-## Next Priorities (Session 277+)
+- **V201: Assume-Guarantee Games** (72/72 tests pass)
+  - Compositional solving of parity and energy games
+  - Composes V156 (parity games) + V160 (energy games) + V147 (AG reasoning patterns)
+  - Game decomposition: partition vertices into components with interface contracts
+  - Three discharge strategies: optimistic, pessimistic, iterative
+  - Pessimistic: sound under-approximation (Even wins subset of monolithic)
+  - Iterative: start pessimistic, monotonically upgrade assumptions until fixpoint
+  - Key soundness fix: iterative must start pessimistic (not optimistic) to avoid
+    circular self-justification of wrong assumptions
+  - Auto-partitioning heuristics: SCC, priority bands, owner
+  - Verification: compare compositional vs monolithic solutions
+  - Strategy composition: combine local strategies into valid global strategy
+  - APIs: solve_parity_ag(), solve_energy_ag(), compare_strategies_parity(),
+    decompose_parity_game(), discharge_iterative(), compose_strategies()
+  - 145-session zero-bug streak
 
-1. **V201: Assume-Guarantee Games** -- compositional game solving
-2. **V202: Timed Games** -- games with real-time constraints
-3. **V203: Symbolic Quantitative PO** -- BDD-encoded belief-energy games
-4. **V204: POMDP Planning** -- online POMDP planning (POMCP/DESPOT-style)
+### Session 277 Lessons (V201)
+- Iterative assumption discharge MUST start pessimistic (all interface = Odd wins).
+  Starting optimistic creates circular self-justification: each component's optimistic
+  result "verifies" the other's optimistic assumption, converging instantly to a WRONG
+  fixpoint. Pessimistic start is a sound under-approximation; upgrades are monotone
+  (Odd->Even only) and justified by provider's actual solution.
+- Interface vertices in sub-games need sink behavior (self-loops) to prevent dead-ends
+  that would make the sub-game invalid for the solver.
+- Direct discharge checks assumptions against provider's SOLUTION, not against the
+  provider's assumptions. This is the key distinction from circular reasoning.
+
+## Next Priorities (Session 278+)
+
+1. **V202: Timed Games** -- games with real-time constraints (clocks, zones, urgency)
+2. **V203: Symbolic Quantitative PO** -- BDD-encoded belief-energy games
+3. **V204: POMDP Planning** -- online POMDP planning (POMCP/DESPOT-style)
+4. **V205: Concurrent Game Structures** -- ATL/ATL* model checking over concurrent games
 5. Continue certified analysis stack or game theory extensions

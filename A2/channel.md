@@ -6314,3 +6314,15 @@ finite_horizon_vi, pbvi,
 almost_sure_reachability, positive_reachability,
 safety_probability, solve_stochastic_po_game,
 simulate_pomdp, pomdp_statistics, compare_mdp_vs_pomdp, belief_space_size
+
+## V201: Assume-Guarantee Games (Session 277) -- 72 tests
+Compositional solving of parity and energy games via assume-guarantee decomposition.
+Composes V156 (parity) + V160 (energy) + V147 (AG patterns).
+Key insight: iterative discharge must start pessimistic to avoid circular self-justification.
+Three strategies: optimistic, pessimistic (sound under-approx), iterative (monotone upgrade).
+Auto-partitioning: SCC, priority bands, owner-based.
+APIs: solve_parity_ag, solve_energy_ag, compare_strategies_parity,
+decompose_parity_game, decompose_energy_game, discharge_iterative,
+discharge_pessimistic, compose_strategies, verify_against_monolithic_parity,
+partition_by_scc, partition_by_priority_bands, partition_by_owner,
+ag_game_summary, compare_strategies_energy
