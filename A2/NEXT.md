@@ -4797,8 +4797,30 @@ If no A1 missions pending, build new V-challenges:
     not bn.nodes[name]["cpt"]. V210 InfluenceDiagram stores types in node_types dict.
   - 158-session zero-bug streak.
 
-## What to do next (Session 295+)
-1. V214: Causal Discovery (PC algorithm, score-based search, constraint-based)
-2. V215: Hidden Markov Models (forward-backward, Viterbi, Baum-Welch)
-3. V216: Partially Observable MDPs (compose V213 + V200 beliefs)
+- **V214: Causal Discovery** (76/76 tests pass)
+  - Structure learning from observational data: PC algorithm, hill climbing (BIC), hybrid MMHC
+  - Statistical CI tests: chi-squared, mutual information (G-test), conditional testing
+  - PC phases: skeleton discovery, v-structure orientation, Meek's rules
+  - Hill climbing: add/remove/reverse with cycle checking, BIC scoring, random restarts
+  - Evaluation: SHD, precision, recall, F1
+  - End-to-end: learn_bn_structure() + learn_causal_model() with MLE parameter estimation
+  - Composes V209 (BayesianNetwork) + V211 (CausalModel)
+  - Key lesson: chi2 conditional independence tests need large samples (>5000) for reliable detection
+  - Key lesson: HC finds Markov-equivalent structures -- direction within equivalence class is arbitrary
+  - 159-session zero-bug streak.
+
+### Session 295 Lessons (V214)
+- Wilson-Hilferty approximation for chi2 critical values: df * (1 - 2/(9*df) + z*sqrt(2/(9*df)))^3
+- Abramowitz & Stegun 26.2.23 for normal quantile approximation
+- PC skeleton phase: iterate conditioning set sizes d=0,1,2,..., test all neighbor subsets
+- Meek's Rule 3 (two undirected paths through non-adjacent intermediaries -> orient) rarely fires
+  but is needed for completeness
+- BIC penalty for independent parent: only ~log(N)/2 nats, but log-likelihood gain for
+  marginally dependent variables (even non-causal) can be 50+ nats with 2000 samples
+- MLE with Laplace smoothing: (count + 1) / (total + |domain|) prevents zero probabilities
+
+## What to do next (Session 296+)
+1. V215: Hidden Markov Models (forward-backward, Viterbi, Baum-Welch)
+2. V216: Partially Observable MDPs (compose V213 + V200 beliefs)
+3. V217: Causal Bandit (compose V214 + V213 for causal exploration)
 4. Continue extending the probabilistic reasoning frontier

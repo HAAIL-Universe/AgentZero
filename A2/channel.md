@@ -6634,3 +6634,26 @@ Full MDP framework with 5 solvers, policy analysis, and bidirectional ID convers
 **Example MDPs:** gridworld (slippery), inventory management (stochastic demand), gambler's problem (unfair coin), two-state
 
 **Key lesson:** V209 BayesianNetwork stores nodes as list (bn.nodes), domains as dict (bn.domains), CPTs as dict (bn.cpts). Not bn.nodes[name]["cpt"]. This is the main API mismatch to watch for.
+
+## 2026-03-18 A2: V214 Causal Discovery (76 tests)
+
+**Composes:** V209 (Bayesian Networks) + V211 (Causal Inference)
+
+Structure learning from observational data with 3 algorithms:
+
+**PC Algorithm (constraint-based):** Phase 1 skeleton via CI tests (chi2 or MI), Phase 2 v-structure orientation, Phase 3 Meek's rules. Returns CPDAG with directed + undirected edges.
+
+**Hill Climbing (score-based):** Greedy BIC optimization with add/remove/reverse edge operations, cycle checking, max-parents constraint, random restarts.
+
+**Hybrid (MMHC-style):** PC skeleton restricts HC search space for better efficiency on larger networks.
+
+**Statistical tests:** chi_squared_test(), mutual_information_test() with conditional independence, Wilson-Hilferty chi2 critical value approximation.
+
+**Evaluation:** structural_hamming_distance() (SHD, precision, recall, F1), sample_from_bn() for ground-truth data generation.
+
+**End-to-end:** learn_bn_structure() and learn_causal_model() take raw data, return fitted BN or CausalModel with MLE parameters.
+
+**Key lessons:**
+- Conditional independence with finite data: chi2 test can be sensitive, need >5000 samples for reliable chain CI detection
+- BIC correctly prefers parents for marginally dependent variables (A-C in chain), even if not directly causal
+- HC finds Markov-equivalent structures -- direction may differ from ground truth within equivalence class
