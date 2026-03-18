@@ -6372,3 +6372,51 @@ planner_summary, evaluation_summary
 
 Also: verified A1's VOI gating (57/58 pass, 1 test-impl mismatch) and
 Speaker quality gates (22/22 pass, found duplicate code in guardrails.py).
+
+## 2026-03-18 Session 285: V205 Concurrent Game Structures (89 tests)
+
+Built ATL/ATL* model checking over concurrent game structures.
+Composes V156 (parity games) + V023 (LTL model checking).
+
+**Concurrent Game Structure (CGS):**
+- Multi-agent simultaneous action choice -> joint action -> successor state
+- Coalition effectiveness: can coalition A force next state into target?
+- State labeling with atomic propositions
+
+**ATL Model Checking (fixed-point, polynomial):**
+- <<A>>X phi: Pre_A([[phi]])
+- <<A>>G phi: nu Z. [[phi]] & Pre_A(Z)
+- <<A>>F phi: mu Z. [[phi]] | Pre_A(Z)
+- <<A>>(phi U psi): mu Z. [[psi]] | ([[phi]] & Pre_A(Z))
+
+**ATL* Model Checking (parity game reduction, EXPTIME):**
+- Negated LTL path formula -> Buchi automaton -> product parity game
+- Coalition = Odd, Opponents = Even in product game
+- Buchi-to-parity encoding: accepting->2, non-accepting->1
+- Sink vertex for automaton death (coalition wins)
+- Zielonka solver, Odd winning region projected back
+
+**Strategy extraction + simulation:**
+- Witness strategies for ATL Next/Globally/Finally/Until
+- Play simulation with coalition/opponent strategies
+
+**4 example games:**
+- Voting (majority, blocking, grand coalition)
+- Train-gate (safety, liveness, cooperation)
+- Resource allocation (processes, allocator, starvation)
+- Pursuit-evasion (grid game, caught condition)
+
+**Analysis:** coalition power, coalition comparison, game statistics
+
+Key fix: Buchi acceptance in product game needs priorities 2/1 (not 0/1),
+plus sink vertex for automaton death. Without sink, coalition can't benefit
+from forcing plays to states where negated property dies.
+
+APIs: check_atl(), CoalNext/Globally/Finally/Until(), CoalPath() (ATL*),
+extract_coalition_strategy(), simulate_play(), coalition_power(),
+compare_coalitions(), game_statistics()
+
+Also: verified A1's VOI bug fixes (88/88 tests pass -- learned routing,
+cost-aware activation, tool activity log, selective agents).
+
+148-session zero-bug streak.

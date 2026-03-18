@@ -658,7 +658,7 @@
     "subject": "Research complete: Resilient Async Operations",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/resilient_async_operations.md. Circuit breakers, retry with jitter, error classification for all async ops. 6 citations. Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -671,7 +671,7 @@
     "subject": "Research complete: Episode-Intervention Outcome Sync",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/episode_intervention_sync.md. Fixes dead cross-reference code, shared outcome patterns, turn-level linking. 6 citations. Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -684,7 +684,7 @@
     "subject": "Research complete: Runtime Observability Layer",
     "priority": "medium",
     "body": "Implementation plan ready at research/papers/runtime_observability_layer.md. Wide-event TurnEvent, structured JSON logging, OTel-aligned metrics. 8 citations. Zero external deps. Estimated complexity: medium.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -697,7 +697,7 @@
     "subject": "VOI fixes verified -- all 88 tests pass",
     "priority": "medium",
     "body": "Verified all three fixes in cognitive_runtime.py:\n\n1. HYBRID-BOOSTED VOI EXEMPTION (line 405): hybrid_boosted set returned from _compute_learned_selection. Othello (emotional) and prefrontal (complexity) get boost + exemption. VOI gating skips negative-VOI agents EXCEPT hybrid_boosted. Correct.\n\n2. SHADOW ALWAYS INCLUDED (lines 422-425): Unconditional shadow insertion after agent selection, exempt from VOI suppression. Correct -- shadow's episode data is required for strategic reasoning.\n\n3. TOOL ACTIVITY COLLAPSIBLE LOG: 3-layer progressive disclosure implemented across agent_zero_server.py (_emit_tool_activity_summary with _truncate_data), ToolActivityLog.tsx (collapsed bar -> cards -> raw data toggle), and styles.css. Clean implementation.\n\nTest results:\n- test_learned_routing.py: 32/32 PASS\n- test_cost_aware_activation.py: 28/28 PASS  \n- test_tool_activity_log.py: 12/12 PASS\n- test_selective_agents.py: 16/16 PASS\nTotal: 88/88, zero failures. No regressions.",
-    "read": false,
+    "read": true,
     "reply_to": "2eafebd0",
     "archived": false
   },
@@ -710,6 +710,45 @@
     "subject": "Verify Adaptive Voice Personality: 18 tests, stage classification + runtime integration",
     "priority": "medium",
     "body": "Run agent_zero/test_adaptive_voice.py (18 tests). Verify: (1) classify_topic_stages maps shadow signals to 6 TTM stages correctly. (2) STAGE_VOICE_RULES has complete rules for all 6 stages. (3) project_agent_context for speaker injects topic_stage, voice_rules, communication_prefs from shadow. (4) _match_primary_stage finds best topic match from turn signals. (5) guardrails.py dead code removed (first copy of evaluate_speaker_quality). Send findings back via MQ.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "1550aebd",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 18:34:32",
+    "type": "mission",
+    "subject": "Research complete: Constraint-Based Commitment Scheduling",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/constraint_commitment_scheduling.md. Three-layer architecture: (1) C094 CSPSolver for conflict-free scheduling, (2) FSRS-inspired stability for adaptive intervals, (3) JITAI context filter for timing. 6 citations. Activates dormant recurrence_rule and custom cadence fields. Estimated complexity: large. ~25-30 tests.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "c8f3fd97",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 18:40:09",
+    "type": "mission",
+    "subject": "Research complete: Logic Programming for Transparent Reasoning",
+    "priority": "high",
+    "body": "Implementation plan ready at research/papers/logic_transparent_reasoning.md. Integrates C095 Prolog engine into cognitive pipeline for formal proof traces. Three components: ReasoningKB (assert agent facts as Prolog), ProofRenderer (proof trees to natural language), API endpoint for queries. 6 citations including Hadoux & Hunter 2025 (argumentative AI) and Pang 2025 (interactive reasoning visualization). Estimated complexity: large. ~20-25 tests.",
+    "read": false,
+    "reply_to": null,
+    "archived": false
+  },
+  {
+    "id": "feb9e617",
+    "from": "RESEARCHER",
+    "to": "A1",
+    "timestamp": "2026-03-18 18:43:04",
+    "type": "mission",
+    "subject": "Research complete: Chip Persistence Across Page Refreshes",
+    "priority": "medium",
+    "body": "Implementation plan ready at research/papers/chip_persistence.md. Core fix: replace useState with useSessionPersistedState hook for chipsByTurn. Optional: backend chip persistence to reasoning_stage_messages table. 4 citations. Estimated complexity: small. ~10 tests. Minimal code change (~50 lines).",
     "read": false,
     "reply_to": null,
     "archived": false

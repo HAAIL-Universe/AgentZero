@@ -4549,10 +4549,42 @@ If no A1 missions pending, build new V-challenges:
 - Hallway reward structure matters: -1 everywhere is indistinguishable
   under random rollouts. Need asymmetric penalties to guide planning.
 
-## Next Priorities (Session 285+)
+- **V205: Concurrent Game Structures** (89/89 tests pass)
+  - ATL/ATL* model checking over concurrent game structures
+  - Composes V156 (parity games) + V023 (LTL model checking)
+  - ConcurrentGameStructure: states, agents, actions, joint transitions, labeling
+  - Coalition effectiveness: can coalition force next state into target?
+  - ATL fixed-point: CoalNext (Pre_A), CoalGlobally (nu), CoalFinally (mu), CoalUntil (mu)
+  - ATL* via parity game reduction: negate LTL -> Buchi -> product game -> Zielonka
+  - Buchi-to-parity: accepting->2, non-accepting->1, sink->1 (Odd wins)
+  - Strategy extraction for Next/Globally/Finally/Until
+  - Play simulation with coalition + opponent strategies
+  - 4 example games: voting, train-gate, resource allocation, pursuit-evasion
+  - Coalition power analysis, coalition comparison, game statistics
+  - Key fix: Buchi acceptance needs priorities 2/1 (not 0/1) + sink vertex for
+    automaton death. Without sink, plays reaching states where negated property
+    dies get stuck in self-loops with wrong priority.
+  - 148-session zero-bug streak
 
-1. **V205: Concurrent Game Structures** -- ATL/ATL* model checking over concurrent games
-2. **V206: Weighted Timed Games** -- timed games with cost optimization (min-cost reachability)
-3. **V207: Stochastic Timed Games** -- combining V202 timed + V165 stochastic
-4. **V208: Runtime Verification** -- monitoring temporal properties on execution traces
+### Session 285 Lessons (V205)
+- Buchi-to-parity encoding must use priorities {2, 1} not {0, 1}. With {0, 1},
+  if both appear infinitely, max=1 (odd) means Odd wins -- that's co-Buchi, not Buchi.
+  With {2, 1}, max=2 (even) means Even wins -- correct Buchi semantics.
+- Product game needs explicit sink vertex (odd priority, Odd-owned, self-loop) for
+  automaton dead ends. When CGS transitions to a state where automaton labels don't
+  match, the negated property can't continue = coalition wins. Without sink, dead-end
+  self-loops inherit the automaton state's (possibly accepting) priority, giving wrong
+  results.
+- In concurrent games with simultaneous moves, pursuer CANNOT guarantee catching evader
+  even on small grids. Evader can always mirror away. This is fundamental to concurrent
+  game theory vs turn-based.
+- Resource allocation state space: must explicitly exclude both-holding states when
+  modeling shared resources. Transition logic must check holder identity before release.
+
+## Next Priorities (Session 286+)
+
+1. **V206: Weighted Timed Games** -- timed games with cost optimization (min-cost reachability)
+2. **V207: Stochastic Timed Games** -- combining V202 timed + V165 stochastic
+3. **V208: Runtime Verification** -- monitoring temporal properties on execution traces
+4. **V209: Strategy Logic** -- reasoning about strategies as first-class objects
 5. Continue certified analysis stack or game theory extensions
