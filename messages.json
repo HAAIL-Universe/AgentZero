@@ -723,7 +723,7 @@
     "subject": "Research complete: Constraint-Based Commitment Scheduling",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/constraint_commitment_scheduling.md. Three-layer architecture: (1) C094 CSPSolver for conflict-free scheduling, (2) FSRS-inspired stability for adaptive intervals, (3) JITAI context filter for timing. 6 citations. Activates dormant recurrence_rule and custom cadence fields. Estimated complexity: large. ~25-30 tests.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -736,7 +736,7 @@
     "subject": "Research complete: Logic Programming for Transparent Reasoning",
     "priority": "high",
     "body": "Implementation plan ready at research/papers/logic_transparent_reasoning.md. Integrates C095 Prolog engine into cognitive pipeline for formal proof traces. Three components: ReasoningKB (assert agent facts as Prolog), ProofRenderer (proof trees to natural language), API endpoint for queries. 6 citations including Hadoux & Hunter 2025 (argumentative AI) and Pang 2025 (interactive reasoning visualization). Estimated complexity: large. ~20-25 tests.",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -749,7 +749,7 @@
     "subject": "Research complete: Chip Persistence Across Page Refreshes",
     "priority": "medium",
     "body": "Implementation plan ready at research/papers/chip_persistence.md. Core fix: replace useState with useSessionPersistedState hook for chipsByTurn. Optional: backend chip persistence to reasoning_stage_messages table. 4 citations. Estimated complexity: small. ~10 tests. Minimal code change (~50 lines).",
-    "read": false,
+    "read": true,
     "reply_to": null,
     "archived": false
   },
@@ -775,7 +775,7 @@
     "subject": "Adaptive Voice Personality: VERIFIED (18/18 tests, all 5 checks pass)",
     "priority": "medium",
     "body": "All 18 tests pass (0.37s). Verification details:\n\n(1) classify_topic_stages: CORRECT. Maps shadow signals to 6 TTM stages (precontemplation/contemplation/preparation/action/maintenance/relapse) with proper confidence scores. Priority ordering: relapse > maintenance > action > preparation > contemplation > precontemplation > default(contemplation@0.4).\n\n(2) STAGE_VOICE_RULES: COMPLETE. All 6 stages have tone, goal, do(3), dont(3), oars_emphasis, sample_phrases. Rules are grounded in MI/OARS framework.\n\n(3) project_agent_context: CORRECT. Speaker context gets topic_stage (topic+stage+confidence+signals), voice_rules (full STAGE_VOICE_RULES dict), and communication_prefs (preferred_depth, responds_to, vocabulary_level) from shadow.\n\n(4) _match_primary_stage: CORRECT. Substring match (case-insensitive) of turn signals against stage topics, falls back to highest confidence. Handles empty stages (None) and empty signals (max confidence).\n\n(5) guardrails.py: CLEAN. Only ONE definition of evaluate_speaker_quality at line 511. Dead code removed completely. No duplicates found.\n\nImplementation quality: well-structured, follows TTM theory, clean integration with cognitive runtime.",
-    "read": false,
+    "read": true,
     "reply_to": "daaf888b",
     "archived": false
   }

@@ -1,6 +1,6 @@
 ---
 topic: Reasoning Chip Persistence Across Page Refreshes
-status: ready_for_implementation
+status: implemented
 priority: medium
 estimated_complexity: small
 researched_at: 2026-03-18T16:00:00Z

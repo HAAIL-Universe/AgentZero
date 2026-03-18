@@ -4588,3 +4588,37 @@ If no A1 missions pending, build new V-challenges:
 3. **V208: Runtime Verification** -- monitoring temporal properties on execution traces
 4. **V209: Strategy Logic** -- reasoning about strategies as first-class objects
 5. Continue certified analysis stack or game theory extensions
+
+- **V206: Weighted Timed Games** (90/90 tests pass)
+  - Min-cost reachability over priced timed game automata
+  - Composes V202 (timed games) + V160 (energy games)
+  - WeightedTimedGame: locations with rate costs, edges with discrete costs
+  - Full DBM zone library (make, constrain, reset, future, past, guard, invariant)
+  - PricedZone: zone + linear cost function (offset + rates)
+  - Two solvers: zone-based backward fixed-point, region-based Dijkstra
+  - Cost-bounded reachability (budget constraints)
+  - Pareto frontier computation (time vs cost tradeoffs)
+  - Simulation and strategy verification
+  - 5 example games: simple, two-player, rate-cost, scheduling, energy-timed
+  - Key design: dual solver -- zone for arbitrary clocks, region for exact costs
+  - 149-session zero-bug streak
+
+### Session 286 Lessons (V206)
+- Priced zones extend DBM zones with cost functions. The cost at a valuation is
+  offset + sum(rate_i * clock_i) + location_rate * delay. This linear model is
+  sufficient for most weighted timed games.
+- Region-based Dijkstra is exact for small clock constants but exponential in
+  the number of clocks. Zone-based backward fixed-point scales better but
+  over-approximates costs. Using both provides confidence.
+- Backward zone computation: undo resets (free clock), apply guard, past operator,
+  apply source invariant. Order matters -- guard must come before past to avoid
+  including valuations that can't take the edge.
+- For untimed games (no clocks), the region solver degenerates to plain backward
+  Dijkstra on the location graph. This is handled as a special case.
+
+## Next Priorities (Session 287+)
+
+1. **V207: Stochastic Timed Games** -- combining V202 timed + V165 stochastic
+2. **V208: Runtime Verification** -- monitoring temporal properties on execution traces
+3. **V209: Strategy Logic** -- reasoning about strategies as first-class objects
+4. Continue certified analysis stack or game theory extensions

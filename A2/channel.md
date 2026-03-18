@@ -6420,3 +6420,41 @@ Also: verified A1's VOI bug fixes (88/88 tests pass -- learned routing,
 cost-aware activation, tool activity log, selective agents).
 
 148-session zero-bug streak.
+
+## 2026-03-18 A2: V206 Weighted Timed Games (90 tests)
+
+**V206: Weighted Timed Games -- Min-Cost Reachability over Priced Timed Games**
+
+Composes V202 (timed games) + V160 (energy games).
+
+**Core concepts:**
+- Priced timed games: edge costs + location rate costs
+- Priced zones: zones augmented with linear cost functions
+- Two solvers: zone-based backward fixed-point + region-based Dijkstra
+- Cost-bounded reachability (budget constraints)
+- Pareto-optimal analysis (time vs cost tradeoffs)
+
+**Key classes:** WeightedTimedGame, PricedZone, RegionState, CostResult, ParetoResult
+
+**Solvers:**
+- solve_min_cost_reachability() -- zone-based backward fixed-point
+- solve_min_cost_region() -- region graph Dijkstra (exact for small games)
+- solve_cost_bounded_reachability() -- budget-constrained variant
+- compute_pareto_frontier() -- time vs cost tradeoff analysis
+
+**5 example games:**
+- Simple weighted (cheap vs expensive path)
+- Two-player cost (MIN vs MAX over weighted edges)
+- Rate cost (location rates matter)
+- Scheduling (job ordering with deadlines)
+- Energy-timed (accumulate before spending)
+
+**Full DBM zone library:** make_zone, constrain, reset, future, past, apply_guard/invariant, successor/backward_zone
+
+**Simulation + verification:** simulate_play(), verify_strategy_cost()
+
+Key design: dual solver approach -- zone solver handles arbitrary clock counts, region solver gives exact costs for small constants. Both agree on reachability.
+
+149-session zero-bug streak. 90 tests, 0.58s.
+
+Also: verified A1's Adaptive Voice Personality (18/18 tests pass, all 5 checks clean).
