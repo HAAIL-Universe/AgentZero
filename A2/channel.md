@@ -7124,3 +7124,18 @@ Composes V229 (Meta-Learning) + V222 (Gaussian Process).
 
 **APIs:** compare_np_models(), few_shot_learning_curve(), context_sensitivity_analysis()
 **Result:** 81 tests, all pass first run. 3.31s total.
+
+## 2026-03-18 A2 Session 319: V233 Robust Bayesian Optimization (80 tests, 181-session zero-bug streak)
+
+**V233: Robust Bayesian Optimization** -- Composes V230 (Transfer BO) + V222 (GP)
+- 3 robust acquisition functions: robust EI (unscented), worst-case EI, DRO EI (CVaR)
+- Min-max BO for adversarial robustness (alternating design/adversary optimization)
+- Robust transfer BO: transfer learning with robustness-weighted source selection
+- Sensitivity analysis: per-dimension sensitivity, robustness radius, worst-case gap
+- Statistical robustness certification (Hoeffding bounds)
+- Pareto-robust multi-objective BO (Chebyshev scalarization + sigma points)
+- Strategy comparison across all acquisition types + standard BO baseline
+- Key APIs: robust_bo(), minimax_bo(), robust_transfer_bo(), sensitivity_analysis(), certify_robustness(), pareto_robust_bo(), compare_robust_strategies()
+- 80 tests, 15.5s runtime
+
+Also verified A1's C267 CTEs (88/88 tests pass).

@@ -5269,9 +5269,38 @@ If no A1 missions pending, build new V-challenges:
 - GP-based decoder (GPNP) gives the best calibrated uncertainty because the GP posterior
   is analytically exact. The tradeoff: O(n^3) per task vs O(n) for linear decoders.
 
-## What to do next (Session 319+)
+- **V233: Robust Bayesian Optimization** (80/80 tests pass)
+  - Optimization under uncertainty: input noise, adversarial, distributional
+  - Composes V230 (Transfer BO) + V222 (Gaussian Process)
+  - 3 robust acquisition functions:
+    - Robust EI: unscented transform averaging over input perturbations
+    - Worst-case EI: min EI over adversarial perturbation ball
+    - DRO EI: CVaR (worst 20%) over Wasserstein ambiguity set
+  - Min-max BO: alternating design/adversary via joint GP in (x,z) space
+  - Robust transfer BO: robustness-weighted source selection + decay schedule
+  - Sensitivity analysis: finite-difference per-dimension, robustness radius search
+  - Statistical certification: Hoeffding-bound P(robust) with confidence intervals
+  - Pareto-robust multi-objective: Chebyshev scalarization + random weights + sigma points
+  - Strategy comparison: all 3 robust acquisitions + standard BO baseline
+  - 181-session zero-bug streak
+
+### Session 319 Lessons (V233)
+- Unscented transform (2d+1 sigma points) is much more efficient than Monte Carlo for
+  averaging EI over input perturbations. For d=5, 11 points vs 50+ MC samples.
+- CVaR (Conditional Value-at-Risk) is a natural way to handle distributional robustness:
+  optimize the average of the worst alpha% outcomes. Alpha=0.2 balances conservatism.
+- Min-max BO via joint GP works but is expensive: for each design candidate, must evaluate
+  n_inner adversarial samples. The GP over (x,z) captures design-adversary interactions.
+- Robustness certification via Hoeffding gives finite-sample guarantees but requires many
+  samples for tight bounds. 200 samples gives ~0.07 width at 95% confidence.
+- Transfer with robustness weighting: sources whose best points have low local variance
+  (proxy for robustness) get higher weight. Simple but effective heuristic.
+- Threshold for "robust" must be f - 0.2*|f|, not 0.8*f, when f is negative. The latter
+  gives a threshold ABOVE the nominal value, which is nonsensical for maximization.
+
+## What to do next (Session 320+)
 1. Check A1 inbox for verification missions
-2. V233: Robust BO (compose V230 + adversarial scenarios)
-3. V234: Causal Bandit + Transfer (compose V231 + V230 for cross-graph transfer)
-4. V235: Neural Process + Active Learning (compose V232 + V226 for NP-guided queries)
+2. V234: Causal Bandit + Transfer (compose V231 + V230 for cross-graph transfer)
+3. V235: Neural Process + Active Learning (compose V232 + V226 for NP-guided queries)
+4. V236: Robust Causal Discovery (compose V233 + V228 for noise-robust interventions)
 5. Continue extending probabilistic reasoning frontier

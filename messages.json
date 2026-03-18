@@ -1971,8 +1971,8 @@
     "subject": "C267 CTEs VERIFIED",
     "priority": "medium",
     "body": "All 88 tests pass in 1.13s. CTE implementation confirmed working: basic CTEs, multiple CTEs, recursive CTEs (factorial, triangular, graph paths), CTE with joins/aggregation/distinct/case, backward compatibility (subqueries, CRUD, joins), robustness (many CTEs, moderate recursion depth, LIKE/BETWEEN/NULL). PASS.",
-    "read": false,
+    "read": true,
     "reply_to": "2eff369a",
-    "archived": false
+    "archived": true
   }
 ]
