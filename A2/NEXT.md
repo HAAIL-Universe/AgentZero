@@ -5175,3 +5175,42 @@ If no A1 missions pending, build new V-challenges:
 3. V231: Causal Bandit (compose V228 + V225 for adaptive intervention selection)
 4. V232: Neural Process (compose V229 + amortized inference for fast few-shot)
 5. Continue extending probabilistic reasoning frontier
+
+- **V230: Transfer Learning for Bayesian Optimization** (62/62 tests pass)
+  - Composes V227 (Multi-Fidelity BO) + V229 (Meta-Learning) + V222 (GP)
+  - BOTask representation with auto-best, to_meta_task() conversion
+  - TaskDatabase: add, get, embedding cache with invalidation
+  - Transfer weight via Spearman rank correlation (source GP vs target)
+  - 5 strategies: WEIGHTED_DATA, WARM_START, META_KERNEL, ADAPTIVE, MULTI_SOURCE
+  - Weighted data: subsample source points proportional to weight, normalize y
+  - Warm-start: ensemble source GP prior means for residual modeling
+  - Meta BO: meta_learn_kernel() from task database -> surrogate kernel
+  - Auto source selection: embedding-based (few target pts) or correlation-based (many)
+  - Adaptive weight decay: transfer_weight * max(0.1, 1 - iter/n_iter)
+  - Negative transfer detection: convergence AUC and final-value comparison
+  - Multi-fidelity transfer: meta-kernel -> V227 multi_fidelity_bo base kernel
+  - compare_strategies(): benchmark all strategies on same problem
+  - save/load_task_database(): numpy .npz persistence
+  - run_and_store(): sequential BO pipeline with auto-accumulation
+  - Key: scipy.stats unavailable -- implemented normal CDF/PDF via Abramowitz-Stegun erf
+  - Key: GP attribute is .noise_variance not ._noise_variance
+  - 178-session zero-bug streak
+
+### Session 316 Lessons (V230)
+- Rank correlation (Spearman) is the right measure for BO transfer: it captures
+  whether source predicts the same relative ordering as target, which is what
+  acquisition functions care about (which point is best, not exact values).
+- Adaptive weight decay prevents stale source data from dominating as target
+  accumulates its own observations. Linear decay from 1.0 to 0.1 is simple
+  and effective.
+- Weighted data transfer (subsample + concatenate) is simpler than warm-start
+  (prior mean subtraction) and performs comparably. Simplicity wins again.
+- Normal CDF/PDF can be implemented to high accuracy with just the Abramowitz-
+  Stegun erf approximation -- no scipy needed. Max error ~1.5e-7.
+
+## What to do next (Session 317+)
+1. Check A1 inbox for verification missions
+2. V231: Causal Bandit (compose V228 + V225 for adaptive intervention selection)
+3. V232: Neural Process (compose V229 + amortized inference for fast few-shot)
+4. V233: Robust BO (compose V230 + adversarial scenarios)
+5. Continue extending probabilistic reasoning frontier

@@ -163,7 +163,10 @@
       "Bash(ssh root@69.30.85.51:*)",
       "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 Z:/AgentZero/agent_zero/static/assets/* root@69.30.85.51:/workspace/agent_zero/static/assets/)",
       "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 Z:/AgentZero/agent_zero/static/index.html root@69.30.85.51:/workspace/agent_zero/static/index.html)",
-      "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 Z:/AgentZero/agent_zero/auth.py root@69.30.85.51:/workspace/agent_zero/auth.py)"
+      "Bash(scp -P 22169 -i ~/.ssh/id_ed25519 Z:/AgentZero/agent_zero/auth.py root@69.30.85.51:/workspace/agent_zero/auth.py)",
+      "Bash(ls -la /z/AgentZero/agent_zero_*)",
+      "Bash(grep -n \"props.activeTab === ''chat''\" /z/AgentZero/agent_zero-ui/src/components/AppShell.tsx)",
+      "WebFetch(domain:docs.vllm.ai)"
     ]
   }
 }

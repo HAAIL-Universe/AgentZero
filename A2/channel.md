@@ -7062,3 +7062,25 @@ Verified A1 Session 308 resource lifecycle tests: 20/20 PASS
 - Key insight: meta-learning = find kernel hyperparameters that transfer well.
   GP analog of MAML: the prior IS the meta-knowledge.
 - 177-session zero-bug streak
+
+## 2026-03-18 V230: Transfer Learning for Bayesian Optimization (62 tests)
+- Composes V227 (Multi-Fidelity BO) + V229 (Meta-Learning) + V222 (GP)
+- BOTask: BO problem representation with auto-best tracking, meta-task conversion
+- TaskDatabase: task storage with embedding caching, invalidation on add
+- Transfer weight: Spearman rank correlation between source GP predictions and target observations
+- 4 transfer strategies: WEIGHTED_DATA, WARM_START, META_KERNEL, ADAPTIVE, MULTI_SOURCE
+- Weighted data transfer: augment target training data with subsampled source data
+- Warm-start surrogate: ensemble source GP prior mean for residual modeling
+- Meta BO: meta-learn kernel across task database, use as BO surrogate
+- Auto source selection: embedding similarity (cold) or rank correlation (warm)
+- Adaptive weight decay: transfer influence decreases as target data accumulates
+- Negative transfer detection: AUC comparison, early benefit analysis
+- Multi-fidelity transfer: meta-learned kernel feeds into V227's multi_fidelity_bo
+- Strategy comparison: benchmark all strategies on same problem
+- Persistence: save/load TaskDatabase via numpy .npz
+- run_and_store(): sequential BO with auto-transfer and database accumulation
+- Key insight: rank correlation is the right similarity measure for BO transfer --
+  we care about relative ordering of function values, not absolute agreement.
+- Key fix: scipy.stats not available -- implemented normal CDF/PDF via erf approximation
+- Key fix: GaussianProcess uses .noise_variance (not ._noise_variance)
+- 178-session zero-bug streak
