@@ -78,6 +78,7 @@ class TokenType(Enum):
     EQ = auto(); NE = auto(); LT = auto(); LE = auto()
     GT = auto(); GE = auto()
     PLUS = auto(); MINUS = auto(); STAR = auto(); SLASH = auto()
+    CONCAT = auto()  # ||
     # Punctuation
     LPAREN = auto(); RPAREN = auto(); COMMA = auto(); DOT = auto()
     SEMICOLON = auto()
@@ -163,6 +164,10 @@ class Lexer:
                     continue
                 if two == '>=':
                     self.tokens.append(Token(TokenType.GE, '>=', self.pos))
+                    self.pos += 2
+                    continue
+                if two == '||':
+                    self.tokens.append(Token(TokenType.CONCAT, '||', self.pos))
                     self.pos += 2
                     continue
             # Single-char operators
@@ -820,7 +825,7 @@ class Parser:
         return self._parse_comparison()
 
     def _parse_comparison(self) -> Any:
-        left = self._parse_addition()
+        left = self._parse_concat()
 
         # IS [NOT] NULL
         if self.peek().type == TokenType.IS:
@@ -842,13 +847,13 @@ class Parser:
                 return SqlLogic(op='not', operands=[SqlInList(expr=left, values=vals)])
             elif self.peek().type == TokenType.LIKE:
                 self.advance()
-                pattern = self._parse_addition()
+                pattern = self._parse_concat()
                 return SqlLogic(op='not', operands=[SqlComparison(op='like', left=left, right=pattern)])
             elif self.peek().type == TokenType.BETWEEN:
                 self.advance()
-                low = self._parse_addition()
+                low = self._parse_concat()
                 self.expect(TokenType.AND)
-                high = self._parse_addition()
+                high = self._parse_concat()
                 return SqlLogic(op='not', operands=[SqlBetween(expr=left, low=low, high=high)])
             else:
                 self.pos -= 1  # push NOT back
@@ -864,14 +869,14 @@ class Parser:
 
         # BETWEEN
         if self.match(TokenType.BETWEEN):
-            low = self._parse_addition()
+            low = self._parse_concat()
             self.expect(TokenType.AND)
-            high = self._parse_addition()
+            high = self._parse_concat()
             return SqlBetween(expr=left, low=low, high=high)
 
         # LIKE
         if self.match(TokenType.LIKE):
-            pattern = self._parse_addition()
+            pattern = self._parse_concat()
             return SqlComparison(op='like', left=left, right=pattern)
 
         # Standard comparison operators
@@ -881,9 +886,17 @@ class Parser:
         }
         for tt, op_str in op_map.items():
             if self.match(tt):
-                right = self._parse_addition()
+                right = self._parse_concat()
                 return SqlComparison(op=op_str, left=left, right=right)
 
+        return left
+
+    def _parse_concat(self) -> Any:
+        """Parse string concatenation (||) -- between comparison and addition."""
+        left = self._parse_addition()
+        while self.match(TokenType.CONCAT):
+            right = self._parse_addition()
+            left = SqlBinOp(op='||', left=left, right=right)
         return left
 
     def _parse_addition(self) -> Any:
@@ -1418,26 +1431,71 @@ class QueryCompiler:
 
     def _has_aggregates(self, columns: List[SelectExpr]) -> bool:
         for col in columns:
-            if isinstance(col.expr, SqlAggCall):
+            if self._expr_contains_agg(col.expr):
                 return True
         return False
 
+    @staticmethod
+    def _expr_contains_agg(expr) -> bool:
+        """Recursively check if an expression contains an aggregate call."""
+        if isinstance(expr, SqlAggCall):
+            return True
+        if isinstance(expr, SqlBinOp):
+            return __class__._expr_contains_agg(expr.left) or __class__._expr_contains_agg(expr.right)
+        if isinstance(expr, SqlCase):
+            for cond, result in expr.whens:
+                if __class__._expr_contains_agg(cond) or __class__._expr_contains_agg(result):
+                    return True
+            if expr.else_result and __class__._expr_contains_agg(expr.else_result):
+                return True
+        if isinstance(expr, SqlFuncCall):
+            return any(__class__._expr_contains_agg(a) for a in expr.args)
+        return False
+
+    def _collect_agg_nodes(self, expr, out: list):
+        """Recursively collect all SqlAggCall nodes from an expression."""
+        if isinstance(expr, SqlAggCall):
+            out.append(expr)
+            return
+        if isinstance(expr, SqlBinOp):
+            self._collect_agg_nodes(expr.left, out)
+            self._collect_agg_nodes(expr.right, out)
+        elif isinstance(expr, SqlCase):
+            for cond, result in expr.whens:
+                self._collect_agg_nodes(cond, out)
+                self._collect_agg_nodes(result, out)
+            if expr.else_result:
+                self._collect_agg_nodes(expr.else_result, out)
+        elif isinstance(expr, SqlFuncCall):
+            for a in expr.args:
+                self._collect_agg_nodes(a, out)
+
     def _extract_aggregates(self, columns: List[SelectExpr]) -> List[AggCall]:
         aggs = []
+        seen = set()
         for col in columns:
-            if isinstance(col.expr, SqlAggCall):
+            agg_nodes = []
+            self._collect_agg_nodes(col.expr, agg_nodes)
+            for agg_node in agg_nodes:
+                # For top-level agg calls, use the column alias if provided
+                if isinstance(col.expr, SqlAggCall) and col.alias:
+                    alias = col.alias
+                else:
+                    alias = self._agg_alias(agg_node)
+                if alias in seen:
+                    continue
+                seen.add(alias)
                 func_map = {
-                    'count': AggFunc.COUNT_STAR if col.expr.arg is None else AggFunc.COUNT,
+                    'count': AggFunc.COUNT_STAR if agg_node.arg is None else AggFunc.COUNT,
                     'sum': AggFunc.SUM, 'avg': AggFunc.AVG,
                     'min': AggFunc.MIN, 'max': AggFunc.MAX,
                 }
-                func = func_map.get(col.expr.func, AggFunc.COUNT)
+                func = func_map.get(agg_node.func, AggFunc.COUNT)
                 arg_expr = None
-                if col.expr.arg is not None:
-                    arg_expr = self._sql_to_qe_expr(col.expr.arg)
-                alias = col.alias or self._agg_alias(col.expr)
+                if agg_node.arg is not None:
+                    arg_expr = self._sql_to_qe_expr(agg_node.arg)
                 aggs.append(AggCall(func=func, column=arg_expr,
-                                   distinct=col.expr.distinct, alias=alias))
+                                   distinct=agg_node.distinct, alias=alias))
         return aggs
 
     @staticmethod

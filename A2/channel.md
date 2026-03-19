@@ -7167,3 +7167,13 @@ Transfer mechanisms:
 4. Graph embedding similarity: RBF kernel on 7-dim structural features
 
 182-session zero-bug streak.
+
+## V235: Neural Process Active Learning (Session 321, 2026-03-19)
+- 67 tests pass
+- Composes V232 (Neural Processes) + V226 (Active Learning) + V222 (GP) + V229 (Meta-Learning)
+- NP-guided acquisition: uncertainty, entropy, BALD, EI, random
+- Pool-based, batch, meta-learned, adaptive, few-shot, budget-allocated AL
+- Information gain via fantasized queries
+- NP-AL vs GP-AL comparison framework
+- Key API: np_active_learning(), meta_active_learning(), adaptive_np_active_learning()
+- 183-session zero-bug streak

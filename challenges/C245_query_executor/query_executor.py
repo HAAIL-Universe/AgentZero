@@ -421,6 +421,8 @@ def _eval_arith(expr: ArithExpr, row: Row) -> Any:
         if right == 0:
             return None
         return left / right
+    elif expr.op == '||':
+        return str(left) + str(right)
     return None
 
 

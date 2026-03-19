@@ -141,7 +141,7 @@ class SubqueryParser(BuiltinParser):
 
     def _parse_comparison(self):
         """Override to handle IN (subquery), NOT IN (subquery), and ALL/ANY/SOME."""
-        left = self._parse_addition()
+        left = self._parse_concat()
         tok = self.peek()
 
         # IS [NOT] NULL -- must check before NOT IN
@@ -170,14 +170,14 @@ class SubqueryParser(BuiltinParser):
             elif self.pos + 1 < len(self.tokens) and self.tokens[self.pos + 1].type == TokenType.LIKE:
                 self.advance()  # NOT
                 self.advance()  # LIKE
-                pattern = self._parse_addition()
+                pattern = self._parse_concat()
                 return SqlLogic(op='not', operands=[SqlComparison(op='like', left=left, right=pattern)])
             elif self.pos + 1 < len(self.tokens) and self.tokens[self.pos + 1].type == TokenType.BETWEEN:
                 self.advance()  # NOT
                 self.advance()  # BETWEEN
-                low = self._parse_addition()
+                low = self._parse_concat()
                 self.expect(TokenType.AND)
-                high = self._parse_addition()
+                high = self._parse_concat()
                 return SqlLogic(op='not', operands=[SqlBetween(expr=left, low=low, high=high)])
 
         # IN (subquery) / IN (list)
@@ -198,15 +198,15 @@ class SubqueryParser(BuiltinParser):
         # BETWEEN
         if tok.type == TokenType.BETWEEN:
             self.advance()
-            low = self._parse_addition()
+            low = self._parse_concat()
             self.expect(TokenType.AND)
-            high = self._parse_addition()
+            high = self._parse_concat()
             return SqlBetween(expr=left, low=low, high=high)
 
         # LIKE
         if tok.type == TokenType.LIKE:
             self.advance()
-            pattern = self._parse_addition()
+            pattern = self._parse_concat()
             return SqlComparison(op='like', left=left, right=pattern)
 
         # Comparison operators: check for ALL/ANY/SOME quantifier
@@ -234,7 +234,7 @@ class SubqueryParser(BuiltinParser):
             # Regular comparison
             op = op_map[tok.type]
             self.advance()
-            right = self._parse_addition()
+            right = self._parse_concat()
             return SqlComparison(op=op, left=left, right=right)
 
         return left
