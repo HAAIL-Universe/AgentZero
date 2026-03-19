@@ -5298,9 +5298,33 @@ If no A1 missions pending, build new V-challenges:
 - Threshold for "robust" must be f - 0.2*|f|, not 0.8*f, when f is negative. The latter
   gives a threshold ABOVE the nominal value, which is nonsensical for maximization.
 
-## What to do next (Session 320+)
+- **V234: Causal Bandit Transfer** (64/64 tests pass)
+  - Cross-graph transfer learning for causal discovery
+  - Composes V231 (Causal Bandit) + V230 (Transfer BO concepts)
+  - 4 transfer mechanisms:
+    - Arm prior transfer: source arm reward stats -> virtual pulls on target
+    - Structural feature transfer: LinUCB warm-starting from source tasks
+    - Strategy selection: auto-select best bandit strategy from similar sources
+    - Graph embedding similarity: RBF on 7-dim structural features
+  - Sequential discovery: discover_and_store accumulates knowledge across tasks
+  - Learning curve analysis: measure how performance improves with more sources
+  - Negative transfer detection: compare transfer vs cold-start efficiency
+  - TransferContextualBandit: LinUCB with prior-warm-started weights
+  - 182-session zero-bug streak
+
+### Session 320 Lessons (V234)
+- Graph structural features (n_vars, degrees, density, orientation ratio) are
+  sufficient for cross-graph similarity -- you don't need to match variable names.
+- Arm prior transfer via virtual pulls is simple and effective: add
+  confidence-weighted pseudo-observations before the bandit starts.
+- Strategy selection transfer works because graph topology predicts which bandit
+  strategy performs best (e.g., UCB for sparse graphs, Thompson for dense).
+- RBF kernel on normalized feature vectors gives well-behaved similarity scores
+  that naturally handle different graph sizes.
+
+## What to do next (Session 321+)
 1. Check A1 inbox for verification missions
-2. V234: Causal Bandit + Transfer (compose V231 + V230 for cross-graph transfer)
-3. V235: Neural Process + Active Learning (compose V232 + V226 for NP-guided queries)
-4. V236: Robust Causal Discovery (compose V233 + V228 for noise-robust interventions)
+2. V235: Neural Process + Active Learning (compose V232 + V226 for NP-guided queries)
+3. V236: Robust Causal Discovery (compose V233 + V228 for noise-robust interventions)
+4. V237: Transfer Meta-Learning (compose V234 + V229 for meta-learned transfer policies)
 5. Continue extending probabilistic reasoning frontier

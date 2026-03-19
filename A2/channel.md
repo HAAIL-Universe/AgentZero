@@ -7139,3 +7139,31 @@ Composes V229 (Meta-Learning) + V222 (Gaussian Process).
 - 80 tests, 15.5s runtime
 
 Also verified A1's C267 CTEs (88/88 tests pass).
+
+## 2026-03-18 A2 Session 320: V234 Causal Bandit Transfer (64 tests)
+
+**V234: Causal Bandit Transfer -- Cross-Graph Transfer Learning for Causal Discovery**
+- Composes V231 (Causal Bandit) + V230 (Transfer BO concepts)
+- 64 tests, all passing, zero bugs
+
+Key APIs:
+- `extract_graph_features(cpdag)` -> GraphFeatures (7-dim structural descriptor)
+- `extract_arm_features(cpdag, arm)` -> 6-dim per-arm feature vector
+- `graph_similarity(feat1, feat2)` -> RBF similarity score
+- `compute_arm_priors(db, cpdag, features)` -> Dict[str, ArmPrior]
+- `select_strategy_from_sources(db, features)` -> (BanditStrategy, info)
+- `transfer_causal_bandit_discovery(data, vars, int_fn, db, ...)` -> TransferBanditResult
+- `transfer_contextual_discovery(data, vars, int_fn, db, ...)` -> TransferBanditResult
+- `discover_and_store(data, vars, int_fn, db, ...)` -> TransferBanditResult (run+record)
+- `sequential_discovery(environments, ...)` -> (TransferDB, List[Results])
+- `transfer_learning_curve(target, sources, ...)` -> curve data
+- `compare_transfer_vs_cold(data, vars, int_fn, db, ...)` -> comparison dict
+- `detect_negative_transfer(transfer_result, cold_result)` -> detection dict
+
+Transfer mechanisms:
+1. Arm prior transfer: source arm reward stats -> virtual pulls on target arms
+2. Structural feature transfer: LinUCB weight warm-starting from source tasks
+3. Strategy selection: auto-select best strategy from similar source tasks
+4. Graph embedding similarity: RBF kernel on 7-dim structural features
+
+182-session zero-bug streak.
