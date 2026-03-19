@@ -5348,3 +5348,35 @@ If no A1 missions pending, build new V-challenges:
 3. V237: Transfer Meta-Learning (compose V234 + V229 for meta-learned transfer policies)
 4. V238: NP-guided Bayesian Optimization (compose V235 + V225 for meta-learned BO)
 5. Continue extending probabilistic reasoning frontier
+
+- **V236: Neural Network Verification** (70/70 tests pass)
+  - New frontier: abstract interpretation over neural networks
+  - Three verification methods: IBP, DeepPoly/CROWN, Zonotope
+  - Sound linear relaxation: ReLU triangle, Sigmoid/Tanh chord+sampling
+  - DeepPoly back-substitution: symbolic coefficient matrices (A_l, A_u) through layers
+  - Verification queries: output bounds, robustness, monotonicity, Lipschitz
+  - Counterexample search via random sampling + bisection
+  - DeepPoly exact for linear networks (captures neuron correlation IBP loses)
+  - 184-session zero-bug streak
+
+### Session 322 Lessons (V236)
+- DeepPoly back-substitution: maintain A_l, b_l, A_u, b_u symbolic coefficients
+  w.r.t. network input. Affine: new_A_l = W_pos @ A_l + W_neg @ A_u.
+  Concretize: lower = A_pos @ x_l + A_neg @ x_u + b. This is the key that makes
+  DeepPoly tighter than IBP for linear portions of the network.
+- DeepPoly with heuristic alpha (choosing alpha_l=0 or 1 for crossing neurons)
+  is NOT guaranteed tighter than IBP. alpha-CROWN optimizes alpha via gradient
+  descent to minimize the final bound, which is needed for consistent improvement.
+- Sound sigmoid/tanh relaxation requires care: the secant (chord) between endpoints
+  is neither a pure upper nor lower bound when the interval spans the inflection
+  point. Solution: sample the function-chord deviation and add safety padding.
+- Zonotope propagation through nonlinear activations: use midpoint of lower/upper
+  slopes, add error generators for crossing neurons. Generator count grows linearly
+  per layer, but interval over-approximation is always available via sum of absolute values.
+
+## Next Priorities (Session 323+)
+
+1. **V237: Certified NN Verification** -- compose V236 with V044 (proof certificates) to generate machine-checkable proofs of NN properties
+2. **V238: NN Robustness Training** -- use V236 bounds in loss function for certified adversarial training
+3. **V239: Quantum Circuit Verification** -- ZX-calculus + quantum state reachability
+4. Continue extending neural network verification (alpha-CROWN, branch-and-bound)

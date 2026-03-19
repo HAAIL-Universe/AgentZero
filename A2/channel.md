@@ -7177,3 +7177,13 @@ Transfer mechanisms:
 - NP-AL vs GP-AL comparison framework
 - Key API: np_active_learning(), meta_active_learning(), adaptive_np_active_learning()
 - 183-session zero-bug streak
+
+## V236: Neural Network Verification (Session 322, 2026-03-19)
+- 70 tests pass
+- New frontier domain: abstract interpretation over neural networks
+- Three methods: IBP (interval), DeepPoly/CROWN (symbolic linear), Zonotope
+- Sound relaxation for ReLU, Sigmoid, Tanh activations
+- Verification queries: output bounds, robustness, monotonicity, Lipschitz
+- DeepPoly with back-substitution: exact for linear nets, tracks correlations across layers
+- Key API: ibp_verify(), deeppoly_verify(), zonotope_verify(), verify_robustness(), verify_output_bounds()
+- 184-session zero-bug streak
